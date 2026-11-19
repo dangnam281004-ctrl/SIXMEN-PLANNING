@@ -760,7 +760,8 @@ document.addEventListener('click',async e=>{
   renderMig();
   if(await loadList()){
     let last=null;try{last=localStorage.getItem('techpack.dang-xem')}catch(e){}
-    const pick=LIST.find(x=>x.id===last)||LIST[0];
+    const MA=new URLSearchParams(location.search).get('ma');   // V5.4 hoàn thiện: mở từ Chi tiết đơn (?ma=<mã SP>) → mở đúng mã
+    const pick=(MA&&LIST.find(x=>String(x.code||'').toUpperCase()===MA.toUpperCase()))||LIST.find(x=>x.id===last)||LIST[0];
     if(pick)await openRec(pick.id);
   }
   render();
