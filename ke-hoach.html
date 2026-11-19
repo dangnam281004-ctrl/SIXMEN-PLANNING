@@ -172,6 +172,9 @@ body[data-step="1"] #xac-nhan,body[data-step="2"] #xac-nhan{display:none}
 body.gui-mode #ktabs,body.gui-mode #tabs,body.gui-mode #stepper,body.gui-mode #z4tabs,body.gui-mode #kiem-nvl,body.gui-mode #khtl,body.gui-mode #stepnav,body.gui-mode .page-head p,body.gui-mode #kt-help,body.gui-mode footer,body.gui-mode #z1,body.gui-mode #z2,body.gui-mode #sku,body.gui-mode #lap-don,body.gui-mode #roNote{display:none!important}
 body[data-step="3"] #sku,body[data-step="4"] #sku,body[data-step="5"] #sku,body[data-step="3"] #z1,body[data-step="4"] #z1,body[data-step="5"] #z1,body[data-step="3"] #z2,body[data-step="4"] #z2,body[data-step="5"] #z2,body[data-step="3"] #lap-don,body[data-step="4"] #lap-don,body[data-step="5"] #lap-don{display:none}
 #z4tabs,#xac-nhan>.sec-head{display:none}
+/* V5.4 hoàn thiện: nhúng trong Chi tiết đơn → bỏ menu, thanh trên, tiêu đề, nút trùng với trang cha (Mẫu gửi xưởng, Chi tiết đơn) */
+body.gui-embed .app{display:block;min-height:0}body.gui-embed .content{padding:12px 14px 16px}
+body.gui-embed .side,body.gui-embed .topbar,body.gui-embed #kbFilter,body.gui-embed .page-head,body.gui-embed #dbBanner,body.gui-embed #v54Test,body.gui-embed #chotToast,body.gui-embed [data-oact="mau"],body.gui-embed .ck-head a[href^="don-hang.html"]{display:none!important}
 /* V5.4 Đợt 2 (W3): 1 màn — lập đơn, kiểm tra NVL / giữ NVL, kiểm tra & chốt cùng hiện (data-step="kh"); Kế hoạch tương lai màn riêng (5); Gửi xưởng giữ nguyên (4) */
 body[data-step="kh"] #kiem-tra{display:block}
 body[data-step="kh"] #kiem-nvl,body[data-step="kh"] #kiem-tra{border-top:1px dashed var(--line);padding-top:12px}
@@ -748,6 +751,9 @@ const ME_ID = () => Khung.me&&Khung.me.id;
 /* V5.3: ?gui=<id> = màn hình Gửi xưởng (thực thi, mở từ Đơn sản xuất) · ?bg=<id> = đánh dấu đơn cần bàn giao ở thẻ Kiểm tra & Chốt.
    OL(o) = tên nhận diện trên giao diện: mã PO VIKING → Xưởng, chưa có PO thì sản phẩm · xưởng · loại · ngày lập (o.code chỉ còn là mã nội bộ) */
 const QS=new URLSearchParams(location.search), GUI_ID=QS.get("gui"), BG_ID=QS.get("bg");
+/* V5.4 hoàn thiện: ?gui=<id>&embed=1 = màn Gửi xưởng nhúng trong Chi tiết đơn (khung "Chuẩn bị & gửi xưởng"). Cùng code, cùng kiểm tra; chỉ ẩn khung trang và báo trang cha */
+const EMBED=!!GUI_ID&&QS.get("embed")==="1"&&window.parent!==window;
+const toParent=msg=>{ if(EMBED) try { window.parent.postMessage(Object.assign({kh54:1, id:GUI_ID}, msg), location.origin); } catch(e){} };
 const OL=(o,m)=>Don.label(o,m||model());
 /* Quy trình mới (anh duyệt 26/10): Chốt (khoá số lượng, tính Đã đặt, được chốt khi thiếu NVL) → Gửi xưởng (kiểm lại NVL) → Xưởng bắt đầu.
    Đơn đã chốt theo quy trình mới (flow 2) mà chưa gửi xưởng vẫn ở bước 3 / 4 của Kế hoạch để giữ NVL, xuất NVL, tick việc gửi xưởng */
@@ -890,6 +896,7 @@ function sendOrder(o){
   if(!confirm((pr.left.length?`Còn ${pr.left.length} việc gửi xưởng chưa tick:\n• ${pr.left.join("\n• ")}\n\n`:"")+`Gửi xưởng đơn ${OL(o)}?\n`+(o.flow===3?`Đơn ghi mốc Đã gửi xưởng; tiếp theo ghi xưởng xác nhận nhận đơn và ngày bắt đầu ở trang Chi tiết đơn.`:`Đơn chuyển sang "Chờ triển khai", chờ xưởng báo bắt đầu (xác nhận ở trang Chi tiết đơn).`))) return;
   if(override) o.sendOverride=override;
   o.sentAt=today(); o.sentBy=ME_ID(); renderAll(); saveNow();
+  if(EMBED) waitSaved().then(ok=>toParent({sent:ok?1:0}));   // trang cha (Chi tiết đơn) đóng khung, cập nhật trạng thái
 }
 /* Một dòng mô tả trạng thái NVL của đơn (dưới đơn, bước 4) */
 function nvlText(C){
@@ -1729,7 +1736,10 @@ function renderAll(){
   document.body.classList.toggle("ro", !Khung.canEdit(S.active));
   if(GUI_ID){ document.body.classList.add("gui-mode"); const go=plan().orders.find(o=>o.id===GUI_ID);
     document.title=`Gửi xưởng${go?" · "+OL(go):""}`; $(".page-head h1").innerHTML=`<a href="${go?"don-hang.html?id="+encodeURIComponent(go.id):"theo-doi.html"}" class="small" style="font-weight:500">← Đơn sản xuất</a><br>Gửi xưởng${go?" · "+esc(OL(go)):""}`;
-    { const t=$("#z4Title"); if(t) t.textContent="Xuất NVL · việc gửi xưởng · Gửi xưởng"; } }
+    { const t=$("#z4Title"); if(t) t.textContent="Xuất NVL · việc gửi xưởng · Gửi xưởng"; }
+    if(EMBED&&!document.body.classList.contains("gui-embed")){ document.body.classList.add("gui-embed");
+      const bs=document.createElement("base"); bs.target="_top"; document.head.appendChild(bs);   // link trong khung nhúng (Đặt mua NVL…) mở ở cửa sổ chính
+      const rep=()=>toParent({h:Math.ceil(document.documentElement.scrollHeight)}); try { new ResizeObserver(rep).observe(document.body); } catch(e){} setInterval(rep,1500); rep(); } }
   $("#roNote").innerHTML=`<b>Chỉ xem.</b> ${esc(model().name)} do <b>${esc(Khung.userName(model().owner))}</b> phụ trách. Tài khoản này xem được để phối hợp nhưng không sửa được.`;
   $("#perRoll").disabled=!Khung.isAdmin(); $("#perRoll").title=Khung.isAdmin()?"Định mức áo / cây riêng của mẫu này":"Định mức áo/cây: chỉ Admin đổi";
   $("#importBtn").hidden=!Khung.isAdmin(); $("#resetBtn").hidden=!Khung.isAdmin();

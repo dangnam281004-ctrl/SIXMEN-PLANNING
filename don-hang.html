@@ -92,7 +92,7 @@ function render(){
   /* V3: sau khi QLVH đã duyệt → gửi xưởng (gia công / FOB ở Kế hoạch; thêu / phôi bấm ở đây) → xưởng xác nhận nhận đơn → xưởng bắt đầu (2 mốc riêng) */
   if(can&&v3&&qOk&&stage==="run"&&!hasRecv){
     if(!o.sentAt&&o.type) acts.push(`<button class="btn primary" data-gapsend title="Đã gửi đơn (ảnh phiếu) cho xưởng qua Zalo">✓ Đã gửi đơn cho xưởng</button>`);
-    if(!o.sentAt&&!o.type) acts.push(`<a class="btn primary" href="${Don.guiHref(o,m.key)}" title="Màn hình gửi xưởng: xuất NVL, tick việc gửi xưởng, bấm Gửi xưởng">Gửi xưởng →</a>`);
+    if(!o.sentAt&&!o.type) acts.push(`<button class="btn primary" data-guigo title="Ngay tại trang này: xuất NVL, tick việc gửi xưởng, bấm Gửi xưởng">Chuẩn bị &amp; gửi xưởng</button>`);
     if(o.sentAt&&!o.ackAt) acts.push(`<button class="btn primary" data-ack title="Ghi ngày xưởng xác nhận đã nhận đơn">✓ Xưởng xác nhận nhận đơn</button>`);
     if(o.ackAt&&!o.startedAt&&!o.type) acts.push(`<button class="btn primary" data-start title="Ghi ngày xưởng báo bắt đầu may thực tế; mốc gọi xưởng tính từ ngày này">✓ Xưởng đã bắt đầu</button>`);
   }
@@ -101,7 +101,7 @@ function render(){
   if(can&&o.arrived&&hasRecv&&!o.doneAt&&!o.cancelled) acts.push(`<button class="btn ghost" data-chot-reopen title="VD xưởng giao bổ sung sau khi đã chốt">Mở lại giao nhận</button>`);
   if(can&&ph==="giao-du"&&Don.canFinish(o)) acts.push(`<button class="btn primary" data-tab="chung-tu" title="Ghi nhận bàn giao hồ sơ ở tab Chứng từ & Bàn giao">✓ Bàn giao hồ sơ →</button>`);
   if(ph==="giao-du"&&Don.handState(o)==="cho") acts.push(`<button class="btn${o.handover.toUser===ME()||(!o.handover.toUser&&Khung.isAdmin())?" primary":""}" data-tab="chung-tu">${Don.HAND.cho} →</button>`);
-  if(can&&ph==="da-chot") acts.push(`<a class="btn primary" href="${Don.guiHref(o,m.key)}" title="Màn hình gửi xưởng: xuất NVL, tick việc gửi xưởng, bấm Gửi xưởng">Gửi xưởng →</a>`);
+  if(can&&ph==="da-chot"&&!o.type) acts.push(`<button class="btn primary" data-guigo title="Ngay tại trang này: xuất NVL, tick việc gửi xưởng, bấm Gửi xưởng">Chuẩn bị &amp; gửi xưởng</button>`);
   if(can&&ph==="cho-trien-khai") acts.push(`<button class="btn primary" data-start title="Ghi ngày xưởng báo bắt đầu may thực tế; mốc gọi xưởng tính từ ngày này">✓ Xưởng đã bắt đầu</button>`);
   if(canP&&stage==="pending") acts.push(`<a class="btn primary" href="ke-hoach.html?m=${m.key}">Mở ở Kế hoạch →</a>`);
   if(canP&&stage==="run"&&!hasRecv&&!o.qlvh) acts.push(`<button class="btn" data-reopen title="Đưa đơn về Kế hoạch để sửa">Mở lại kế hoạch</button>`);
@@ -111,7 +111,7 @@ function render(){
   { const sp=Don.steps(o,S), ck=sp&&sp.cur?sp.cur.k:null;
     const isPri=a=>ck==="sx"?(v3&&!o.ackAt&&!hasRecv?/\sdata-ack[\s>]/.test(a):!o.startedAt&&!o.type&&!hasRecv&&(v3||o.flow===2)?/\sdata-start[\s>]/.test(a):/\sdata-recv[\s>]/.test(a))
       :ck==="tn"?/data-exack|&bg=/.test(a)
-      :ck==="giao"?/\sdata-chot[\s>]/.test(a):ck==="gui"?(/\sdata-gapsend[\s>]/.test(a)||/[?&]gui=/.test(a)):ck==="bg"?/data-tab="chung-tu"/.test(a):/Mở ở Kế hoạch|data-start|#b4"/.test(a)&&!ck;
+      :ck==="giao"?/\sdata-chot[\s>]/.test(a):ck==="gui"?(/\sdata-gapsend[\s>]/.test(a)||/\sdata-guigo[\s>]/.test(a)):ck==="bg"?/data-tab="chung-tu"/.test(a):/Mở ở Kế hoạch|data-start|#b4"/.test(a)&&!ck;
     for(let i=0;i<acts.length;i++){ acts[i]=isPri(acts[i])?acts[i].replace(/class="btn( ok| primary)?"/,'class="btn primary"'):acts[i].replace(/class="btn (ok|primary)"/,'class="btn"'); } }
   const lock=SoLuong.locked(o)||o.closed?`<span class="pill p-ok">🔒 ${o.nvlOut?"Đã xuất NVL":"Số lượng đã khóa"}</span>`:"";
   /* bảng size: đặt / đã nhận / còn thiếu / dư. Thiếu, dư tính theo từng ô màu × size (size dư không bù size thiếu),
@@ -138,7 +138,7 @@ function render(){
     ${o.cancelled?`<div class="ro">Đơn đã huỷ ${Don.hm(o.cancelled.at)} bởi ${esc(Khung.userName(o.cancelled.by))} · lý do: ${esc(o.cancelled.reason)}. Đơn không còn trừ vào Cần đặt.</div>`:""}
     <div class="split"><div style="display:grid;gap:16px;min-width:0">
       <div class="panel kv">
-        <div><span class="k">Mã sản phẩm</span>${esc(m.code||"—")} · ${esc(m.name)}</div>
+        <div><span class="k">Mã sản phẩm</span>${esc(m.code||"—")} · ${esc(m.name)} ${Khung.canTechPack()?`<a class="btn ghost" data-tp54 href="Tech-Pack-Hang-Hoa.html${m.code?"?ma="+encodeURIComponent(m.code):""}" target="_blank" rel="noopener" title="Ảnh sản phẩm, thông số, nguyên phụ liệu (mở tab mới)">Tech Pack · ảnh SP ↗</a>`:`<span class="muted small" data-tp54 title="Admin bật ở Cài đặt › Tài khoản › Quyền Tech Pack">Tech Pack: tài khoản chưa có quyền xem</span>`}</div>
         <div><span class="k">Quản lý kế hoạch</span>${esc(Khung.userName(m.owner))} <span class="muted small">(phụ trách mã)</span></div>
         ${o.closed?`<div><span class="k">Người thực thi</span>${o.exec?`<b>${esc(Don.execTxt(o))}</b> · ${o.exec.auto?"tự giao khi chốt (trước V5.3)":`${esc(Khung.userName(o.exec.by))} bàn giao`} ${Don.hm(o.exec.at)}${o.exec.reason?" · đổi: "+esc(o.exec.reason):""} · ${o.exec.traAt?`<span class="pill p-warn">Đã trả lại ${Don.hm(o.exec.traAt)} · ${esc(o.exec.traReason||"")}</span>`:o.exec.ackAt?`<span class="pill p-ok">Đã tiếp nhận ${Don.hm(o.exec.ackAt)}${o.exec.ackBy&&o.exec.ackBy!==o.exec.user?" · "+esc(Khung.userName(o.exec.ackBy))+" hỗ trợ":""}</span>`:`<span class="pill p-info">Đã bàn giao — Chờ tiếp nhận</span>`}`:Don.phase(o)==="chua-bg"?`<span class="pill p-warn">Đã chốt — Chưa bàn giao</span>`:`<span class="muted">chưa giao (đơn chốt trước V5)</span>`}${Khung.isAdmin()&&o.exec&&!o.cancelled&&!o.doneAt?` <button class="btn ghost" data-exdoi>Đổi người thực thi</button>`:""}
           ${(o.execLog||[]).length?`<details class="small"><summary>Lịch sử bàn giao (${o.execLog.length})</summary>${o.execLog.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${({giao:"bàn giao "+Khung.userName(e.user), nhan:"tiếp nhận", tra:"trả lại", doi:"đổi người thực thi → "+Khung.userName(e.user)})[e.act]||e.act}${e.reason?" · lý do: "+esc(e.reason):""}</div>`).join("")}</details>`:""}</div>`:""}
@@ -165,7 +165,7 @@ function render(){
       </div>
       ${v3&&o.closed?qlvhPanel(o,can):""}
       ${o.closed?vuongPanel(o,m,can):""}
-      <div class="panel"><div class="ph"><h2>Số lượng theo màu × size</h2><span class="muted small">${o.closed||o.nvlOut?"Đã lưu cố định khi chốt / xuất NVL":"Đơn chưa chốt: sửa ở Kế hoạch"}</span></div>${sizeTbl}</div>
+      <div class="panel"><div class="ph"><h2>Số lượng theo màu × size</h2><span class="muted small">${o.closed||o.nvlOut?"Đã lưu cố định khi chốt / xuất NVL":"Đơn chưa chốt: sửa ở Kế hoạch"}</span><button class="btn ghost" data-copydon style="margin-left:auto" title="Chép mã đơn, xưởng, ngày, PO, màu × size để dán Zalo / Google Sheet">Sao chép nội dung đơn</button></div>${sizeTbl}</div>
       ${recvOpen&&can&&stage==="run"?recvForm(o,r):""}
       ${chotOpen&&can&&stage==="run"&&hasRecv?chotForm(o,r):""}
       <div class="panel">
@@ -311,7 +311,7 @@ function tabBody({S,o,m}){
   if(tab==="gui-xuong"){
     const gc=!o.type&&Don.XUONG[o.xuong].type==="GC", L=CHECK(gc), ck=o.check||{}, done=L.filter(([k])=>ck[k]).length;
     if(o.type) return `<div class="empty">Đơn đặt gấp: không có checklist gửi xưởng.</div>`;
-    return `<div class="rl"><b>${done}/${L.length} việc</b> · tick ở <a href="${Don.guiHref(o,m.key)}">màn hình Gửi xưởng</a>${o.sentAt?` · đã gửi xưởng ${dmy(o.sentAt)}`:o.flow>=2?" · chưa gửi xưởng":""}</div>`+L.map(([k,t])=>`<div class="rl">${ck[k]?"✅":"⬜"} ${t}</div>`).join("");
+    return `<div class="rl"><b>${done}/${L.length} việc</b>${guiReady({o,m})?` · <button class="btn" data-guigo>Chuẩn bị &amp; gửi xưởng</button>`:""}${o.sentAt?` · đã gửi xưởng ${dmy(o.sentAt)}`:o.flow>=2?" · chưa gửi xưởng":""}</div>`+L.map(([k,t])=>`<div class="rl">${ck[k]?"✅":"⬜"} ${t}</div>`).join("");
   }
   if(tab==="timeline") return timelineTab(o);
   return history(o);
@@ -439,8 +439,55 @@ async function exAct(body){
   if(r.status!==200) alert((r.j&&r.j.error)||"Không thực hiện được");
   render(); loadLog(); return r.status===200;
 }
+/* ===== V5.4 hoàn thiện · công cụ người thực thi ngay trong Chi tiết đơn =====
+   Chuẩn bị & gửi xưởng: khung nhúng đúng màn Gửi xưởng cũ (ke-hoach.html?gui=&embed=1) → cùng kiểm tra NVL / PO / QLVH / ngoại lệ Admin, không viết lại logic.
+   Chỉ đơn gia công / FOB đã chốt, đã tiếp nhận, (flow 3) QLVH đã duyệt, chưa gửi. Thêu / phôi giữ nút "Đã gửi đơn cho xưởng" như cũ. */
+function guiReady(f){
+  if(!f) return false; const {o,m}=f, ph=Don.phase(o);
+  return !o.type&&!!o.closed&&!o.cancelled&&!o.sentAt&&!o.arrived&&Don.canAct(o,m.key)&&!Don.BGP.includes(ph)&&(o.flow!==3||Don.qlvhOk(o));
+}
+function guiClose(){ const w=document.getElementById("gui54"); if(w){ w.remove(); render(); loadLog(); } }
+function guiOpen(){
+  const f=find(); if(!f) return;
+  if(!guiReady(f)){ const o=f.o; alert(o.sentAt?"Đơn đã gửi xưởng.":Don.BGP.includes(Don.phase(o))?"Đơn chưa được người thực thi tiếp nhận.":o.flow===3&&!Don.qlvhOk(o)?"Chưa gửi xưởng được: cần đủ 2 mã PO ERP và xác nhận QLVH đã ký, duyệt (mục Duyệt PO bên dưới).":"Tài khoản này không thao tác gửi xưởng cho đơn này."); return; }
+  if(document.getElementById("gui54")) return;
+  if(!document.getElementById("gui54css")){ const st=document.createElement("style"); st.id="gui54css";
+    st.textContent=".gui54-back{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:60;display:flex;justify-content:center;align-items:flex-start;padding:20px 12px}"
+      +".gui54{background:var(--surface,#fff);border-radius:12px;width:min(1200px,100%);height:calc(100vh - 40px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}"
+      +".gui54-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line,#e5e7eb)}.gui54-h b{font-size:15px}.gui54-h .btn{margin-left:auto}"
+      +".gui54 iframe{border:0;width:100%;flex:1;background:var(--bg,#f6f7f9)}";
+    document.head.appendChild(st); }
+  const w=document.createElement("div"); w.id="gui54"; w.className="gui54-back";
+  w.innerHTML=`<div class="gui54" role="dialog" aria-modal="true" aria-label="Chuẩn bị và gửi xưởng"><div class="gui54-h"><b>Chuẩn bị &amp; gửi xưởng · ${esc(Don.label(f.o,f.m))}</b>
+    <span class="muted small">${Don.XUONG[f.o.xuong].type==="GC"?"Xuất NVL → tick việc gửi xưởng → Gửi xưởng":"Tick việc gửi xưởng → Gửi xưởng (FOB: xưởng tự lo NVL)"} · kiểm tra NVL, PO, QLVH như cũ</span>
+    <button class="btn" data-gui54x>Đóng</button></div><iframe src="${Don.guiFrame(f.o,f.m.key)}" title="Gửi xưởng ${esc(Don.label(f.o,f.m))}"></iframe></div>`;
+  document.body.appendChild(w);
+  w.addEventListener("click",e=>{ if(e.target===w||e.target.closest("[data-gui54x]")) guiClose(); });
+}
+window.addEventListener("message",e=>{ const d=e.data;
+  if(e.origin!==location.origin||!d||!d.kh54||d.id!==OID||!d.sent) return;
+  guiClose(); setTimeout(()=>alert("Đã ghi Gửi xưởng. Bước tiếp: ghi ngày xưởng xác nhận nhận đơn, rồi ngày xưởng bắt đầu."),50); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.getElementById("gui54")) guiClose(); });
+/* Sao chép nội dung đơn: dạng bảng (tab) để dán Google Sheet / Zalo. Không có dữ liệu nội bộ (tồn, ghi chú, người phụ trách) */
+function donText(f){
+  const {S,o,m}=f, X=Don.xOf(o), r=SoLuong.receiptInfo(o,S.perRoll||65), Z=[0,0,0,0,0];
+  const cols=Object.keys(r.ordered).filter(c=>(r.ordered[c]||Z).some(v=>v)), sum=a=>a.reduce((x,y)=>x+y,0), SZL=SZ.map(s=>s);
+  const L=[`ĐƠN SẢN XUẤT · ${Don.label(o,m)}`, `Sản phẩm: ${m.code||"—"} · ${m.name}`, `Xưởng: ${X.name} (${Don.typeLabel(o)})`,
+    `Ngày đặt: ${dmy(o.date)} · Xưởng hẹn giao: ${o.dueDate?dmy(o.dueDate):"chưa có"}`, ...(Don.poTxt(o)?[`PO ERP: ${Don.poTxt(o)}`]:[]), "",
+    ["Màu",...SZL,"Tổng"].join("\t"), ...cols.map(c=>[`${c}${CNM(c)?" · "+CNM(c):""}`,...(r.ordered[c]||Z).slice(0,SZL.length),sum(r.ordered[c]||Z)].join("\t")),
+    ["Tổng",...SZL.map((_,i)=>cols.reduce((a,c)=>a+(r.ordered[c]||Z)[i],0)),r.total].join("\t")];
+  return L.join("\n");
+}
+async function copyDon(){
+  const f=find(); if(!f) return; const t=donText(f);
+  try { await navigator.clipboard.writeText(t); }
+  catch(e){ const a=document.createElement("textarea"); a.value=t; a.style.cssText="position:fixed;left:-9999px"; document.body.appendChild(a); a.select(); try { document.execCommand("copy"); } catch(x){} a.remove(); }
+  const b=document.querySelector("[data-copydon]"); if(b){ b.textContent="✓ Đã sao chép"; setTimeout(()=>{ const c=document.querySelector("[data-copydon]"); if(c) c.textContent="Sao chép nội dung đơn"; },1800); }
+}
 document.addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
+  if(b.hasAttribute("data-guigo")){ guiOpen(); return; }
+  if(b.hasAttribute("data-copydon")){ copyDon(); return; }
   /* V5.4 Đợt 3: Tiếp nhận / Trả lại mở màn Tiếp nhận (checklist bắt buộc · 5 nhóm lý do), server kiểm lại */
   if((b.hasAttribute("data-exack")||b.hasAttribute("data-extra"))&&Don.tiepNhan54){ const f=find(); if(f){ Don.tiepNhan54(f.o,f.m.key,{mode:b.hasAttribute("data-exack")?"nhan":"tra", onDone:()=>{ render(); loadLog(); }}); } return; }
   if(b.hasAttribute("data-exack")){ exAct({op:"nhan-viec"}); return; }
@@ -665,6 +712,8 @@ Don.onChange(()=>{ if(!typing()) render(); });
 window.addEventListener("storage",e=>{ if(["kehoach-sx-v3","danhmuc-v1","nvl-v3"].includes(e.key)&&!typing()) render(); });
 $("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
 render();
+/* link "Gửi xưởng" từ Tổng quan / Quản lý đơn (…#gui-xuong): mở luôn khung Chuẩn bị & gửi xưởng nếu đơn đang ở bước này */
+if(tab==="gui-xuong") setTimeout(()=>{ if(guiReady(find())) guiOpen(); },400);
 const loadLog=()=>Don.fetchLog({oid:OID, limit:500}).then(r=>{ SRV=r; if((tab==="lich-su"||tab==="timeline")&&!typing()) render(); });
 loadLog(); Don.onChange(()=>setTimeout(loadLog,1500));   // sau mỗi lần sửa, đọc lại nhật ký server
 </script>

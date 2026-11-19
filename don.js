@@ -127,7 +127,9 @@
   /* V5.3 · đơn mua NVL: nhap (chưa chốt) · chua-bg (đã chốt, chưa bàn giao) · cho-nhan · tra-lai · nhan (đã tiếp nhận / đơn giao trước V5.3) */
   function buyBg(B){ var g = B && B.giao; if (!g) return B && B.chot ? "chua-bg" : "nhap"; if (g.traAt) return "tra-lai"; if (g.v === 2 && !g.ackAt) return "cho-nhan"; return "nhan"; }
   var buyReady = function(B){ return buyBg(B) === "nhan"; };
-  var guiHref = function(o, mk){ return "ke-hoach.html?m=" + mk + "&gui=" + encodeURIComponent(o.id); };
+  /* V5.4 hoàn thiện: gửi xưởng làm ngay ở Chi tiết đơn (khung Chuẩn bị & gửi xưởng). ke-hoach.html?gui=<id> vẫn mở được như cũ */
+  var guiHref = function(o, mk){ return "don-hang.html?id=" + encodeURIComponent(o.id) + "#gui-xuong"; };
+  var guiFrame = function(o, mk){ return "ke-hoach.html?m=" + mk + "&gui=" + encodeURIComponent(o.id) + "&embed=1"; };
   var needQlvh = function(o){ return o.flow === 3 && !!o.closed && !o.qlvh && !o.cancelled; };
   var qlvhOk = function(o){ return o.flow !== 3 || !!o.qlvh; };
   /* 2 PO ERP (anh yêu cầu 06/11): PO 1 = o.erpCode (HKD đặt VIKING), PO 2 = o.erpCode2 (VIKING đặt Xưởng). Đơn đã duyệt trước khi áp dụng (qlvh không có PO 2) giữ 1 mã như cũ */
@@ -610,6 +612,6 @@
   }
   window.Don = {uxCat:uxCat, UXCAT:UXCAT, mState:mState, DSTATE:DSTATE, BSTATE:BSTATE, schedText:schedText, buyLate:buyLate, buyFullAt:buyFullAt, buyHsLate:buyHsLate, buyBatches:buyBatches, buyBatchState:buyBatchState, buyDocsMissing:buyDocsMissing, batchDoc:batchDoc, BDOC_T:BDOC_T, rptState:rptState, KEY:KEY, op:op, steps:steps, taskView:taskView, stepAction:stepAction, updDays:updDays, updDue:updDue, updNext:updNext, THU:THU, needQlvh:needQlvh, qlvhOk:qlvhOk, PO_T:PO_T, po1:po1, po2:po2, poFull:poFull, poOld:poOld, poUnk:poUnk, poTxt:poTxt, sendOk:sendOk, progress:progress, CTU:CTU, CT_ST:CT_ST, ctuState:ctuState, handState:handState, HAND:HAND, docsComplete:docsComplete, SZ_LABEL:SZ_LABEL, COLOR_NAME:COLOR_NAME, XUONG:XUONG, GAPX:GAPX, n:n, fmt:fmt, today:today, dm:dm, thu:thu, hm:hm, diff:diff, addDays:addDays,
     readS:readS, info:info, heroes:heroes, mutate:mutate, onChange:function(f){ subs.push(f); }, cfgOf:cfgOf, milestones:milestones, modelOf:modelOf, xOf:xOf, typeLabel:typeLabel,
-    execOf:execOf, isMyExec:isMyExec, execReady:execReady, bgState:bgState, buyBg:buyBg, buyReady:buyReady, BGP:BGP, ma:ma, label:label, guiHref:guiHref, canAct:canAct, execTxt:execTxt, whoDid:whoDid, openIssues:openIssues, op:op,
+    execOf:execOf, isMyExec:isMyExec, execReady:execReady, bgState:bgState, buyBg:buyBg, buyReady:buyReady, BGP:BGP, ma:ma, label:label, guiHref:guiHref, guiFrame:guiFrame,canAct:canAct, execTxt:execTxt, whoDid:whoDid, openIssues:openIssues, op:op,
     orderQty:orderQty, stage:stage, isPlan:isPlan, statusOf:statusOf, phase:phase, DOCS:DOCS, docState:docState, docDone:docDone, canFinish:canFinish, closeKind:closeKind, waitClose:waitClose, PHASE:PHASE, PHASE_PILL:PHASE_PILL, nvlOf:nvlOf, startOf:startOf, nextTask:nextTask, all:all, shortOf:shortOf, tasks:tasks, week:week, badges:badges, logLabel:logLabel, logVal:logVal, fetchLog:fetchLog, KEYNAME:KEYNAME};
 })();
