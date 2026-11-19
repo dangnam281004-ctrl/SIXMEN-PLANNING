@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="phan-tich.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tổng quan · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<link rel="stylesheet" href="ux.css">
+<style>
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+/* Mỗi đơn 1 dòng, cột cố định để thẳng hàng: nhãn việc gấp nhất · đơn + các việc · người phụ trách · nút */
+.task{display:grid;grid-template-columns:132px minmax(0,1fr) 110px 190px;gap:12px;align-items:start;padding:11px 14px;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:none}
+.task .tg .pill{white-space:normal;line-height:1.3;text-align:center}
+.task .lb{font-weight:700} .task .sb{color:var(--muted);font-size:12px;margin-top:2px}
+.task .sb b{color:var(--ink2);font-weight:600}
+.task .ow{color:var(--ink2);font-size:12px;padding-top:2px}
+.task .ac{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.sev3{box-shadow:inset 3px 0 0 var(--crit)} .sev2{box-shadow:inset 3px 0 0 var(--warn)} .sev1{box-shadow:inset 3px 0 0 var(--accent)}
+.wk{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:12.5px;text-decoration:none;color:inherit}
+.wk:hover{background:var(--hover)} .wk:last-child{border-bottom:none}
+.wk b{font-variant-numeric:tabular-nums} .wk small{display:block;color:var(--muted);font-size:11px}
+.hi{font-size:13px;color:var(--ink2)}
+/* UX-1 · việc theo hạn: nhóm Quá hạn / Hôm nay / Sắp tới, 1 dòng = 1 việc, 1 nút chính đặt tên theo việc */
+.tq{display:grid;grid-template-columns:78px 132px minmax(0,1fr) 96px auto;gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.tq:last-child{border-bottom:none}
+.tq .due{font-weight:700;font-size:12.5px;font-variant-numeric:tabular-nums}.tq .due small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.tq .tg .pill{white-space:normal;line-height:1.3}
+.tq .lb{font-weight:700}.tq .sb{color:var(--muted);font-size:12px;margin-top:1px}
+.tq .ow{color:var(--ink2);font-size:12px}
+.tq .ac{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.bk{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--head);border-bottom:1px solid var(--line);font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.bk .n{font-variant-numeric:tabular-nums}.bk.qh{color:var(--crit)}.bk.hn{color:var(--warn)}
+details.bkd>summary{list-style:none;cursor:pointer}details.bkd>summary::-webkit-details-marker{display:none}
+details.bkd>summary .tog{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;color:var(--accent)}
+.dlg-back{position:fixed;inset:0;z-index:60;background:rgba(15,20,18,.35);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px}
+.dlg{background:var(--surface);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.2);width:min(560px,100%);padding:16px 18px;display:grid;gap:10px}
+.dlg h3{font-size:15px}.dlg .kv2{display:grid;grid-template-columns:130px minmax(0,1fr);gap:4px 10px;font-size:13px}.dlg .kv2 span:nth-child(odd){color:var(--muted)}
+.dlg .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+/* V5.4 Đợt 1: ô chỉ số chia 4 nhóm · chip vấn đề (Q8) · thanh kỳ cập nhật + chuông Quá hạn / Sắp hạn */
+.tq-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tq-grp{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px;display:grid;gap:8px;align-content:start}
+.tq-grp .gl{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tq-grp .ux-kpis{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+.chips5{display:flex;flex-wrap:wrap;gap:4px}
+.ic{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11.5px;font-weight:600;line-height:1.6;white-space:nowrap;border:1px solid transparent}
+.ic.r{background:var(--crit-bg,#fdecea);color:var(--crit,#c62828)}.ic.o{background:var(--warn-bg,#fff4e0);color:var(--warn,#b26a00)}.ic.g{background:var(--line);color:var(--ink2)}.ic.b{background:var(--accent-bg,#e8f0fe);color:var(--accent,#1f5fae)}.ic.k{background:#e7f5ec;color:var(--ok,#1e7d45)}
+button.ic{cursor:pointer;font:inherit;font-size:11.5px;font-weight:700}
+.bellbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#exList td.cause{max-width:300px;font-size:12px;color:var(--ink2)}
+#exList td.due54{white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:1100px){.tq-groups{grid-template-columns:1fr}}
+@media (max-width:900px){.tq{grid-template-columns:70px minmax(0,1fr);}.tq .tg,.tq .ow{display:none}.tq .ac{grid-column:1/-1;justify-content:flex-start}}
+@media (max-width:1100px){.grid2{grid-template-columns:1fr}}
+@media (max-width:700px){.task{grid-template-columns:1fr}.task .ac{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>Tổng quan</b><small id="sub"></small></div></header>
+    <div class="content">
+      <div id="rptWarn"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center"><div class="hi" id="hi"></div><div class="bellbar" id="bell"></div><div id="rptState" style="margin-left:auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center"></div></div>
+      <div class="ux-kpis" id="tiles"></div>
+      <div class="panel" id="buySoon" hidden></div>
+      <div class="panel" id="moiBox" hidden></div>
+      <div class="panel" id="vuongBox"></div>
+      <div class="grid2">
+        <div class="panel"><div class="ph"><h2>Việc cần làm</h2><span class="muted small" id="tcount"></span></div><div id="tasks"></div></div>
+        <div class="panel"><div class="ph"><h2>Lịch 7 ngày tới</h2></div><div id="week"></div></div>
+      </div>
+      <div class="panel"><div class="ph"><h2 id="exTitle">Đơn đang thực hiện</h2><span class="muted small" id="exCount"></span></div><div class="scroll" id="exList"></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s), esc=Khung.esc, fmt=Don.fmt;
+const TAG={3:"p-bad",2:"p-warn",1:"p-run"};
+function render(){
+  const S=Don.readS(); SoLuong.mark(S);
+  const t=Don.today(), d=new Date(), L=Don.tasks(S), list=Don.all(S);
+  const run=list.filter(x=>Don.stage(x.o)==="run"), ms=Khung.models().filter(m=>Khung.visible(m.key));
+  const H=Don.heroes(), stale=ms.filter(m=>{ const at=SoLuong.heroAt(H[m.key]); return !at||new Date(at).toDateString()!==d.toDateString(); });
+  $("#sub").textContent=`${Don.thu(t)} ${d.toLocaleDateString("vi-VN")} · ${Khung.me?esc(Khung.me.name):""}`;
+  { const ttl=isExecUser()?"Công việc của tôi":"Tổng quan quản lý"; $(".topbar .tt b").textContent=ttl; document.title=ttl+" · SIXMEN Planning"; }   // V5.2: màn hình đầu theo vai trò
+  const late=run.filter(x=>x.o.dueDate&&x.o.dueDate<t).length, soon=run.filter(x=>x.o.dueDate&&x.o.dueDate>=t&&Don.diff(t,x.o.dueDate)<=3).length;
+  /* UX-1: việc lấy nguyên từ Don.tasks(); chỉ thêm hạn, nhóm theo hạn và nút đặt tên theo việc (Don.taskView) */
+  const V=L.map(x=>({x, v:Don.taskView(x,S)})), B={"qua-han":[], "hom-nay":[], "theo-doi":[]}; V.forEach(y=>B[y.v.bucket].push(y));
+  const byDue=(a,b)=>(a.v.due||"9999").localeCompare(b.v.due||"9999")||b.x.sev-a.x.sev;
+  Object.values(B).forEach(a=>a.sort(byDue));
+  const qp=V.filter(y=>/QLVH|mã PO/.test(y.x.tag)).length;
+  $("#hi").innerHTML=L.length?`Có <b style="color:${B["qua-han"].length?"var(--crit)":"inherit"}">${B["qua-han"].length} việc quá hạn / gấp</b> và <b>${B["hom-nay"].length} việc cần làm hôm nay</b>${B["theo-doi"].length?` · ${B["theo-doi"].length} việc sắp tới`:""}.`:"Không có việc gì cần xử lý theo bộ lọc này.";
+  { const D=dash(S,list,t);   /* V5.4: Admin / quản lý thấy 4 nhóm ô; nhân viên giữ 1 hàng ô như V5.3 */
+    if(D.length&&D[0].group){ $("#tiles").className="tq-groups"; $("#tiles").innerHTML=D.map(g=>`<div class="tq-grp" data-grp="${esc(g.group)}"><div class="gl">${esc(g.group)}</div><div class="ux-kpis">${kpiHtml(g.tiles)}</div></div>`).join(""); }
+    else { $("#tiles").className="ux-kpis"; $("#tiles").innerHTML=kpiHtml(D); } }
+  renderBell(S,list,t); renderBuySoon();
+  $("#tcount").textContent=L.length?`${L.length} việc · sắp theo hạn`:"";
+  renderExec(S,list,t); renderVuong(S); renderMoi(S); rptCheck(); rptTile();
+  const row=({x,v})=>{ const can=!v.mk||Khung.canEdit(v.mk)||(v.o&&Don.isMyExec(v.o))||x.ownerText==="Admin"||/Xác nhận nhận hồ sơ/.test(x.tag), late=v.due&&v.due<t;
+    const main=v.kind==="call"&&can?`<button class="btn primary" data-call="${x.oid}|${x.call}" title="${esc(x.phone||"")}">✓ Đã gọi</button>`
+      :v.kind==="qlvh"&&can?`<button class="btn primary" data-qlvh-view="${x.oid}">${esc(v.label)}</button>`
+      :`<a class="btn${can?" primary":""}" href="${v.href}">${esc(can?v.label:"Xem")}</a>`;
+    return `<div class="tq sev${x.sev}" data-task="${esc(x.tag)}">
+      <span class="due">${v.due?`${Don.dm(v.due)}<small>${v.due===t?"hôm nay":late?"trễ "+Don.diff(v.due,t)+" ngày":Don.thu(v.due)}</small>`:`<small>${x.sev>=2?"cần làm":"theo dõi"}</small>`}</span>
+      <span class="tg"><span class="pill ${v.bucket==="qua-han"?"p-bad":v.bucket==="hom-nay"?"p-warn":"p-run"}">${esc(x.tag)}</span></span>
+      <div style="min-width:0"><div class="lb">${esc(x.label)}</div><div class="sb">${esc(x.sub)}</div></div>
+      <span class="ow">${(()=>{ const w=x.ownerText||Khung.userName(x.owner); return Khung.me&&(x.owner===Khung.me.id&&!x.ownerText||w===Khung.userName(Khung.me.id))?"":esc(w); })()}</span>
+      <div class="ac">${main}${v.o&&v.href.indexOf("don-hang.html")<0?`<a class="btn ghost" href="don-hang.html?id=${encodeURIComponent(v.o.id)}">Mở đơn</a>`:v.kind!=="link"?`<a class="btn ghost" href="${v.href}">Mở đơn</a>`:""}</div></div>`; };
+  const sec=(k,title,cls,open)=>{ const a=B[k]; if(!a.length) return "";
+    const head=`<span>${title}</span><span class="n">· ${a.length}</span>`;
+    return open?`<div id="bk-${k}"><div class="bk ${cls}">${head}</div>${a.map(row).join("")}</div>`
+      :`<details class="bkd" id="bk-${k}"${bkOpen?" open":""}><summary class="bk ${cls}">${head}<span class="tog">${bkOpen?"Thu gọn":"Hiện"}</span></summary>${a.map(row).join("")}</details>`; };
+  $("#tasks").innerHTML=L.length?sec("qua-han","Quá hạn","qh",true)+sec("hom-nay","Hôm nay","hn",true)+sec("theo-doi","Sắp tới · theo dõi","",false)
+    :`<div class="empty">Không có việc nào. ${Khung.filter().mode==="mine"?"Chọn “Tất cả” để xem việc của mọi mã.":""}</div>`;
+  const W=Don.week(S);
+  $("#week").innerHTML=W.length?W.map(e=>`<a class="wk" href="${e.href}"><span><b>${Don.dm(e.date)}</b><small>${Don.thu(e.date)}</small></span><span${e.arrive?` style="color:var(--ok);font-weight:600"`:""}>${esc(e.text)}</span></a>`).join(""):`<div class="empty">Không có mốc nào trong 7 ngày tới.</div>`;
+}
+/* ===== V5 (anh duyệt 10/11/2026): Tổng quan theo vai trò =====
+   Người thực thi (nhân viên): việc của các đơn được giao. Quản lý kế hoạch / Admin: kế hoạch chưa chốt, bàn giao chờ PO, chờ QLVH, đang SX / nguy cơ trễ, thiếu chứng từ, vướng mắc */
+const isExecUser=()=>Khung.me&&Khung.me.role==="staff";
+function execOrders(list){ return list.filter(x=>Don.isMyExec(x.o)); }
+/* UX V5 (anh duyệt 13/11/2026): mọi ô chỉ số có dữ liệu bấm được → lọc đúng danh sách bên dưới (số trên ô = số dòng sau lọc), hoặc mở đúng trang đã lọc.
+   Ô = 0 không bấm. Đăng Nam: việc cần quyết định, đơn chờ thực thi, quá hạn, thiếu NVL, thiếu hồ sơ, báo cáo cuối ngày. Minh Tiến: việc của đơn được giao */
+let EXF="";
+const exBase=(list)=>(isExecUser()?execOrders(list):list).filter(x=>x.o.closed&&!x.o.cancelled&&!x.o.doneAt&&!Don.isPlan(x.o));
+/* V5.4: 2 danh sách không phải đơn đã chốt (ô "Kế hoạch chờ chốt", "Kế hoạch tương lai") → số trên ô = số dòng */
+const ALTBASE={kh:list=>list.filter(x=>Don.stage(x.o)==="pending"&&!Don.isPlan(x.o)&&!x.o.cancelled), khtl:list=>list.filter(x=>Don.isPlan(x.o)&&!x.o.cancelled)};
+const ISS=(x,S)=>x._iss||(x._iss=Don.issues(x.o,S,x.m.key));
+function exPreds(S,t){
+  const ph=x=>Don.phase(x.o), late=x=>!!Don.statusOf(x.o,S).late, I=x=>ISS(x,S), has=(x,k)=>I(x).some(i=>i.k===k);
+  const v54={tra:[x=>ph(x)==="tra-lai","Bị trả lại"], chuabg:[x=>ph(x)==="chua-bg","Đã chốt — Chưa bàn giao"],
+    quahan:[x=>I(x).some(i=>i.rank===1),"Quá hạn (giao · tiếp nhận · PO)"], sap:[x=>has(x,"sap-han-giao"),"Sắp đến hạn giao"],
+    nvl54:[x=>has(x,"nvl"),"Thiếu NVL"], ct54:[x=>has(x,"chung-tu"),"Thiếu chứng từ"], chuahan:[x=>has(x,"chua-han"),"Chưa có hạn giao"],
+    kh:[()=>true,"Kế hoạch chờ chốt (đơn đang lập)"], khtl:[()=>true,"Kế hoạch tương lai"]};
+  const callDue=x=>Don.stage(x.o)==="run"&&!x.o.arrived&&Don.milestones(x.o,Don.cfgOf(S)).some(m=>m.date<=t&&!((x.o.calls||{})[m.date]||{}).done);
+  const nvl=x=>{ if(ph(x)!=="da-chot"||x.o.type) return false; const C=Don.nvlOf(x.o,S,x.m.key); return !(C.state==="du"||C.state==="khong-can"); };
+  return {
+    moi:[x=>ph(x)==="cho-nhan","Chờ tiếp nhận"], bg:[x=>ph(x)==="chua-bg"||ph(x)==="tra-lai","Chờ bàn giao / bị trả lại"], po1:[x=>ph(x)==="cho-po"&&(!!Don.po1(x.o)||!!Don.po2(x.o)),"Thiếu 1 trong 2 mã PO"], po:[x=>ph(x)==="cho-po","Chờ tạo PO"],
+    qlvh:[x=>ph(x)==="cho-qlvh","Chờ QLVH ký, duyệt"], gui:[x=>!!x.o.qlvh&&!x.o.sentAt&&!SoLuong.validReceipts(x.o).length,"Cần gửi xưởng"], goi:[callDue,"Đến lịch liên hệ xưởng"],
+    tre:[late,"Quá hạn / chậm tiến độ"], hs:[x=>!!x.o.arrived&&!x.o.doneAt,"Hồ sơ chưa hoàn thành"], ct:[x=>!!x.o.arrived&&!x.o.doneAt&&!Don.docState(x.o).all,"Còn thiếu chứng từ"],
+    nvl:[nvl,"Thiếu NVL (chờ NVL)"], vuong:[x=>Don.openIssues(x.o).length>0,"Có vướng mắc"], ...v54};
+}
+function dash(S,list,t){
+  const L=exBase(list), P=exPreds(S,t), c=k=>L.filter(P[k][0]).length;
+  const T=(k,l,d,tone)=>({v:c(k),l,d,tone,go:"ex:"+k});
+  let NN={}; try { NN=JSON.parse(localStorage.getItem("nvl-v3"))||{}; } catch(e) {}
+  const me=Khung.me&&Khung.me.id, BL=(NN.buyLists||[]).filter(B=>B.status!=="huy"&&!B.doneAt&&(!isExecUser()||(B.giao&&B.giao.user===me)));
+  const nTre=BL.filter(B=>Don.buyLate(B)).length, nHs=BL.filter(B=>Don.buyHsLate(B)>0).length, nV=Don.tasks(S).filter(x=>x.vuong).length;
+  if(isExecUser()) return [
+    T("moi","Chờ tiếp nhận","đã bàn giao, tiếp nhận hoặc trả lại","r"), T("po1","Thiếu 1 trong 2 mã PO","nhập đủ PO 1 và PO 2","o"), T("qlvh","Chờ QLVH ký, duyệt","đủ 2 PO, chờ QLVH","o"),
+    T("gui","Cần gửi xưởng","QLVH đã duyệt, chưa gửi","o"), T("goi","Đến lịch liên hệ xưởng","mốc gọi hôm nay / quá hạn","o"), T("tre","Chậm tiến độ","quá ngày xưởng hẹn giao","r"),
+    T("hs","Hồ sơ chưa hoàn thành","chứng từ, hoá đơn, bàn giao","o"),
+    {v:nTre,l:"NVL · NCC trễ hẹn",d:"đơn mua NVL được giao cho tôi",tone:"r",go:"dat-mua.html?w=tre"}, {v:nHs,l:"NVL · hồ sơ quá hạn",d:"quá 3 ngày sau khi nhận đủ",tone:"r",go:"dat-mua.html?w=hsqh"}];
+  /* V5.4 Đợt 1 (anh duyệt 17/11/2026): 4 nhóm theo câu hỏi người quản lý cần trả lời. Mọi ô có số đều mở đúng danh sách (UX1), số trên ô = số dòng */
+  const A=k=>ALTBASE[k](list).length, CF=Don.CFG54;
+  const nNhan=L.filter(x=>P.moi[0](x)&&ISS(x,S).some(i=>i.k==="qua-han-nhan")).length, nPo=L.filter(x=>P.po[0](x)&&ISS(x,S).some(i=>i.k==="po"&&i.rank===1)).length;
+  const nSoon=BL.filter(B=>Don.buyAlerts(B).some(a=>a.k==="ncc-sap")).length;
+  const K=skuCount(), PG=Don.periodProgress(S), vis=Khung.models().filter(m=>Khung.visible(m.key)&&Khung.match(m.name,m.code,Khung.aliasOf(m))), nKy=vis.filter(m=>PG.list[m.key]&&PG.list[m.key].k!=="du").length;
+  return [
+    {group:"Cần tôi quyết định", tiles:[T("tra","Bị trả lại","→ xử lý & bàn giao lại","r"), {v:nV,l:"Vướng mắc mở",d:"→ danh sách vướng mắc (đơn SX + đơn mua NVL)",tone:"r",go:"#vuongBox"},
+      T("chuabg","Chờ bàn giao","đã chốt, chưa bàn giao · → danh sách","o"), {v:A("kh"),l:"Kế hoạch chờ chốt",d:"đơn đang lập · → danh sách",tone:"o",go:"ex:kh"}]},
+    {group:"Đang chờ người khác", tiles:[T("moi","Chờ tiếp nhận",`${nNhan} quá ${CF.nhanHours} giờ · → danh sách`,"b"), T("po","Chờ PO ERP",`${nPo} quá ${CF.poHours/24} ngày · → danh sách`,"b"), T("qlvh","Chờ QLVH ký, duyệt","đủ 2 mã PO · → danh sách","b")]},
+    {group:"Rủi ro", tiles:[T("quahan","Quá hạn","giao · tiếp nhận · PO · → danh sách","r"), T("sap","Sắp đến hạn giao",`≤ ${CF.sxDays} ngày · → danh sách`,"o"), T("nvl54","Thiếu NVL","đơn gia công chưa đủ NVL · → danh sách","r"),
+      {v:nTre,l:"NVL · NCC trễ hẹn",d:"→ Đơn mua NVL › NCC trễ",tone:"r",go:"dat-mua.html?w=tre"}, {v:nSoon,l:"NVL · sắp đến ngày về",d:`≤ ${CF.nvlDays} ngày, còn hàng chưa về · → danh sách`,tone:"o",go:"#buySoon"},
+      T("ct54","Thiếu chứng từ","đã có lần giao · → danh sách","o"), {v:nHs,l:"NVL · hồ sơ quá hạn",d:"→ Đơn mua NVL › hồ sơ quá hạn",tone:"r",go:"dat-mua.html?w=hsqh"}]},
+    {group:"Kế hoạch", tiles:[{v:K.n,l:"SKU cần đặt",d:`${K.danger} nguy hiểm · → Kế hoạch › SKU`,tone:K.danger?"r":"o",go:"ke-hoach.html#sku"},
+      {v:nKy,l:"Mã chưa đủ dữ liệu kỳ",d:`${PG.du}/${PG.total} mã đủ · → Phân tích nhu cầu`,tone:"o",go:"check-hero.html?mf=ky"}, {v:A("khtl"),l:"Kế hoạch tương lai",d:"→ danh sách",tone:"b",go:"ex:khtl"}]}];
+}
+/* Số SKU cần đặt (mã·màu) theo đúng cách tính của Kế hoạch › SKU cần đặt: chỉ các mã đang xem, không gồm mã chưa có dữ liệu */
+let skuMemo={sig:"",v:{n:0,danger:0}};
+function skuCount(){
+  const sig=[localStorage.getItem("kehoach-sx-v3"),localStorage.getItem("checkhero-v3"),localStorage.getItem("danhmuc-v1"),JSON.stringify(Khung.filter()),Don.today()].join("|");
+  if(skuMemo.sig===sig) return skuMemo.v;
+  let v={n:0,danger:0}; try { const ms=Khung.models().filter(m=>Khung.visible(m.key)&&Khung.match(m.name,m.code,Khung.aliasOf(m))), L=Don.skuList(ms,Don.readS()).filter(x=>x.c); v={n:L.length,danger:L.filter(x=>x.danger).length}; } catch(e){ console.error(e); }
+  skuMemo={sig,v}; return v;
+}
+/* Thanh trên cùng: kỳ cập nhật x/N + chuông Quá hạn / Sắp hạn (bấm → lọc đúng danh sách bên dưới) */
+function renderBell(S,list,t){
+  const el=$("#bell"); if(!el) return; const P=exPreds(S,t), L=exBase(list), q=L.filter(P.quahan[0]).length, s=L.filter(P.sap[0]).length, PG=Don.periodProgress(S);
+  /* Đợt 2: số Quá hạn / Sắp hạn chuyển lên chuông chung ở thanh đầu (canh-bao.js, mọi trang); ở đây giữ thanh kỳ cập nhật x/N */
+  el.innerHTML=`<a class="ic g" href="check-hero.html?mf=ky" title="Kỳ cập nhật từ ${Don.dm(PG.due)}: Đủ = có cả Tồn kho và Cần đặt kỳ này">Dữ liệu kỳ ${Don.thu(PG.due)} ${Don.dm(PG.due)}: <b>${PG.du}/${PG.total} mã đủ</b> · ${PG["mot-phan"]} một phần · ${PG.chua} chưa</a>`;
+  el.dataset.q=q; el.dataset.s=s;
+}
+/* Đơn mua NVL sắp đến ngày về (≤ 2 ngày) còn hàng chưa về: danh sách mở từ ô "NVL · sắp đến ngày về" */
+function renderBuySoon(){
+  const el=$("#buySoon"); if(!el) return; let NN={}; try { NN=JSON.parse(localStorage.getItem("nvl-v3"))||{}; } catch(e){}
+  const me=Khung.me&&Khung.me.id, L=(NN.buyLists||[]).filter(B=>B.status!=="huy"&&!B.doneAt&&(!isExecUser()||(B.giao&&B.giao.user===me))).filter(B=>Don.buyAlerts(B).some(a=>a.k==="ncc-sap"));
+  el.hidden=!L.length||isExecUser(); if(el.hidden){ el.innerHTML=""; return; }
+  el.innerHTML=`<div class="ph"><h2>NVL sắp đến ngày về</h2><span class="muted small">${L.length} đơn mua · ≤ ${Don.CFG54.nvlDays} ngày, còn hàng chưa nhận đạt</span></div><div class="scroll"><table class="t"><thead><tr><th>Đơn mua</th><th>Cảnh báo</th><th>NCC</th><th>Người thực thi</th><th></th></tr></thead><tbody>${L.map(B=>`<tr data-buysoon="${esc(B.id)}"><td><b>${esc(B.no||"")}</b> · ${esc(B.title||"")}</td><td><span class="chips5">${Don.buyAlerts(B).map(a=>`<span class="ic ${a.tone}">${esc(a.t)}</span>`).join("")}</span></td><td>${esc(B.ncc||"—")}</td><td>${B.giao?esc(Khung.userName(B.giao.user)):"—"}</td><td><a class="btn" href="dat-mua.html#ds-${encodeURIComponent(B.id)}">Mở đơn mua</a></td></tr>`).join("")}</tbody></table></div>`;
+}
+function kpiHtml(T){ return T.map(x=>{ const inner=`<span class="v num">${x.v}</span><span class="l">${esc(x.l)}</span><span class="d">${esc(x.d)}</span>`;
+  return x.v?`<button type="button" class="ux-kpi tone-${x.tone}${EXF&&x.go==="ex:"+EXF?" on":""}" data-tqgo="${esc(x.go)}" style="--c:var(--ux-${x.tone})">${inner}</button>`:`<div class="ux-kpi zero">${inner}</div>`; }).join(""); }
+/* Vướng mắc chưa giải quyết (Đăng Nam thấy trên Dashboard): đơn sản xuất + đơn mua NVL, mỗi vướng mắc 1 dòng, bấm mở đúng đơn */
+function renderVuong(S){
+  const V=Don.tasks(S).filter(x=>x.vuong), el=$("#vuongBox"); if(!el) return;
+  el.hidden=!V.length&&isExecUser();
+  el.innerHTML=`<div class="ph"><h2>Vướng mắc chưa giải quyết</h2><span class="muted small">${V.length?V.length+" việc · người quản lý kế hoạch / Admin xử lý":"không có"}</span></div>`
+    +(V.length?`<div style="display:grid;gap:6px;padding:10px 14px">${V.map(x=>`<a class="ux-v${/đang xử lý/.test(x.tag)?" dang":""}" href="${x.href}" style="text-decoration:none;color:inherit"><span class="t"><b>${esc(x.label)}</b><span class="ux-b ${/đang xử lý/.test(x.tag)?"b":"o"}">${/đang xử lý/.test(x.tag)?"Đang xử lý":"Chưa xử lý"}</span></span><span class="s">${esc(x.sub)}</span></a>`).join("")}</div>`:`<div class="empty">Không có vướng mắc nào đang mở.</div>`);
+}
+/* ===== V5.3 (anh duyệt 14/11/2026): đơn mới bàn giao =====
+   Minh Tiến: đơn sản xuất + đơn mua NVL bàn giao cho mình, chờ tiếp nhận → Tiếp nhận / Trả lại (bắt buộc lý do). Server kiểm quyền, chặn nhận / trả trùng.
+   Đăng Nam / Admin: theo dõi Chưa bàn giao · Chờ tiếp nhận · Bị trả lại (bàn giao làm ở Kế hoạch / Đơn mua NVL) */
+const BG_T={"chua-bg":"Đã chốt — Chưa bàn giao","cho-nhan":"Đã bàn giao — Chờ tiếp nhận","tra-lai":"Đã trả lại — Chờ xử lý"}, BG_C={"chua-bg":"p-warn","cho-nhan":"p-info","tra-lai":"p-warn"};
+function renderMoi(S){
+  const el=$("#moiBox"); if(!el) return; const me=Khung.me&&Khung.me.id, ex=isExecUser(), adm=Khung.isAdmin();
+  const O=Don.all(S,true).filter(x=>{ const p=Don.phase(x.o); return ex?(p==="cho-nhan"&&Don.isMyExec(x.o)):(Don.BGP.includes(p)&&(adm||Khung.canEdit(x.m.key))); });
+  let NN={}; try { NN=JSON.parse(localStorage.getItem("nvl-v3"))||{}; } catch(e) {}
+  const BL=(NN.buyLists||[]).filter(B=>B.status==="nhap"&&!B.doneAt).filter(B=>{ const s=Don.buyBg(B); return ex?(s==="cho-nhan"&&B.giao.user===me):!!BG_T[s]&&(adm||(!B.free&&(B.models||[]).length&&(B.models||[]).every(k=>Khung.ownerOf(k)===me))); });
+  if(!O.length&&!BL.length){ el.hidden=true; el.innerHTML=""; return; } el.hidden=false;
+  const btn=(kind,id)=>ex||adm?`<button class="btn primary" data-mn="${kind}|${esc(id)}">✓ Tiếp nhận</button><button class="btn" data-mt="${kind}|${esc(id)}">Trả lại…</button>`:"";
+  const rowsO=O.map(x=>{ const o=x.o, p=Don.phase(o), e=o.exec||{}, due=o.dueDate||Don.addDays(o.date||Don.today(),22);
+    return `<tr data-moi="${esc(o.id)}"><td><a href="don-hang.html?id=${encodeURIComponent(o.id)}"><b>${esc(x.m.name)}</b></a><div class="small muted">${esc(Don.label(o,x.m))}</div></td><td>${esc(Don.typeLabel(o))}</td><td class="num">${fmt(Don.orderQty(o,S))} áo</td><td>${esc(Don.xOf(o).name)}</td>
+      <td>${e.by?esc(Khung.userName(e.by)):`<span class="muted">—</span>`}</td><td>${e.at?Don.hm(e.at):`<span class="muted">chốt ${Don.dm(o.closed)}</span>`}</td><td>${Don.dm(due)}${o.dueDate?"":` <span class="muted small">dự kiến</span>`}</td>
+      <td><span class="pill ${BG_C[p]}">${BG_T[p]}</span>${p==="tra-lai"?`<div class="small" style="color:var(--warn)">lý do: ${esc(e.traReason||"")}</div>`:""}</td>
+      <td class="nowrap">${p==="cho-nhan"?btn("o",x.m.key+"|"+o.id):`<a class="btn${Khung.canEdit(x.m.key)?" primary":""}" href="ke-hoach.html?m=${x.m.key}&bg=${encodeURIComponent(o.id)}#b4">${p==="tra-lai"?"Xử lý & bàn giao lại":"Bàn giao"}</a>`}</td></tr>`; });
+  const rowsB=BL.map(B=>{ const s=Don.buyBg(B), g=B.giao||{}, q=(B.lines||[]).reduce((a,l)=>a+(+l.qty||0),0), u=((B.lines||[])[0]||{}).unit||"";
+    return `<tr data-moi="${esc(B.id)}"><td><a href="dat-mua.html#ds-${encodeURIComponent(B.id)}"><b>${esc(B.title||B.no)}</b></a><div class="small muted">${esc(B.no||"")} · ${esc((B.lines||[]).map(l=>l.itemName).filter(Boolean).slice(0,3).join(", "))}</div></td><td>Đơn mua NVL</td><td class="num">${fmt(Math.round(q*100)/100)} ${esc(u)}</td><td>${esc(B.ncc||"—")}</td>
+      <td>${g.by?esc(Khung.userName(g.by)):B.chot?esc(Khung.userName(B.chot.by)):"—"}</td><td>${g.at?Don.hm(g.at):B.chot?`<span class="muted">chốt ${Don.hm(B.chot.at)}</span>`:"—"}</td><td>${B.eta?Don.dm(B.eta):"—"}</td>
+      <td><span class="pill ${BG_C[s]}">${BG_T[s]}</span>${s==="tra-lai"?`<div class="small" style="color:var(--warn)">lý do: ${esc(g.traReason||"")}</div>`:""}</td>
+      <td class="nowrap">${s==="cho-nhan"?btn("b",B.id):`<a class="btn" href="dat-mua.html#ds-${encodeURIComponent(B.id)}">${s==="tra-lai"?"Xử lý":"Bàn giao"}</a>`}</td></tr>`; });
+  el.innerHTML=`<div class="ph" id="moi"><h2>${ex?"Đơn mới bàn giao — chờ tôi tiếp nhận":"Bàn giao & tiếp nhận"}</h2><span class="muted small">${O.length+BL.length} việc · ${ex?"Tiếp nhận để bắt đầu (tạo PO ERP…), hoặc Trả lại kèm lý do":"chốt không tự bàn giao; người thực thi phải tiếp nhận mới làm tiếp"}</span></div>
+    <div class="scroll"><table class="t"><thead><tr><th>Sản phẩm / NVL</th><th>Loại đơn</th><th>Số lượng</th><th>Xưởng / NCC</th><th>Người giao</th><th>Thời điểm bàn giao</th><th>Ngày hẹn</th><th>Trạng thái tiếp nhận</th><th></th></tr></thead><tbody>${rowsO.concat(rowsB).join("")}</tbody></table></div>`;
+  if(location.hash==="#moi"&&!renderMoi.done){ renderMoi.done=true; el.scrollIntoView({block:"start"}); }
+}
+async function buyOp(body){
+  try { const r=await fetch("/api/nvl/ds-op",{method:"POST", body:JSON.stringify(body), headers:{"Content-Type":"application/json"}}), j=await r.json();
+    if(r.status===200&&j.value&&window.DongBo){ if(!DongBo.take("nvl-v3",j.value,j.rev)) DongBo.fresh("nvl-v3"); } else if(window.DongBo) DongBo.fresh("nvl-v3");
+    return {status:r.status, j}; } catch(e){ return {status:0, j:{error:"Không kết nối được server"}}; }
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-mn],[data-mt]"); if(!b) return;
+  const nhan=b.hasAttribute("data-mn"), [k,...rest]=(nhan?b.dataset.mn:b.dataset.mt).split("|");
+  /* V5.4 Đợt 3: đơn sản xuất → màn Tiếp nhận (dữ liệu đầu vào + checklist bắt buộc · Trả lại 5 nhóm). Đơn mua NVL giữ 1 nút như V5.3 (X2) */
+  if(k==="o"&&Don.tiepNhan54){ let f=null; Don.all(Don.readS(),true).forEach(x=>{ if(x.o.id===rest[1]&&x.m.key===rest[0]) f=x; }); if(f){ Don.tiepNhan54(f.o,f.m.key,{mode:nhan?"nhan":"tra", onDone:()=>render(), onClose:()=>render()}); return; } }
+  let reason=""; if(!nhan){ reason=(prompt("Trả lại cho người quản lý kế hoạch. Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return; }
+  b.disabled=true;
+  const r=k==="o"?await Don.op({op:nhan?"nhan-viec":"tra-lai", model:rest[0], oid:rest[1], reason}):await buyOp({op:nhan?"nhan":"tra-lai", ds:rest[0], reason});
+  if(r.status!==200) alert((r.j&&r.j.error)||"Không thực hiện được");
+  render();
+});
+/* Báo cáo cuối ngày: Chưa gửi / Đã gửi / Gửi trễ (giữ nhắc 17:30, không đổi cách gửi) */
+async function rptTile(){
+  const el=$("#rptState"); if(!el) return; const ex=isExecUser(), who=ex?Khung.me.id:((Khung.catalog().exec||{}).user||null);
+  if(!who||!(ex||Khung.isAdmin())){ el.innerHTML=""; return; }
+  if(!rptCache||Date.now()-rptAt>60000){ try { const r=await fetch("/api/baocao"); rptCache=(await r.json()).reports||{}; rptAt=Date.now(); } catch(e){ return; } }
+  const t=Don.today(), y=Don.addDays(t,-1), s=Don.rptState(rptCache[t+"|"+who],t), sy=Don.rptState(rptCache[y+"|"+who],y);
+  el.innerHTML=`<span class="ux-hint">Báo cáo cuối ngày${ex?"":" của "+esc(Khung.userName(who))}:</span> <a class="ux-b ${s.tone}" href="bao-cao.html">Hôm nay · ${esc(s.t)}</a> <a class="ux-b ${sy.tone}" href="bao-cao.html">Hôm qua · ${esc(sy.t)}</a>`;
+}
+/* V5.4 Đợt 1: mỗi dòng có Trạng thái chính (1 giá trị, như V5.3) · Vấn đề (mọi chip, tách riêng, UX4) · Nguyên nhân · Người chịu trách nhiệm · Hạn · 1 nút hành động.
+   Xếp theo Q8 (Don.prioSort, dùng chung với Đơn sản xuất). Chỉ hiển thị, nút chỉ dẫn tới đúng chỗ làm */
+function renderExec(S,list,t){
+  const ex=isExecUser(), P=exPreds(S,t), L0=ALTBASE[EXF]?ALTBASE[EXF](ex?execOrders(list):list):exBase(list), L=EXF&&P[EXF]&&!ALTBASE[EXF]?L0.filter(P[EXF][0]):L0;
+  $("#exTitle").textContent=ex?"Đơn được giao cho tôi · xếp theo mức ưu tiên":"Cần tôi xử lý · đơn đang thực hiện, xếp theo mức ưu tiên";
+  $("#exCount").innerHTML=(L.length?`${L.length} đơn`:"")+(EXF&&P[EXF]?` · lọc: <b>${esc(P[EXF][1])}</b> <button type="button" class="ux-clear" data-tqclear>Bỏ lọc</button>`:"");
+  L.forEach(x=>{ x.iss=ISS(x,S); }); Don.prioSort(L,S);
+  const row=x=>{ const o=x.o, ph=Don.phase(o), st=Don.statusOf(o,S), I=x.iss, top=I[0], act=Don.stepAction(o,x.m.key,S), can=Khung.canEdit(x.m.key)||Don.isMyExec(o), nt=o.closed?Don.nextTask(o,S,x.m.key):null;
+    const who=top?top.who:(o.closed?(Don.BGP.includes(ph)?x.m.owner:(Don.execOf(o)||x.m.owner)):x.m.owner);
+    const due=top&&top.due!=null?top.due:(nt&&nt.date)||o.dueDate||null, dueCls=top&&top.rank===1?"color:var(--crit);font-weight:700":top&&(top.rank===7||top.tone==="o")?"color:var(--warn);font-weight:600":"";
+    return `<tr data-exrow="${esc(o.id)}" data-rank="${top?top.rank:9}">
+    <td><a href="don-hang.html?id=${encodeURIComponent(o.id)}"><b>${esc(Don.isPlan(o)?o.khtl.code:Don.label(o,x.m))}</b></a><div class="small muted">${esc(x.m.name)} · ${esc(Don.xOf(o).name)} · ${esc(Don.typeLabel(o))}</div></td>
+    <td><span class="pill ${Don.PHASE_PILL[ph]}">${Don.isPlan(o)?"Kế hoạch tương lai":Don.PHASE[ph]}</span>${(ph==="dang-sx"||ph==="giao-mot-phan")&&st.text!==Don.PHASE[ph]?`<div class="small muted">${esc(st.text)}</div>`:""}</td>
+    <td><span class="chips5">${I.length?I.map(i=>`<span class="ic ${i.tone}" data-ik="${i.k}">${esc(i.t)}</span>`).join(""):`<span class="muted small">—</span>`}</span></td>
+    <td class="cause">${top?esc(top.cause):nt?esc(nt.label):o.closed?"—":"Đơn đang lập · chốt ở Kế hoạch"}</td>
+    <td>${esc(Khung.userName(who))}</td>
+    <td class="due54"><span style="${dueCls}">${due!=null?esc(Don.dueTxt(due)):"—"}</span></td>
+    <td class="nowrap"><a class="btn${act.main&&can?" primary":""}" href="${can?act.href:"don-hang.html?id="+encodeURIComponent(o.id)}">${esc(can?act.label:"Xem")}</a></td></tr>`; };
+  $("#exList").innerHTML=L.length?`<table class="t"><thead><tr><th>Đơn</th><th>Trạng thái chính</th><th>Vấn đề / cảnh báo</th><th>Nguyên nhân</th><th>Người chịu trách nhiệm</th><th>Hạn</th><th>Hành động</th></tr></thead><tbody>${L.map(row).join("")}</tbody></table>`
+    :`<div class="empty">${ex?"Chưa có đơn nào được giao cho anh/chị.":"Không có đơn nào đang thực hiện theo bộ lọc này."}</div>`;
+}
+/* Nhắc báo cáo cuối ngày sau 17:30 (người thực thi: của mình; Admin: của người thực thi mặc định) */
+let rptCache=null, rptAt=0;
+async function rptCheck(){
+  const now=new Date(), after=now.getHours()*60+now.getMinutes()>=17*60+30, ex=isExecUser(), who=ex?Khung.me.id:((Khung.catalog().exec||{}).user||null);
+  if(!after||!who||!(ex||Khung.isAdmin())){ $("#rptWarn").innerHTML=""; return; }
+  if(!rptCache||Date.now()-rptAt>60000){ try { const r=await fetch("/api/baocao"); rptCache=(await r.json()).reports||{}; rptAt=Date.now(); } catch(e){ return; } }
+  const k=Don.today()+"|"+who, sent=rptCache[k];
+  $("#rptWarn").innerHTML=sent?"":`<div class="panel" style="padding:10px 14px;background:var(--warn-bg);border-color:var(--warn)">⚠ <b>${ex?"Anh/chị chưa gửi báo cáo cuối ngày hôm nay":esc(Khung.userName(who))+" chưa gửi báo cáo cuối ngày hôm nay"}</b> · <a href="bao-cao.html">${ex?"Lập báo cáo →":"Xem báo cáo →"}</a></div>`;
+}
+setInterval(()=>{ if(Khung.me) rptCheck(); }, 60000);   // để trang mở qua 17:30 vẫn hiện nhắc
+let bkOpen=false;
+document.addEventListener("toggle",e=>{ if(e.target.matches&&e.target.matches("details.bkd")){ bkOpen=e.target.open; const s=e.target.querySelector(".tog"); if(s) s.textContent=bkOpen?"Thu gọn":"Hiện"; } },true);
+/* "Xem & xác nhận QLVH" (anh duyệt 31/10): hộp hiện đủ mã đơn, mã PO ERP, trạng thái trước khi xác nhận. Gọi đúng thao tác server như Chi tiết đơn
+   (server kiểm quyền, ghi lịch sử, chống bấm trùng). Chưa có mã PO thì không xác nhận được ở đây */
+function qlvhDialog(oid){
+  const S=Don.readS(); let f=null; Don.all(S,true).forEach(y=>{ if(y.o.id===oid) f=y; }); if(!f) return;
+  const {o,m}=f, X=Don.xOf(o), po=Don.po1(o), po2=Don.po2(o), full=Don.poFull(o), ph=Don.phase(o), poV=v=>v?esc(v):`<span style="color:var(--crit)">chưa có</span>`;
+  const box=document.createElement("div"); box.className="dlg-back";
+  box.innerHTML=`<div class="dlg" role="dialog" aria-modal="true" aria-label="Xác nhận QLVH đã ký và duyệt"><h3>Xác nhận QLVH đã ký &amp; duyệt 2 PO</h3>
+    <div class="kv2"><span>Mã đơn</span><b id="qdCode">${esc(Don.label(o))}</b><span>${Don.PO_T[1]}</span><b id="qdPo">${poV(po)}</b><span>${Don.PO_T[2]}</span><b id="qdPo2">${poV(po2)}</b>
+      <span>Trạng thái</span><span><span class="pill ${Don.PHASE_PILL[ph]}">${Don.PHASE[ph]}</span></span><span>Mẫu · xưởng</span><span>${esc(m.name)} · ${esc(X.name)} (${Don.typeLabel(o)})</span>
+      <span>Số áo</span><span>${fmt(Don.orderQty(o,S))} áo</span><span>Chốt</span><span>${o.closed?Don.dm(o.closed):"—"}${o.closedBy?" · "+esc(Khung.userName(o.closedBy)):""}</span></div>
+    ${full?`<label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="qdAck" style="margin-top:3px"> <span>Tôi đã kiểm tra: 2 PO của đơn này đã được QLVH ký và duyệt trên ERP</span></label>`
+      :`<div class="small" style="color:var(--warn)">Đơn chưa đủ 2 mã PO ERP: nhập đủ ở Chi tiết đơn trước.</div>`}
+    <div class="small" id="qdMsg" style="color:var(--crit)"></div>
+    <div class="acts"><a class="btn" href="don-hang.html?id=${encodeURIComponent(o.id)}#qlvh">Mở chi tiết đơn</a><button class="btn" data-qd="close">Huỷ</button>${full?`<button class="btn primary" data-qd="ok">✓ QLVH đã ký &amp; duyệt</button>`:""}</div></div>`;
+  document.body.appendChild(box);
+  box.addEventListener("click",async ev=>{ const b=ev.target.closest("[data-qd]"); if(ev.target===box||(b&&b.dataset.qd==="close")){ box.remove(); return; } if(!b) return;
+    if(!box.querySelector("#qdAck").checked){ box.querySelector("#qdMsg").textContent="Tick xác nhận đã kiểm tra 2 PO được QLVH ký và duyệt trên ERP."; return; }
+    b.disabled=true; const r=await Don.op({op:"qlvh-duyet", model:m.key, oid:o.id, po, po2, ack:true});
+    if(r.status===200){ box.remove(); render(); } else { b.disabled=false; box.querySelector("#qdMsg").textContent=(r.j&&r.j.error)||"Không thực hiện được"; } });
+}
+/* Đợt 2: chuông chung (thanh đầu) bấm ngay tại Tổng quan → lọc tại chỗ, không tải lại trang; mở từ trang khác qua ?ex=quahan / ?ex=sap */
+try { const q0=new URLSearchParams(location.search).get("ex"); if(q0&&/^[a-z0-9]+$/.test(q0)) EXF=q0; } catch(e){}
+document.addEventListener("click",e=>{ const a=e.target.closest("#kbBell a[data-bell]"); if(!a) return; e.preventDefault(); EXF=a.dataset.bell; render(); const el=$("#exList"); if(el) el.closest(".panel").scrollIntoView({behavior:"smooth",block:"start"}); }, true);
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-tqgo]"); if(g){ const v=g.dataset.tqgo;
+    if(v.startsWith("ex:")){ const k=v.slice(3); EXF=EXF===k?"":k; render(); const el=$("#exList"); if(el){ el.closest(".panel").scrollIntoView({behavior:"smooth",block:"start"}); } return; }
+    if(v.startsWith("#")){ const el=$(v); if(el){ el.scrollIntoView({behavior:"smooth",block:"start"}); el.classList.add("ux-flash"); setTimeout(()=>el.classList.remove("ux-flash"),1300); } return; }
+    location.href=v; return; }
+  if(e.target.closest("[data-tqclear]")){ EXF=""; render(); return; }
+  const q=e.target.closest("[data-qlvh-view]"); if(q){ qlvhDialog(q.dataset.qlvhView); return; }
+  const b=e.target.closest("[data-call]"); if(!b) return;
+  const [id,d]=b.dataset.call.split("|");
+  Don.mutate(id,o=>{ o.calls=o.calls||{}; o.calls[d]={...(o.calls[d]||{}), done:true, at:Don.today(), by:Khung.me&&Khung.me.id}; });
+});
+Don.onChange(render); Khung.onFilter(render);
+window.addEventListener("storage",e=>{ if(["kehoach-sx-v3","checkhero-v3","danhmuc-v1"].includes(e.key)) render(); });
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+render();
+if(EXF&&$("#exList")) setTimeout(()=>{ const p=$("#exList").closest(".panel"); if(p) p.scrollIntoView({block:"start"}); },50);
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sao lưu dữ liệu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Khung chung (giống app SIXMEN Planning): sidebar trái, topbar, nội dung dạng thẻ trắng */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#1f2328; --ink2:#3d4450; --muted:#6b7280; --faint:#9aa1ab; --line:#e5e7eb; --hover:#f2f4f6; --head:#fafbfc;
+  --brand:#16794a; --brand-bg:#e7f4ec; --accent:#1f5fae;
+  --crit:#c62828; --crit-bg:#fdecea; --ok:#16794a; --ok-bg:#e7f4ec; --violet:#6f42c1;
+  --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 var(--font)}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0}
+h2{font-size:15px;font-weight:700}
+h3{font-size:13.5px;font-weight:700}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--line);padding:12px 10px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:9px;padding:2px 6px 12px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+.brand b{display:block;font-size:13px;font-weight:800;letter-spacing:.03em;line-height:1.2}
+.brand small{display:block;font-size:11px;color:var(--brand);font-weight:600}
+.nav{display:grid;gap:1px}
+.nav-label{font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.07em;text-transform:uppercase;padding:14px 8px 5px}
+.nav a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;color:var(--ink2);text-decoration:none}
+.nav a:hover{background:var(--hover)}
+.nav a.active{background:var(--brand);color:#fff;font-weight:600}
+.nav a svg{width:16px;height:16px;flex:none}
+.side-foot{margin-top:auto;padding:12px 8px 0;font-size:11px;color:var(--faint)}
+.col{min-width:0}
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding:9px 28px;display:flex;align-items:center;gap:12px;min-height:52px}
+.topbar .tt b{display:block;font-size:14.5px;font-weight:700}
+.topbar .tt small{display:block;font-size:11px;color:var(--muted)}
+.content{padding:26px 32px 56px;display:grid;gap:18px}
+.page-head{display:grid;gap:6px}
+.page-head h1{font-size:26px;font-weight:800;letter-spacing:-.015em}
+.page-head p{margin:0;color:var(--muted);font-size:12.5px;max-width:900px}
+.btn{display:inline-flex;align-items:center;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:5px 11px;font:inherit;font-weight:600;font-size:12px;cursor:pointer}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--violet);border-radius:6px;padding:10px 14px;font-size:12.5px;color:var(--ink2)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
+.ph{padding:12px 14px 6px;display:grid;gap:2px}
+table{border-collapse:collapse;width:100%}
+td,th{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:11.5px;font-weight:600;color:var(--ink2);background:var(--head)}
+tr:last-child td{border-bottom:none}
+.prev{font-size:11.5px;color:var(--muted);max-width:280px}
+.ok{color:var(--ok);font-weight:600}
+@media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.content{padding:18px 16px 40px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div>
+    <nav class="nav" aria-label="Điều hướng">
+      <div class="nav-label">Hằng ngày</div>
+      <a href="check-hero.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>1. Phân tích nhu cầu</a>
+      <a href="ke-hoach.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>2. Kế hoạch sản xuất</a>
+      <a href="nvl.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>3. Tồn kho NVL</a>
+      <a href="theo-doi.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>4. Theo dõi đơn hàng</a>
+      <div class="nav-label">Dữ liệu</div>
+      <a href="thong-tin.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/></svg>Thông tin xưởng &amp; kho</a>
+      <a href="sao-luu.html" class="active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>Sao lưu &amp; khôi phục</a>
+    </nav>
+    <div class="side-foot">Thời gian may 1 lô 22 ngày</div>
+  </aside>
+  <div class="col">
+    <header class="topbar"><div class="tt"><b>Sao lưu &amp; khôi phục</b><small>Dữ liệu được lưu thêm thành file trong thư mục Sản xuất\du-lieu</small></div></header>
+    <div class="content">
+      <div class="page-head">
+        <h1>Sao lưu &amp; khôi phục</h1>
+        <p>Mỗi lần anh nhập liệu, dữ liệu được lưu thêm ra thư mục <b>Sản xuất\du-lieu</b> trên máy, khoảng 5 phút giữ lại một bản cũ. Lỡ mất hoặc bị ghi đè thì chọn bản ở mốc giờ trước đó và bấm Khôi phục. Khôi phục chỉ thay đúng phần đó (Phân tích nhu cầu, Kế hoạch hoặc Tồn kho NVL), phần khác giữ nguyên.</p>
+      </div>
+      <div class="note" id="now"></div>
+      <div class="grid3" id="lists"></div>
+    </div>
+  </div>
+</div>
+<script>
+const SETS = [
+  {key:"nvl-v3", name:"Tồn kho NVL"},
+  {key:"kehoach-sx-v3", name:"Kế hoạch (đơn xưởng, phiếu xuất)"},
+  {key:"checkhero-v3", name:"Phân tích nhu cầu (tồn kho, cần đặt)"},
+  {key:"xuong-v3", name:"Thông tin xưởng & kho"}
+];
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const when = f => { const m=f.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/); return m?`${m[4]}:${m[5]} ngày ${m[3]}/${m[2]}`:f; };
+/* Tóm tắt nội dung 1 bản để anh nhận ra đúng bản cần lấy */
+function preview(key, v){
+  try{
+    if(key==="nvl-v3") return (v.items||[]).map(i=>`${i.name}: ${i.stockCay!=null&&i.stockCay!==""?i.stockCay+" cây":(i.stock??"—")}`).join(" · ");
+    if(key==="kehoach-sx-v3") return Object.entries(v.models||{}).flatMap(([m,p])=>(p.orders||[]).map(o=>`${o.code}${o.nvlOut?" (đã xuất NVL)":""}`)).join(" · ")||"chưa có đơn";
+    if(key==="checkhero-v3") return Object.entries(v.heroes||{}).filter(([,h])=>h.updated).map(([k,h])=>`${k}: cập nhật ${h.updated}`).join(" · ")||"chưa có dữ liệu";
+  }catch(e){}
+  return "";
+}
+async function load(){
+  let hist=[];
+  try{ hist=await (await fetch("/api/history",{cache:"no-store"})).json(); }catch(e){
+    $("#now").innerHTML="Không kết nối được server lưu file. Hãy mở trang bằng <b>Mo-Planning.bat</b>."; return;
+  }
+  const cur=await Promise.all(SETS.map(s=>fetch("/api/data/"+s.key,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)));
+  const totalKB=hist.reduce((a,h)=>a+h.size,0)/1024;
+  $("#now").innerHTML=`Lịch sử: <b>${hist.length}</b> bản · <b>${totalKB>1024?(totalKB/1024).toFixed(1)+" MB":Math.round(totalKB)+" KB"}</b> · giữ đủ 48 giờ, sau đó mỗi giờ 1 bản tới 30 ngày, rồi mỗi ngày 1 bản; bản nháp xung đột giữ 90 ngày.<br>`+"Bản mới nhất trong thư mục: "+SETS.map((s,i)=>`<b>${s.name}</b> ${cur[i]?new Date(cur[i].savedAt).toLocaleString("vi-VN"):"chưa có"}`).join(" · ");
+  $("#lists").innerHTML=SETS.map(s=>{
+    const rows=hist.filter(h=>h.file.startsWith(s.key+"-")||h.file.startsWith(s.key.replace("-v3","-v2")+"-"));   // gồm cả bản lưu kiểu cũ (v2)
+    return `<div class="panel"><div class="ph"><h3>${s.name}</h3><span class="muted small">${rows.length} bản lưu</span></div>
+      <table><thead><tr><th>Mốc giờ</th><th>Nội dung</th><th></th></tr></thead><tbody>
+      ${rows.length?rows.map(h=>`<tr><td class="num" style="white-space:nowrap">${when(h.file)}${/-r(\d+)/.test(h.file)?`<div class="muted small">phiên bản ${h.file.match(/-r(\d+)/)[1]}</div>`:""}${/xungdot/.test(h.file)?`<div style="color:#a85d00;font-weight:600;font-size:11.5px">Bản nháp bị xung đột</div>`:""}</td><td class="prev" data-prev="${h.file}">…</td>
+        <td><button class="btn" data-restore="${s.key}|${h.file}">Khôi phục</button></td></tr>`).join(""):`<tr><td colspan="3" class="muted">Chưa có bản lưu nào.</td></tr>`}
+      </tbody></table></div>`;
+  }).join("");
+  /* điền phần tóm tắt cho 40 bản gần nhất */
+  for(const td of [...document.querySelectorAll("[data-prev]")].slice(0,40)){
+    try{ const j=await (await fetch("/api/history/"+td.dataset.prev,{cache:"no-store"})).json(); const key=td.dataset.prev.replace(/-\d{8}-\d{6}(?:-r\d+)?(?:-xungdot)?\.json$/,"").replace("-v2","-v3"); td.textContent=preview(key,j.value).slice(0,260); }catch(e){ td.textContent=""; }
+  }
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-restore]"); if(!b) return;
+  const [key,file]=b.dataset.restore.split("|"), set=SETS.find(s=>s.key===key);
+  if(!confirm(`Khôi phục "${set.name}" về bản lúc ${when(file)}?\nDữ liệu hiện tại của phần này vẫn được giữ lại trong lịch sử, có thể lấy lại nếu cần.`)) return;
+  try{
+    const j=await (await fetch("/api/history/"+file,{cache:"no-store"})).json();
+    try { localStorage.setItem("_reason_"+key, "Khôi phục bản lưu "+file); } catch(e) {}   // server ghi lý do; tồn NVL thay đổi được ghi vào sổ tồn
+    localStorage.setItem(key, JSON.stringify(j.value));   // tự lưu ra thư mục (thành bản mới nhất)
+    b.textContent="Đã khôi phục"; b.classList.add("primary");
+    setTimeout(load,900);
+  }catch(err){ alert("Không khôi phục được: "+err.message); }
+});
+load();
+</script>
+</body>
+</html>

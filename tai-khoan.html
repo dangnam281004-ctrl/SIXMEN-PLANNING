@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tài khoản</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>Tài khoản</b><small>Mỗi người một tài khoản riêng · không dùng chung tài khoản Admin</small></div><span id="acts"></span></header>
+    <div class="content">
+      <div class="panel"><div class="ph"><h2>Người dùng</h2><span class="muted small">Mật khẩu được mã hoá trên server, Admin cũng không xem được</span></div><div class="scroll" id="list"></div></div>
+      <div class="panel" style="padding:12px 14px;font-size:12.5px;color:var(--ink2)"><b>Quyền:</b> Admin xem và sửa mọi mã, quản lý danh mục mã, phân công, tài khoản, thông tin xưởng, khôi phục dữ liệu. Nhân viên xem mọi mã, sửa đầy đủ quy trình của các mã mình phụ trách; tồn kho NVL dùng chung, mọi lần sửa đều ghi tên người làm. Nhân viên tạo đề nghị mua NVL cho mã mình phụ trách; Admin duyệt / từ chối đề nghị và phát hành đơn mua NCC. <b>Tech Pack:</b> nhân viên được bật “Quyền Tech Pack” tạo, sửa bản nháp mọi mã và gửi đề xuất; chỉ Admin duyệt bản chính thức. <b>Kho</b> nhận hàng mua về và xác nhận NVL dư ở xưởng dùng được (Admin cũng làm được).</div>
+    </div>
+  </div>
+</div>
+<div id="dlg"></div>
+<script>
+const $=s=>document.querySelector(s), esc=Khung.esc;
+let users=Khung.users;
+if(!Khung.isAdmin()){ document.querySelector(".content").innerHTML=`<div class="panel empty">Chỉ Admin quản lý tài khoản.</div>`; }
+const cat=()=>Khung.catalog().models;
+function render(){
+  if(!Khung.isAdmin()) return;
+  $("#acts").innerHTML=`<button class="btn primary" data-add>+ Thêm tài khoản</button>`;
+  $("#list").innerHTML=`<table class="t"><thead><tr><th>Tên hiển thị</th><th>Tên đăng nhập</th><th>Vai trò</th><th>Mã phụ trách</th><th>Tech Pack</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+    ${users.map(u=>{ const ms=cat().filter(m=>m.owner===u.id&&m.status!=="stopped");
+      return `<tr><td><b>${esc(u.name||u.username)}</b>${Khung.me&&u.id===Khung.me.id?` <span class="pill p-run">bạn</span>`:""}</td><td>${esc(u.username)}</td>
+        <td>${u.role==="admin"?`<span class="pill p-ok">Admin</span>`:u.role==="kho"?`<span class="pill p-mute">Kho</span>`:`<span class="pill p-mute">Nhân viên</span>`}</td>
+        <td class="small">${ms.length?ms.map(m=>esc(m.name.replace(/^Polo\s+/,""))).join(", "):`<span class="muted">—</span>`}</td>
+        <td class="small">${u.role==="admin"?`Toàn quyền, duyệt`:u.role==="kho"?`<span class="muted">Xem, in bản Kho</span>`:u.techpack?`<span class="pill p-ok">Tạo, sửa nháp, đề xuất</span>`:`<span class="muted">Chưa có</span>`}</td>
+        <td>${u.active?`<span class="pill p-ok">Đang dùng</span>`:`<span class="pill p-mute">Đã khoá</span>`}</td>
+        <td style="white-space:nowrap"><button class="btn ghost" data-edit="${u.id}">Sửa</button> <button class="btn ghost" data-pw="${u.id}">Đặt lại mật khẩu</button></td></tr>`; }).join("")}
+    </tbody></table>`;
+}
+function dlg(html){ $("#dlg").innerHTML=`<div class="dlg" role="dialog" aria-modal="true"><div>${html}</div></div>`; const f=$("#dlg input,#dlg select"); if(f) f.focus(); }
+const close=()=>$("#dlg").innerHTML="";
+/* Ô quyền Tech Pack: chỉ áp dụng cho Nhân viên (Admin có sẵn mọi quyền, Kho chỉ xem / in bản Kho) */
+const tpBox=on=>`<label style="display:flex;gap:8px;align-items:flex-start" id="dTpRow"><input type="checkbox" id="dTp"${on?" checked":""} style="margin-top:3px"><span>Quyền Tech Pack<br><span class="muted small">Tạo, sửa bản nháp mọi mã, gửi đề xuất. Không duyệt được bản chính thức.</span></span></label>`;
+const tpSync=()=>{ const r=$("#dRole"), row=$("#dTpRow"); if(r&&row) row.style.display=r.value==="staff"?"":"none"; };
+document.addEventListener("change",e=>{ if(e.target.id==="dRole") tpSync(); });
+async function call(body){
+  const r=await fetch("/api/users",{method:"POST",body:JSON.stringify(body)}), j=await r.json().catch(()=>({}));
+  if(!r.ok){ $("#dErr").textContent=j.error||"Không lưu được."; return false; }
+  users=j.users; Khung.users.splice(0,Khung.users.length,...users); close(); render(); return true;
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  if(t.hasAttribute("data-close")) close();
+  else if(t.hasAttribute("data-add")) dlg(`<h2>Thêm tài khoản</h2>
+    <label>Tên hiển thị<input class="field" id="dName" placeholder="VD: Lan"></label>
+    <label>Tên đăng nhập<input class="field" id="dUn" placeholder="chữ không dấu, VD: lan"></label>
+    <label>Vai trò<select class="field" id="dRole"><option value="staff">Nhân viên</option><option value="kho">Kho</option><option value="admin">Admin</option></select></label>
+    ${tpBox(false)}
+    <label>Mật khẩu ban đầu (ít nhất 6 ký tự)<input class="field" id="dPw" type="password" autocomplete="new-password"></label>
+    <div class="err" id="dErr"></div><div class="acts"><button class="btn" data-close>Huỷ</button><button class="btn primary" data-create>Tạo tài khoản</button></div>`);
+  else if(t.hasAttribute("data-create")) call({action:"create", name:$("#dName").value, username:$("#dUn").value, role:$("#dRole").value, techpack:$("#dTp").checked, password:$("#dPw").value});
+  else if(t.dataset.edit){ const u=users.find(x=>x.id===t.dataset.edit); dlg(`<h2>Sửa tài khoản ${esc(u.username)}</h2>
+    <label>Tên hiển thị<input class="field" id="dName" value="${esc(u.name||"")}"></label>
+    <label>Vai trò<select class="field" id="dRole"><option value="staff">Nhân viên</option><option value="kho"${u.role==="kho"?" selected":""}>Kho</option><option value="admin"${u.role==="admin"?" selected":""}>Admin</option></select></label>
+    ${tpBox(!!u.techpack)}
+    <label>Trạng thái<select class="field" id="dAct"><option value="1">Đang dùng</option><option value="0"${u.active?"":" selected"}>Khoá (không đăng nhập được, dữ liệu và lịch sử giữ nguyên)</option></select></label>
+    <div class="err" id="dErr"></div><div class="acts"><button class="btn" data-close>Huỷ</button><button class="btn primary" data-update="${u.id}">Lưu</button></div>`); tpSync(); }
+  else if(t.dataset.update) call({action:"update", id:t.dataset.update, name:$("#dName").value, role:$("#dRole").value, techpack:$("#dTp").checked, active:$("#dAct").value==="1"});
+  else if(t.dataset.pw){ const u=users.find(x=>x.id===t.dataset.pw); dlg(`<h2>Đặt lại mật khẩu · ${esc(u.name||u.username)}</h2>
+    <label>Mật khẩu mới (ít nhất 6 ký tự)<input class="field" id="dPw" type="password" autocomplete="new-password"></label>
+    <div class="muted small">Người này sẽ bị đăng xuất khỏi các máy đang dùng.</div>
+    <div class="err" id="dErr"></div><div class="acts"><button class="btn" data-close>Huỷ</button><button class="btn primary" data-setpw="${u.id}">Đặt mật khẩu</button></div>`); }
+  else if(t.dataset.setpw) call({action:"password", id:t.dataset.setpw, password:$("#dPw").value});
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") close(); });
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+render();
+</script>
+</body>
+</html>

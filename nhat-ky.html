@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nhật ký · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<style>
+.flt{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--ink2)}
+.grp{display:grid;grid-template-columns:130px 130px minmax(0,1fr);gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.grp:last-child{border-bottom:none}
+.grp .w{color:var(--muted)} .grp .who b{display:block} .grp .who span{color:var(--muted);font-size:11px}
+.grp .what b{font-weight:700} .ch{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:8px;padding:2px 0}
+.ch .f{color:var(--ink2)} .ch .v,.grp .what{overflow-wrap:anywhere;min-width:0}.ch .v .b{color:var(--muted);text-decoration:line-through} .ch .v .a{color:var(--ink);font-weight:600}
+.tag{display:inline-block;font-size:11px;font-weight:600;border-radius:99px;padding:0 8px;background:var(--line);color:var(--ink2);margin-right:4px}
+.tag.deny{background:var(--crit-bg);color:var(--crit)} .tag.merge{background:var(--accent-bg);color:var(--accent)}
+@media (max-width:800px){.grp{grid-template-columns:1fr}.ch{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>Nhật ký</b><small>Server tự ghi mọi lần lưu: ai, lúc nào, sửa gì, trước → sau · không ai sửa hay xoá được, kể cả Admin</small></div></header>
+    <div class="content">
+      <div class="flt">
+        <label>Người <select class="field" id="fWho"><option value="">Tất cả</option></select></label>
+        <label>Phần <select class="field" id="fKey"><option value="">Tất cả</option></select></label>
+        <label><input type="checkbox" id="fNoise" checked> Ẩn thay đổi nhỏ (giờ cập nhật, mẫu đang xem)</label>
+        <span class="muted" id="count"></span>
+      </div>
+      <div class="panel" id="list"><div class="empty">Đang tải…</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s), esc=Khung.esc;
+let LOG=[];
+const NOISE=/(^|\.)(updated|updatedAt|active|seq)$/;
+$("#fWho").innerHTML+=Khung.users.map(u=>`<option value="${u.id}">${esc(u.name||u.username)}</option>`).join("");
+$("#fKey").innerHTML+=Object.entries(Don.KEYNAME).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+const modelName=k=>k?(Don.modelOf(k).name||k):"";
+function render(){
+  const who=$("#fWho").value, key=$("#fKey").value, noise=$("#fNoise").checked;
+  const L=LOG.filter(e=>(!who||e.by===who)&&(!key||e.key===key)&&!(noise&&NOISE.test(e.path||""))
+    &&(!e.model||Khung.visible(e.model)||e.by===(Khung.me&&Khung.me.id))&&Khung.match(e.code,modelName(e.model),e.path,e.note,Don.logLabel(e)));
+  /* gom các dòng của cùng 1 lần lưu */
+  const G=[]; L.forEach(e=>{ const g=G[G.length-1]; if(g&&g.at===e.at&&g.by===e.by&&g.key===e.key&&g.oid===e.oid) g.items.push(e); else G.push({at:e.at,by:e.by,key:e.key,oid:e.oid,code:e.code,model:e.model,merged:e.merged,reason:e.reason,action:e.action,note:e.note,items:[e]}); });
+  $("#count").textContent=`${L.length} thay đổi · ${G.length} lần lưu`;
+  $("#list").innerHTML=G.length?G.map(g=>`<div class="grp">
+      <span class="w">${Don.hm(g.at)}</span>
+      <span class="who"><b>${esc(Khung.userName(g.by))}</b><span>${esc(Don.KEYNAME[g.key]||g.key)}</span></span>
+      <div class="what">
+        <div>${g.action==="tu-choi"?`<span class="tag deny">Bị từ chối</span>`:""}${g.merged?`<span class="tag merge">Tự gộp với người khác</span>`:""}${g.oid?`<a href="don-hang.html?id=${encodeURIComponent(g.oid)}"><b>${esc(g.code||g.oid)}</b></a> · `:""}${g.model?esc(modelName(g.model)):""}${g.reason?` · lý do: ${esc(g.reason)}`:""}</div>
+        ${g.key==="he-thong"?`<div>${esc(g.note||"")}</div>`:g.items.map(e=>`<div class="ch"><span class="f">${esc(Don.logLabel(e))}</span><span class="v"><span class="b">${esc(Don.logVal(e.before))}</span> → <span class="a">${esc(Don.logVal(e.after))}</span></span></div>`).join("")}
+      </div></div>`).join(""):`<div class="empty">Chưa có thay đổi nào theo bộ lọc này. Nhật ký bắt đầu ghi từ khi dùng tài khoản.</div>`;
+}
+["fWho","fKey","fNoise"].forEach(id=>$("#"+id).addEventListener("change",render));
+Khung.onFilter(render);
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+Don.fetchLog({limit:2000}).then(r=>{ LOG=r; render(); });
+</script>
+</body>
+</html>

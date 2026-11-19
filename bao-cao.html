@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Báo cáo cuối ngày · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<link rel="stylesheet" href="ux.css">
+<style>
+.rp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;padding:12px 14px}
+.rp-n{border:1px solid var(--line);border-radius:9px;padding:9px 11px;display:grid;gap:2px;background:var(--surface)}
+.rp-n .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}.rp-n .l{font-size:12px;color:var(--ink2);font-weight:600}.rp-n .d{font-size:11.5px;color:var(--muted)}
+.rp-f{display:grid;gap:10px;padding:12px 14px}
+.rp-f label{display:grid;gap:4px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.rp-f textarea{min-height:64px;resize:vertical;font:inherit;font-size:13px}
+.rp-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px}
+.rp-list{display:grid;gap:12px}
+.rp-txt{padding:4px 14px 12px;display:grid;gap:6px;font-size:13px}.rp-txt b{color:var(--ink2)}
+.rp-codes{font-size:11.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>Báo cáo cuối ngày</b><small>Số liệu tự tổng hợp từ đơn được giao · người thực thi chỉ ghi diễn giải, nguyên nhân, việc cần hỗ trợ</small></div></header>
+    <div class="content">
+      <div class="panel"><div class="rp-h"><label class="small">Ngày <input type="date" class="field" id="day"></label><span class="muted small" id="who"></span><span id="state" style="margin-left:auto"></span></div></div>
+      <div id="mine"></div>
+      <div id="others" class="rp-list"></div>
+    </div>
+  </div>
+</div>
+<script>
+/* V5 (anh duyệt 10/11/2026): báo cáo vận hành cuối ngày. Số liệu lấy từ giao dịch thực tế của các đơn giao cho người lập (không nhập lại).
+   Lưu theo ngày + người lập + giờ gửi (server /api/baocao); gửi lại trong ngày giữ bản trước trong lịch sử */
+const $=s=>document.querySelector(s), esc=Khung.esc, fmt=Don.fmt;
+const dayOf=ms=>{ if(!ms) return null; const d=new Date(ms); return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const M=[
+  {k:"moi", t:"Đơn mới tiếp nhận", d:"giao trong ngày"},
+  {k:"po", t:"Đã tạo đủ 2 PO", d:"PO 1 + PO 2 trên ERP"},
+  {k:"qlvh", t:"QLVH đã duyệt", d:"xác nhận trong ngày"},
+  {k:"gui", t:"Đã gửi xưởng", d:""},
+  {k:"tiendo", t:"Cập nhật tiến độ", d:"xưởng xác nhận / bắt đầu / đã gọi"},
+  {k:"giao", t:"Giao hàng trong ngày", d:"đơn có lần giao"},
+  {k:"hoso", t:"Hồ sơ hoàn tất", d:"bàn giao xong"},
+  {k:"tre", t:"Đơn trễ hạn", d:"quá ngày xưởng hẹn"},
+  {k:"vuong", t:"Vướng mắc đang mở", d:"chờ Đăng Nam quyết định"},
+  {k:"nvlPo", t:"NVL · PO đã tạo", d:"đơn mua NVL nhập mã PO ERP"},
+  {k:"nvlQlvh", t:"NVL · QLVH đã duyệt", d:"PO mua NVL"},
+  {k:"nvlGui", t:"NVL · đã gửi NCC", d:""},
+  {k:"nvlVe", t:"NVL về / kiểm nhận", d:"NCC giao, Kho kiểm nhận trong ngày"},
+  {k:"nvlXong", t:"NVL · hoàn tất hồ sơ", d:"đơn mua hoàn tất"},
+  {k:"nvlCho", t:"NVL · việc đang chờ", d:"chờ PO / QLVH / gửi NCC / hồ sơ"},
+  {k:"nvlTre", t:"NVL · NCC trễ hẹn", d:"quá ngày về, còn hàng chưa về"}];
+/* Tổng hợp từ các đơn giao cho uid (Admin xem của người khác: dùng số đã lưu lúc gửi) */
+function autoOf(uid, day){
+  const S=Don.readS(); SoLuong.mark(S); const out={}; M.forEach(x=>out[x.k]=[]);
+  Don.all(S,true).forEach(({m,o})=>{ if(!o.exec||o.exec.user!==uid||!o.closed) return; const c=Don.label(o,m);
+    if(dayOf(o.exec.at)===day) out.moi.push(c);
+    if(Don.po1(o)&&Don.po2(o)&&dayOf(Math.max(o.erpAt||0,o.erpAt2||0))===day) out.po.push(c);
+    if(o.qlvh&&dayOf(o.qlvh.at)===day) out.qlvh.push(c);
+    if(o.sentAt===day) out.gui.push(c);
+    if(o.ackAt===day||o.startedAt===day||Object.values(o.calls||{}).some(x=>x&&x.done&&x.at===day)) out.tiendo.push(c);
+    if(SoLuong.validReceipts(o).some(r=>r.date===day||dayOf(r.at)===day)) out.giao.push(c);
+    if(o.doneAt===day) out.hoso.push(c);
+    if(!o.cancelled&&!o.arrived&&o.dueDate&&o.dueDate<day) out.tre.push(c+" (hẹn "+Don.dm(o.dueDate)+")");
+    Don.openIssues(o).forEach(v=>out.vuong.push(c+": "+v.text));
+  });
+  /* 11/11/2026 · đơn mua NVL giao cho uid (PO ERP, QLVH, gửi NCC, hàng về, hồ sơ) */
+  let NN={}; try { NN=JSON.parse(localStorage.getItem("nvl-v3"))||{}; } catch(e) {}
+  (NN.buyLists||[]).forEach(B=>{ if(!B.giao||B.giao.user!==uid||B.status==="huy") return; const c=B.no;
+    if(B.po&&dayOf(B.po.at)===day) out.nvlPo.push(c+" "+B.po.code);
+    if(B.qlvh&&dayOf(B.qlvh.at)===day) out.nvlQlvh.push(c);
+    if(B.sentAt&&dayOf(B.sentAt)===day) out.nvlGui.push(c);
+    if((B.lines||[]).some(l=>(l.received||[]).some(r=>dayOf(r.at)===day))) out.nvlVe.push(c);
+    if(B.doneAt&&dayOf(B.doneAt)===day) out.nvlXong.push(c);
+    if(!B.doneAt&&(B.status==="nhap"||B.status==="da-nhan")) out.nvlCho.push(c+(B.status==="da-nhan"?" (hồ sơ)":!B.po?" (PO)":!B.qlvh?" (QLVH)":" (gửi NCC)"));
+    if(NV.LIST_OPEN.includes(B.status)&&(B.lines||[]).some(l=>{ const e=l.eta||B.eta; return NV.lineLeft(l)>1e-9&&e&&e<day; })) out.nvlTre.push(c);
+  });
+  return out;
+}
+/* ===== V5.4 Đợt 3 (X5, R2 = A có điều kiện · R2a · R2b): nguyên nhân theo TỪNG đơn trễ được giao cho người lập.
+   Có vướng mắc đang mở của chính đơn đó → tự hiện, khoá, ghi nguồn. Không có → bắt nhập cho đúng đơn (server kiểm lại, thiếu → không gửi được).
+   Ghi chú gọi xưởng (chỉ có ngày) chỉ hiện để THAM KHẢO, không bao giờ tự tính là nguyên nhân; không dùng từ khoá; không lấy nguyên nhân hôm trước ===== */
+function lateOf(uid, day){
+  const S=Don.readS(), out=[];
+  Don.all(S,true).forEach(({m,o})=>{ if(!o.exec||o.exec.user!==uid||!o.closed||o.cancelled||o.arrived||!o.dueDate||o.dueDate>=day) return;
+    const vo=Don.openIssues(o).slice().sort((a,b)=>(b.at||0)-(a.at||0))[0]||null;
+    const d0=Don.addDays(day,-2), ref=Object.keys(o.calls||{}).filter(d=>d>=d0&&d<=day).map(d=>({d, note:String((o.calls[d]||{}).note||"").trim()})).filter(x=>x.note);
+    out.push({o, m, code:Don.label(o,m), vo, ref}); });
+  return out;
+}
+const CD={};   // nguyên nhân đang nhập (giữ qua lần vẽ lại)
+document.addEventListener("input",e=>{ const t=e.target.closest&&e.target.closest("[data-cause]"); if(t) CD[t.dataset.cause]=t.value; });
+const SRC_T={vuong:"vướng mắc đang mở của đơn (tự nhận)", nv:"người thực thi nhập"};
+function causeHtml(day, mine){
+  const L=lateOf(ME(), day), old=(((mine||{}).text||{}).causes)||{};
+  if(!L.length) return `<div class="rp-c muted small" data-causes="0" style="padding:0 14px">Không có đơn trễ hạn được giao cho anh/chị ở ngày này.</div>`;
+  return `<div class="rp-c" data-causes="${L.length}" style="padding:0 14px;display:grid;gap:8px"><b class="small">Nguyên nhân đơn trễ · ${L.length} đơn (bắt buộc từng đơn)</b>${L.map(x=>{ const o=x.o, v=x.vo;
+    return `<div class="panel" data-late="${esc(o.id)}" style="padding:8px 10px;display:grid;gap:4px"><div><b>${esc(x.code)}</b> <span class="muted small">${esc(x.m.name)} · hẹn ${Don.dm(o.dueDate)} · trễ ${Don.diff(o.dueDate,day)} ngày</span></div>
+      ${v?`<div class="small" data-cause-src="vuong">🔒 <b>Vướng mắc đang mở:</b> ${esc(v.text)} <span class="muted">· ${esc(Khung.userName(v.by))} báo ${Don.hm(v.at)} · tự nhận, không cần nhập</span></div>`
+        :`<label class="small">Nguyên nhân (bắt buộc)<textarea class="field" data-cause="${esc(o.id)}" rows="2" style="width:100%">${esc(CD[o.id]!=null?CD[o.id]:(((old[o.id]||{}).src==="nv"&&(old[o.id]||{}).text)||""))}</textarea></label>`}
+      ${x.ref.length?`<div class="small muted" data-ref>Ghi chú gọi xưởng (chỉ để tham khảo, không tự tính là nguyên nhân): ${x.ref.map(r=>`${Don.dm(r.d)}: ${esc(r.note)}`).join(" · ")}</div>`:""}</div>`; }).join("")}</div>`;
+}
+const causesView=c=>{ const K=Object.keys(c||{}); return K.length?`<div class="rp-txt" data-causesview><b>Nguyên nhân đơn trễ:</b>${K.map(k=>{ const x=c[k]||{}; return `<div data-cv="${esc(k)}">${esc(x.code||k)}: ${esc(x.text||"")} <span class="muted small">· ${esc(SRC_T[x.src]||x.src||"")}${x.src==="vuong"&&x.vAt?" "+Don.hm(x.vAt):""}</span></div>`; }).join("")}</div>`:""; };
+/* Admin xem 7 ngày liền: mỗi người thực thi × 7 ngày = Đã gửi / Gửi trễ / Chưa gửi, bấm để mở ngày đó */
+function weekHtml(){
+  if(!Khung.isAdmin()) return "";
+  const days=[]; for(let i=6;i>=0;i--) days.push(Don.addDays(day,-i));
+  const ex=(Khung.catalog().exec||{}).user, who=[...new Set([ex,...Object.values(R).filter(x=>days.includes(x.date)).map(x=>x.by)].filter(Boolean))];
+  if(!who.length) return "";
+  return `<div class="panel" id="week7"><div class="ph"><h2>7 ngày gần nhất</h2><span class="muted small">bấm 1 ô để mở báo cáo ngày đó</span></div><div class="scroll"><table class="t"><thead><tr><th>Người lập</th>${days.map(d=>`<th>${Don.thu(d)} ${Don.dm(d)}</th>`).join("")}</tr></thead><tbody>
+    ${who.map(u=>`<tr data-wk7="${esc(u)}"><td><b>${esc(Khung.userName(u))}</b></td>${days.map(d=>{ const s=Don.rptState(R[d+"|"+u],d); return `<td><button type="button" class="ux-b ${s.tone}" data-day7="${d}" style="border:0;cursor:pointer">${esc(s.t)}</button></td>`; }).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-day7]"); if(!b) return; day=b.dataset.day7; msg=""; render(); });
+const numsHtml=a=>`<div class="rp-grid">${M.map(x=>{ const L=a[x.k]||[]; return `<div class="rp-n" data-rk="${x.k}"><span class="l">${x.t}</span><span class="v" style="${(x.k==="tre"||x.k==="vuong"||x.k==="nvlTre")&&L.length?"color:var(--crit)":""}">${L.length}</span><span class="d">${esc(x.d)}</span>${L.length?`<span class="rp-codes">${esc(L.slice(0,6).join(" · "))}${L.length>6?" …":""}</span>`:""}</div>`; }).join("")}</div>`;
+const TX=[{k:"vuong", t:"Đơn trễ, vướng mắc và nguyên nhân"}, {k:"hoTro", t:"Công việc cần Đăng Nam hỗ trợ"}, {k:"mai", t:"Kế hoạch xử lý ngày tiếp theo"}, {k:"ghiChu", t:"Ghi chú khác"}];
+let R={}, day=Don.today(), busy=false, msg="";
+const ME=()=>Khung.me&&Khung.me.id, canWrite=()=>Khung.me&&Khung.me.role!=="kho";
+async function load(){ try { const r=await fetch("/api/baocao"); R=(await r.json()).reports||{}; } catch(e){ R={}; } render(); }
+function render(){
+  $("#day").value=day;
+  const mine=R[day+"|"+ME()], a=autoOf(ME(), day), hasExec=Don.all(Don.readS(),true).some(x=>x.o.exec&&x.o.exec.user===ME())||(()=>{ try { return ((JSON.parse(localStorage.getItem("nvl-v3"))||{}).buyLists||[]).some(B=>B.giao&&B.giao.user===ME()); } catch(e){ return false; } })();
+  $("#who").textContent=`Người lập: ${Khung.me?Khung.me.name:""}`;
+  /* UX V5: Chưa gửi / Đã gửi / Gửi trễ (gửi lần đầu sau ngày báo cáo) · giữ nhắc 17:30, không đổi cách gửi */
+  { const s=Don.rptState(mine,day); $("#state").innerHTML=`<span class="ux-b ${s.tone}">${esc(s.t)}${mine&&(mine.history||[]).length?` · gửi lại ${mine.history.length} lần`:""}</span>`; }
+  const showForm=canWrite()&&(hasExec||!Khung.isAdmin()||mine);
+  $("#mine").innerHTML=showForm?`<div class="panel"><div class="ph"><h2>Báo cáo của tôi · ${Don.dm(day)}</h2><span class="muted small">Số liệu tự tính từ các đơn được giao, không nhập lại</span></div>
+    ${numsHtml(a)}
+    ${causeHtml(day, mine)}
+    <div class="rp-f">${TX.map(x=>`<label>${x.t}<textarea class="field" data-tx="${x.k}" placeholder="${x.k==="vuong"&&a.tre.length?"Nêu nguyên nhân: "+esc(a.tre.join(", ")):""}">${esc(((mine||{}).text||{})[x.k]||"")}</textarea></label>`).join("")}
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn primary" id="send"${busy?" disabled":""}>${mine?"Gửi lại báo cáo":"Gửi báo cáo"}</button><span class="small" style="color:var(--crit)" id="msg">${esc(msg)}</span></div></div></div>`
+    :`<div class="panel empty">${Khung.isAdmin()?"Báo cáo do người thực thi gửi; xem bên dưới.":"Tài khoản này không lập báo cáo vận hành."}</div>`;
+  const others=Object.values(R).filter(x=>x.date===day&&x.by!==ME()).sort((p,q)=>q.at-p.at);
+  $("#others").innerHTML=weekHtml()+(Khung.isAdmin()?(others.length?others.map(x=>`<div class="panel" data-rp="${esc(x.by)}"><div class="ph"><h2>${esc(Khung.userName(x.by))} · ${Don.dm(x.date)}</h2><span class="ux-b ${Don.rptState(x,x.date).tone}">${esc(Don.rptState(x,x.date).t)}</span>${(x.history||[]).length?`<span class="muted small">gửi lại ${x.history.length} lần</span>`:""}</div>
+      ${numsHtml(x.auto||{})}${causesView((x.text||{}).causes)}<div class="rp-txt">${TX.map(t=>`<div><b>${t.t}:</b> ${esc((x.text||{})[t.k]||"—")}</div>`).join("")}</div></div>`).join("")
+      :`<div class="panel empty">${(()=>{ const ex=(Khung.catalog().exec||{}).user; return ex&&ex!==ME()?esc(Khung.userName(ex))+" chưa gửi báo cáo ngày "+Don.dm(day)+".":"Chưa có báo cáo nào ngày "+Don.dm(day)+"."; })()}</div>`):"");
+}
+document.addEventListener("change",e=>{ if(e.target.id==="day"&&e.target.value){ day=e.target.value; msg=""; render(); } });
+document.addEventListener("click",async e=>{
+  if(e.target.id!=="send"||busy) return;
+  const text={}; document.querySelectorAll("[data-tx]").forEach(x=>text[x.dataset.tx]=x.value.trim());
+  const a=autoOf(ME(), day);
+  /* V5.4 Đợt 3: nguyên nhân theo từng đơn trễ (đơn có vướng mắc mở: server tự nhận) — thiếu đơn nào thì không gửi được */
+  const causes={}, miss=[]; lateOf(ME(), day).forEach(x=>{ if(x.vo) return; const el=document.querySelector('[data-cause="'+CSS.escape(x.o.id)+'"]'), t=((el?el.value:CD[x.o.id])||"").trim(); if(t) causes[x.o.id]={text:t}; else miss.push(x.code); });
+  if(miss.length){ msg="Ghi nguyên nhân cho từng đơn trễ: "+miss.join(", ")+"."; render(); return; }
+  text.causes=causes;
+  busy=true; msg=""; render();
+  try { const r=await fetch("/api/baocao",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({date:day, text, auto:a})}); const j=await r.json();
+    if(r.status!==200) msg=j.error||"Không gửi được"; } catch(err){ msg="Không kết nối được server"; }
+  busy=false; await load();
+});
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+Don.onChange(render);
+load();
+</script>
+</body>
+</html>

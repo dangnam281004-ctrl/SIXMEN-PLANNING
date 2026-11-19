@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thông tin xưởng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Khung chung (giống app SIXMEN Planning): sidebar trái, topbar, nội dung dạng thẻ trắng */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#1f2328; --ink2:#3d4450; --muted:#6b7280; --faint:#9aa1ab; --line:#e5e7eb; --hover:#f2f4f6; --head:#fafbfc;
+  --brand:#16794a; --brand-bg:#e7f4ec; --accent:#1f5fae;
+  --warn:#a85d00; --warn-bg:#fff3df; --ok:#16794a; --ok-bg:#e7f4ec; --violet:#6f42c1;
+  --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 var(--font)}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+h1,h2,h3{margin:0}
+h3{font-size:14px;font-weight:700}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--line);padding:12px 10px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:9px;padding:2px 6px 12px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+.brand b{display:block;font-size:13px;font-weight:800;letter-spacing:.03em;line-height:1.2}
+.brand small{display:block;font-size:11px;color:var(--brand);font-weight:600}
+.nav{display:grid;gap:1px}
+.nav-label{font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.07em;text-transform:uppercase;padding:14px 8px 5px}
+.nav a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;color:var(--ink2);text-decoration:none}
+.nav a:hover{background:var(--hover)}
+.nav a.active{background:var(--brand);color:#fff;font-weight:600}
+.nav a svg{width:16px;height:16px;flex:none}
+.side-foot{margin-top:auto;padding:12px 8px 0;font-size:11px;color:var(--faint)}
+.col{min-width:0}
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding:9px 28px;display:flex;align-items:center;gap:12px;min-height:52px}
+.topbar .tt{flex:1}
+.topbar .tt b{display:block;font-size:14.5px;font-weight:700}
+.topbar .tt small{display:block;font-size:11px;color:var(--muted)}
+#status{font-size:11.5px;color:var(--muted)}
+.content{padding:26px 32px 56px;display:grid;gap:18px}
+.page-head{display:grid;gap:6px}
+.page-head h1{font-size:26px;font-weight:800;letter-spacing:-.015em}
+.page-head p{margin:0;color:var(--muted);font-size:12.5px;max-width:900px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:9px}
+.chip{display:inline-block;font-size:11px;border-radius:999px;padding:1px 9px;margin-left:6px;font-weight:500}
+.k-gc{background:var(--warn-bg);color:var(--warn)}
+.k-fob{background:var(--ok-bg);color:var(--ok)}
+.k-kho{background:#eaf1fb;color:var(--accent)}
+label{display:grid;gap:3px;font-size:11.5px;color:var(--muted);font-weight:500}
+.field{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:6px 9px;font:inherit;font-size:13px}
+.field:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(31,95,174,.12)}
+@media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.content{padding:18px 16px 40px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div>
+    <nav class="nav" aria-label="Điều hướng">
+      <div class="nav-label">Hằng ngày</div>
+      <a href="check-hero.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>1. Phân tích nhu cầu</a>
+      <a href="ke-hoach.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>2. Kế hoạch sản xuất</a>
+      <a href="nvl.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>3. Tồn kho NVL</a>
+      <a href="theo-doi.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>4. Theo dõi đơn hàng</a>
+      <div class="nav-label">Dữ liệu</div>
+      <a href="thong-tin.html" class="active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/></svg>Thông tin xưởng &amp; kho</a>
+      <a href="sao-luu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>Sao lưu &amp; khôi phục</a>
+    </nav>
+    <div class="side-foot">Thời gian may 1 lô 22 ngày</div>
+  </aside>
+  <div class="col">
+    <header class="topbar"><div class="tt"><b>Thông tin xưởng &amp; kho</b><small>Điền một lần, dùng cho biên bản giao nhận NVL và mã đơn</small></div><span id="status">Tự lưu</span></header>
+    <div class="content">
+      <div class="page-head">
+        <h1>Thông tin xưởng &amp; kho</h1>
+        <p>Thông tin ở đây tự điền vào <b>Biên bản giao nhận NVL</b> (bên giao, bên nhận). <b>Mã xưởng</b> dùng để tạo mã đơn mới, ví dụ 2610_<b>AM</b>_SXPL001_GC_000025. Ô nào để trống thì biên bản để chấm chấm cho ghi tay.</p>
+      </div>
+      <div class="grid" id="info"></div>
+    </div>
+  </div>
+</div>
+<script>
+/* Lưu riêng (không chung với kế hoạch) */
+const IKEY="xuong-v3";
+const XUONG = {
+  hoa:{name:"Anh Hòa", code:"AH", type:"GC", kind:"gc"},
+  mien:{name:"Anh Miên", code:"AM", type:"GC", kind:"gc"},
+  hoang:{name:"Anh Hoàng", code:"AHG", type:"FOB", kind:"fob"},
+  hung:{name:"Anh Hùng", code:"AHU", type:"FOB", kind:"fob"}
+};
+const INFO_GIAO=[["don_vi","Đơn vị bên giao","VD: Kho NVL – Công ty Viking Victory"],["dai_dien","Đại diện"],["chuc_vu","Chức vụ"],["dien_thoai","Điện thoại"],["nguoi_giao","Người giao"]];
+const INFO_XUONG=[["ten","Tên trên biên bản"],["ma","Mã xưởng (trong mã đơn)"],["dai_dien","Đại diện"],["chuc_vu","Chức vụ"],["dien_thoai","Điện thoại"],["dia_chi","Địa chỉ"],["kho_nhan","Kho nhận"],["nguoi_nhan","Người nhận / Thủ kho"],["ghi_chu","Ghi chú"]];
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const read = () => { try { return JSON.parse(localStorage.getItem(IKEY)) || {}; } catch(e) { return {}; } };
+function render(){
+  const I=read(), G=I.giao||{}, XS=I.xuong||{};
+  const field=(path,label,val,ph)=>`<label>${label}<input class="field" data-info="${path}"${Khung.isAdmin()?"":" disabled"} value="${esc(val||"")}" placeholder="${esc(ph||"")}"></label>`;
+  $("#info").innerHTML=`<div class="panel"><h3>Bên giao <span class="chip k-kho">Kho</span></h3>${INFO_GIAO.map(([k,l,ph])=>field("giao."+k,l,G[k],ph)).join("")}</div>
+    ${Object.entries(XUONG).map(([x,X])=>{ const XI=XS[x]||{};
+      return `<div class="panel"><h3>${X.name} <span class="chip k-${X.kind}">${X.type==="GC"?"Gia công":"FOB"}</span></h3>
+        ${INFO_XUONG.map(([k,l])=>field(`xuong.${x}.${k}`,l,XI[k],k==="ma"?X.code:k==="ten"?"Xưởng "+X.name:"")).join("")}</div>`; }).join("")}`;
+}
+let timer;
+document.addEventListener("input",e=>{
+  const t=e.target; if(!t.dataset.info) return;
+  const I=read(), parts=t.dataset.info.split("."), last=parts.pop();   // đọc bản mới nhất rồi mới sửa, không ghi đè phần khác
+  let o=I; parts.forEach(k=>o=o[k]=o[k]||{});
+  o[last]=t.value;
+  localStorage.setItem(IKEY, JSON.stringify(I));
+  clearTimeout(timer); $("#status").textContent="Đang lưu…"; timer=setTimeout(()=>$("#status").textContent="Đã lưu "+new Date().toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"}),600);
+});
+/* Tab khác đổi thông tin → hiện bản mới (không đụng ô đang gõ) */
+window.addEventListener("storage",e=>{ if(e.key===IKEY && !(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.info)) render(); });
+render();
+</script>
+</body>
+</html>

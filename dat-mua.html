@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đặt mua NVL · chuyển sang Quản lý NVL</title>
+<!-- V5.4 Đợt 2 (Q9): Đặt mua & Theo dõi NVL nằm trong Quản lý NVL (4 tab). Link cũ vẫn chạy:
+     dat-mua.html · #ds-… · #don-mua · ?w=tre|hsqh|ht · ?st=… → tab Đang mua (mở đúng đơn, đúng bộ lọc; trang cũ là "Đặt mua & Theo dõi NVL")
+     dat-mua.html?khtl=… (đặt mua từ kế hoạch) · #thieu → tab Cần mua -->
+<script>
+(function(){ var q = new URLSearchParams(location.search), h = location.hash || "";
+  var tab = (q.get("khtl") || /^#thieu/.test(h)) ? "can-mua" : "dang-mua";
+  q.set("tab", tab); location.replace("nvl.html?" + q.toString() + (h === "#dat-mua" ? "" : h)); })();
+</script>
+<meta http-equiv="refresh" content="0; url=nvl.html?tab=dang-mua">
+</head>
+<body style="font-family:system-ui,sans-serif;padding:24px">
+<p>Trang Đặt mua &amp; Theo dõi NVL đã chuyển vào <a href="nvl.html?tab=dang-mua">Quản lý NVL</a>.</p>
+</body>
+</html>

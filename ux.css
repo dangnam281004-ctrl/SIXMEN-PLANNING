@@ -1,0 +1,120 @@
+/* UX V5 (anh duyệt 13/11/2026) · Bộ quy tắc trực quan chung cho toàn Planning. Mọi lớp bắt đầu bằng "ux-" để không đè kiểu cũ của từng trang.
+   5 tông, LUÔN đi kèm nhãn chữ (không chỉ dùng màu):
+   xám  = chưa bắt đầu / chưa có dữ liệu      → .ux-b.g
+   xanh dương = đang thực hiện                 → .ux-b.b
+   cam  = cần chú ý / cần hành động / sắp hạn  → .ux-b.o
+   đỏ   = lỗi / quá hạn                         → .ux-b.r
+   xanh lá = hoàn thành bước                   → .ux-b.k
+   Chỉ nhấn mạnh thông tin ảnh hưởng quyết định; dòng bình thường không tô. */
+:root{
+  --ux-g:#5b6472; --ux-g-bg:#eef0f3;
+  --ux-b:#1f5fae; --ux-b-bg:#e8f0fb;
+  --ux-o:#a85d00; --ux-o-bg:#fff3df;
+  --ux-r:#c62828; --ux-r-bg:#fdecea;
+  --ux-k:#16794a; --ux-k-bg:#e7f4ec;
+}
+/* Nhãn trạng thái */
+.ux-b{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600;white-space:nowrap;line-height:1.6;background:var(--ux-g-bg);color:var(--ux-g)}
+.ux-b::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.ux-b.g{background:var(--ux-g-bg);color:var(--ux-g)} .ux-b.b{background:var(--ux-b-bg);color:var(--ux-b)}
+.ux-b.o{background:var(--ux-o-bg);color:var(--ux-o)} .ux-b.r{background:var(--ux-r-bg);color:var(--ux-r)} .ux-b.k{background:var(--ux-k-bg);color:var(--ux-k)}
+.ux-b.plain{background:none;padding:0}
+a.ux-b,button.ux-b{border:0;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;text-decoration:none}
+a.ux-b:hover,button.ux-b:hover{filter:brightness(.95);text-decoration:underline}
+.ux-t-g{color:var(--ux-g)} .ux-t-b{color:var(--ux-b)} .ux-t-o{color:var(--ux-o)} .ux-t-r{color:var(--ux-r)} .ux-t-k{color:var(--ux-k)}
+
+/* Ô chỉ số bấm được: có dữ liệu → nút lọc; = 0 → không bấm (không tạo nút giả) */
+.ux-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.ux-kpi{position:relative;display:flex;flex-direction:column;gap:2px;text-align:left;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:11px 14px 10px;font:inherit;color:inherit;min-width:0}
+.ux-kpi .l{font-size:12px;color:#6b7280;font-weight:600;order:-1}
+.ux-kpi .v{font-size:24px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--c,#1f2328)}
+.ux-kpi .d{font-size:11.5px;color:#6b7280}
+.ux-kpi.zero .v{color:#9aa1ab}
+button.ux-kpi{cursor:pointer}
+button.ux-kpi:hover{border-color:var(--ux-b)}
+button.ux-kpi::after{content:"Xem →";position:absolute;right:12px;top:11px;font-size:11px;font-weight:600;color:var(--ux-b);opacity:0;transition:opacity .15s}
+button.ux-kpi:hover::after,button.ux-kpi:focus-visible::after{opacity:1}
+.ux-kpi.on{border-color:var(--ux-b);box-shadow:0 0 0 2px var(--ux-b-bg)}
+.ux-kpi.on::after{content:"Đang lọc ✓";opacity:1}
+.ux-kpi.tone-r{border-left:3px solid var(--ux-r)} .ux-kpi.tone-o{border-left:3px solid var(--ux-o)} .ux-kpi.tone-b{border-left:3px solid var(--ux-b)} .ux-kpi.tone-k{border-left:3px solid var(--ux-k)}
+.ux-kpi.zero{border-left-color:#e5e7eb}
+.ux-kpi-grp{display:grid;gap:6px}
+.ux-kpi-grp>.h{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa1ab}
+
+/* Thanh lọc: chế độ xem · tìm kiếm · chip trạng thái · lọc thêm */
+.ux-bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:9px 12px}
+.ux-seg{display:inline-flex;border:1px solid #e5e7eb;border-radius:7px;overflow:hidden;flex:none}
+.ux-seg button{border:0;background:#fff;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:600;color:#3d4450;cursor:pointer}
+.ux-seg button+button{border-left:1px solid #e5e7eb}
+.ux-seg button.on{background:#1f2328;color:#fff}
+.ux-q{flex:1 1 220px;min-width:180px;max-width:360px;border:1px solid #e5e7eb;border-radius:7px;padding:5px 10px;font:inherit;font-size:12.5px}
+.ux-q:focus,.ux-sel:focus{outline:none;border-color:var(--ux-b);box-shadow:0 0 0 3px rgba(31,95,174,.12)}
+.ux-sel{border:1px solid #e5e7eb;border-radius:7px;padding:4px 8px;font:inherit;font-size:12.5px;background:#fff}
+.ux-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ux-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;font-weight:600;color:#3d4450;cursor:pointer;white-space:nowrap}
+.ux-chip .n{font-variant-numeric:tabular-nums;color:#6b7280;font-weight:700}
+.ux-chip:hover{border-color:#9aa1ab}
+.ux-chip.on{background:#1f2328;border-color:#1f2328;color:#fff} .ux-chip.on .n{color:#cfd3d8}
+.ux-chip[disabled]{opacity:.45;cursor:default}
+.ux-chip.t-r .n{color:var(--ux-r)} .ux-chip.t-o .n{color:var(--ux-o)} .ux-chip.on.t-r .n,.ux-chip.on.t-o .n{color:#fff}
+.ux-sep{width:1px;height:22px;background:#e5e7eb;flex:none}
+.ux-hint{font-size:12px;color:#6b7280}
+.ux-clear{border:0;background:none;color:var(--ux-b);font:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:0}
+
+/* Khối nhóm thu gọn / mở (ngành → mã → chi tiết) */
+.ux-sec-h{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin:6px 2px 0}
+.ux-acc{background:#fff;border:1px solid #e5e7eb;border-radius:8px;min-width:0}
+.ux-acc+.ux-acc{margin-top:0}
+.ux-acc>.h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;width:100%;border:0;background:none;padding:10px 14px;font:inherit;text-align:left;cursor:pointer;color:inherit}
+.ux-acc>.h:hover{background:#f7f8fa}
+.ux-acc>.h .car{width:14px;flex:none;color:#9aa1ab;transition:transform .15s}
+.ux-acc.open>.h .car{transform:rotate(90deg)}
+.ux-acc>.h .nm{font-weight:700;font-size:13.5px}
+.ux-acc>.h .meta{font-size:12px;color:#6b7280}
+.ux-acc>.h .rt{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ux-acc>.b{border-top:1px solid #e5e7eb}
+.ux-acc.open{box-shadow:0 1px 0 rgba(0,0,0,.02)}
+
+/* Phân trang / tải thêm */
+.ux-more{display:flex;justify-content:center;align-items:center;gap:10px;padding:10px;font-size:12px;color:#6b7280}
+.ux-empty{padding:22px;text-align:center;color:#6b7280;background:#fff;border:1px dashed #d5d9df;border-radius:8px}
+
+/* Ô "việc tiếp theo" trong chi tiết đơn */
+.ux-next{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden}
+.ux-next>div{padding:8px 12px;border-right:1px solid #e5e7eb;min-width:0}
+.ux-next>div:last-child{border-right:0}
+.ux-next .k{display:block;font-size:11px;color:#6b7280;font-weight:600}
+.ux-next .v{display:block;font-weight:600;font-size:12.5px}
+
+/* Chi tiết đơn mở trong bảng rộng: giữ khung chi tiết vừa màn hình (cuộn ngang bảng không đẩy nút ra ngoài) */
+.ds-detail>td>.panel{position:sticky;left:10px;max-width:calc(100vw - 330px);box-sizing:border-box}
+@media (max-width:900px){.ds-detail>td>.panel{max-width:calc(100vw - 52px)}}
+/* Dòng cần chú ý: chỉ một vạch mỏng bên trái, không tô cả dòng */
+tr.ux-row-r>td:first-child{box-shadow:inset 3px 0 0 var(--ux-r)}
+tr.ux-row-o>td:first-child{box-shadow:inset 3px 0 0 var(--ux-o)}
+.ux-flash{animation:uxflash 1.2s ease-out 1}
+@keyframes uxflash{0%{box-shadow:0 0 0 3px var(--ux-b)}100%{box-shadow:0 0 0 0 transparent}}
+/* Hộp thoại dùng chung (Báo vướng mắc…) */
+.ux-dlg{position:fixed;inset:0;background:rgba(15,20,25,.35);display:grid;place-items:center;z-index:80;padding:16px}
+.ux-dlg>form{background:#fff;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.25);width:min(480px,100%);padding:18px;display:grid;gap:10px;font-size:13px}
+.ux-dlg h3{margin:0;font-size:15px}
+.ux-dlg label{display:grid;gap:3px;font-size:12px;color:#6b7280;font-weight:600}
+.ux-dlg input,.ux-dlg select,.ux-dlg textarea{border:1px solid #e5e7eb;border-radius:7px;padding:6px 9px;font:inherit;font-size:13px;color:#1f2328}
+.ux-dlg textarea{min-height:64px;resize:vertical}
+.ux-dlg .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ux-dlg .acts{display:flex;justify-content:flex-end;gap:8px}
+.ux-dlg .err{color:var(--ux-r);font-size:12px;min-height:0}
+/* Danh sách vướng mắc */
+.ux-vl{display:grid;gap:6px}
+.ux-v{border:1px solid #e5e7eb;border-left:3px solid var(--ux-o);border-radius:7px;padding:8px 10px;background:#fff;display:grid;gap:3px}
+.ux-v.dang{border-left-color:var(--ux-b)} .ux-v.xong{border-left-color:var(--ux-k);background:#fafbfc}
+.ux-v .t{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ux-v .s{font-size:12px;color:#6b7280}
+@media (max-width:700px){.ux-q{max-width:none}.ux-kpis{grid-template-columns:1fr 1fr}.ux-dlg .row2{grid-template-columns:1fr}}
+
+/* V5.2: mục con của menu theo vai trò (Quản lý NVL, Giám sát đơn hàng, Báo cáo & KPI, Danh mục & Cài đặt) */
+.nav .sub{display:grid;gap:1px;margin:2px 0 4px}
+.nav .sub a{padding:6px 9px 6px 34px;font-size:12.5px;color:#6b7280;border-radius:7px;text-decoration:none;display:flex}
+.nav .sub a:hover{background:#f2f4f6}
+.nav .sub a.on{background:#e7f4ec;color:#16794a;font-weight:600}
+

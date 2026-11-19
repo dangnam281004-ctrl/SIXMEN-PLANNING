@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Đơn sản xuất · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<link rel="stylesheet" href="ux.css">
+<style>
+.bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.tabs{display:flex;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--surface);color:var(--ink2);margin-left:-1px;padding:6px 14px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.tab:first-child{margin-left:0;border-radius:7px 0 0 7px} .tab:last-child{border-radius:0 7px 7px 0}
+.tab[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff;position:relative}
+.cfg{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;color:var(--ink2)}
+.cfg input{width:48px}
+tr.row{cursor:pointer} tr.row:hover td{background:var(--hover)}
+.code{font-weight:700} .sub{font-size:11.5px;color:var(--muted)}
+.prog{display:inline-block;width:64px;height:6px;border-radius:99px;background:var(--line);vertical-align:middle;overflow:hidden;margin-right:6px}
+.prog i{display:block;height:100%;background:var(--ok)}
+.nx.due{color:var(--crit);font-weight:600}
+/* UX-2/3: ô số là bộ lọc chính (bỏ hàng tab trùng), tiêu đề bảng cố định khi cuộn, cài đặt Admin thu gọn */
+#tiles .tile[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-bg)}
+#list thead th{position:sticky;top:52px;z-index:2;background:var(--head)}
+details.cfgd{font-size:12px;color:var(--ink2)} details.cfgd>summary{cursor:pointer;color:var(--muted)}
+@media (max-width:1200px){#list{overflow-x:auto}#list thead th{position:static}}
+#tiles{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}   /* UX-3: 7 ô trên 1 hàng ở màn 1366 */
+/* V5.4 Đợt 1: chip vấn đề / cảnh báo (Q8), tách khỏi trạng thái chính (UX4) */
+.chips5{display:flex;flex-wrap:wrap;gap:3px;max-width:170px}
+.ic{display:inline-block;border-radius:99px;padding:0 7px;font-size:11px;font-weight:600;line-height:1.7;white-space:normal}
+.ic.r{background:var(--crit-bg,#fdecea);color:var(--crit,#c62828)}.ic.o{background:var(--warn-bg,#fff4e0);color:var(--warn,#b26a00)}.ic.g{background:var(--line);color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>Quản lý đơn</b><small>Mọi đơn đã lên: hẹn giao, gọi xưởng, nhận hàng · Chứng từ · Vướng mắc · bấm vào đơn để xem chi tiết</small></div></header>
+    <div class="content">
+      <div class="tiles" id="tiles"></div>
+      <div class="bar"><div class="tabs" id="tabs"></div><div class="cfg" id="cfg"></div></div>
+      <div id="bgBar"></div>
+      <div class="panel" id="list"></div>
+      <div id="xv" hidden></div>
+    </div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s), esc=Khung.esc, fmt=Don.fmt, dm=Don.dm;
+/* Bộ lọc (anh duyệt 26/10): Chờ NVL · Sẵn sàng triển khai · Đang sản xuất · Sắp giao / Trễ hạn · Hoàn tất (+ Bản nháp, Đã huỷ, Tất cả).
+   Trạng thái thực hiện và trạng thái NVL độc lập: đơn đang may vẫn hiện ở Chờ NVL nếu còn thiếu NVL */
+const OLDV={run:"dang-sx", pending:"nhap", arrived:"hoan-tat", cancelled:"huy"};
+let view=(()=>{ try { const v=localStorage.getItem("_ui_don_view")||"dang-sx"; return OLDV[v]==null?(v==="ct"||v==="vm"?"dang-sx":v):OLDV[v]; } catch(e){ return "dang-sx"; } })();
+/* V5.4 Đợt 2 (Q13): Chứng từ, Vướng mắc thành bộ lọc của Quản lý đơn. Link cũ chung-tu.html / vuong-mac.html chuyển về ?f=chung-tu / ?f=vuong-mac */
+try { const f0=new URLSearchParams(location.search).get("f"); if(f0==="chung-tu") view="ct"; else if(f0==="vuong-mac") view="vm"; } catch(e){}
+const XV={ct:"Chứng từ & bàn giao hồ sơ", vm:"Vướng mắc"};
+function render(){
+  const S=Don.readS(); SoLuong.mark(S);
+  const t=Don.today(), c=Don.cfgOf(S), all=Don.all(S).filter(x=>!Don.isPlan(x.o));   // kế hoạch tương lai chưa chốt: xem ở Kế hoạch › Kế hoạch tương lai
+  all.forEach(x=>{ x.ph=Don.phase(x.o); x.nv=x.o.closed&&!x.o.cancelled&&!x.o.arrived?Don.nvlOf(x.o,S,x.m.key):(x.o.type||Don.XUONG[x.o.xuong].type!=="GC"?{state:"khong-can"}:null); });
+  const open=x=>x.o.closed&&!x.o.cancelled&&!x.o.arrived;
+  const F={
+    "cho-nvl":x=>open(x)&&x.nv&&x.nv.state!=="du"&&x.nv.state!=="khong-can",
+    "ban-giao":x=>Don.BGP.includes(x.ph),   // V5.3: đã chốt chưa bàn giao · chờ tiếp nhận · bị trả lại
+    "cho-qlvh":x=>x.ph==="cho-po"||x.ph==="cho-qlvh",   // V3: đã chốt, chờ nhập mã PO / chờ QLVH duyệt
+    "san-sang":x=>(x.ph==="da-chot"||x.ph==="cho-trien-khai"||(x.o.flow===3&&x.ph==="dang-sx"&&!x.o.startedAt&&!(x.o.type&&x.o.ackAt)))&&x.nv&&(x.nv.state==="du"||x.nv.state==="khong-can"),
+    "dang-sx":x=>x.ph==="dang-sx"||x.ph==="giao-mot-phan",
+    "sap-giao":x=>open(x)&&x.o.dueDate&&Don.diff(t,x.o.dueDate)<=3,
+    "chung-tu":x=>(x.ph==="giao-mot-phan"||x.ph==="giao-du")&&!x.o.doneAt&&SoLuong.validReceipts(x.o).length>0,
+    "hoan-tat":x=>x.ph==="hoan-tat", "nhap":x=>x.ph==="nhap", "huy":x=>x.ph==="huy", "all":()=>true};
+  const by=k=>all.filter(F[k]), T=Don.tasks(S), late=all.filter(x=>open(x)&&x.o.dueDate&&x.o.dueDate<t).length, calls=T.filter(x=>x.call).length;
+  const run=by("dang-sx");
+  $("#tiles").innerHTML=[
+    {k:"ban-giao", v:by("ban-giao").length, l:"Chờ bàn giao / tiếp nhận", d:"đã chốt, chưa được người thực thi tiếp nhận", c:by("ban-giao").length?"var(--warn)":"var(--ink)"},
+    {k:"cho-qlvh", v:by("cho-qlvh").length, l:"Chờ PO / QLVH duyệt", d:"đã chốt, chưa xác nhận QLVH đã duyệt", c:by("cho-qlvh").length?"var(--warn)":"var(--ink)"},
+    {k:"cho-nvl", v:by("cho-nvl").length, l:"Chờ NVL", d:"đã chốt, NVL chưa đủ", c:by("cho-nvl").length?"var(--crit)":"var(--ok)"},
+    {k:"san-sang", v:by("san-sang").length, l:"Sẵn sàng triển khai", d:"đủ NVL · chờ gửi / chờ xưởng bắt đầu", c:"var(--info,#1f5fae)"},
+    {k:"dang-sx", v:run.length, l:"Đang sản xuất", d:`${fmt(run.reduce((a,x)=>a+Don.orderQty(x.o,S),0))} áo · ${calls} cuộc gọi cần làm`},
+    {k:"sap-giao", v:by("sap-giao").length, l:"Sắp giao / Trễ hạn", d:late?`${late} đơn trễ hẹn`:"hẹn giao ≤ 3 ngày", c:late?"var(--crit)":by("sap-giao").length?"var(--warn)":"var(--ink)"},
+    {k:"chung-tu", v:by("chung-tu").length, l:"Chờ chứng từ / bàn giao", d:"xưởng đã giao, hồ sơ chưa xong", c:by("chung-tu").length?"var(--warn)":"var(--ink)"},
+    {k:"hoan-tat", v:by("hoan-tat").length, l:"Hoàn tất Planning", d:"đã bàn giao hồ sơ", c:"var(--ok)"}
+  ].map(x=>{ /* UX V5: ô có số bấm lọc đúng danh sách (số trên ô = số dòng), ô = 0 không bấm; màu theo 5 nhóm chung */
+    const tone={"ban-giao":"o","cho-qlvh":"o","cho-nvl":"r","san-sang":"b","dang-sx":"b","sap-giao":late?"r":"o","chung-tu":"o","hoan-tat":"k"}[x.k]||"b", inner=`<span class="v num">${x.v}</span><span class="l">${x.l}</span><span class="d">${x.d}</span>`;
+    return x.v||view===x.k?`<button type="button" class="ux-kpi tone-${tone}${view===x.k?" on":""}" data-view="${x.k}" aria-pressed="${view===x.k}" style="--c:var(--ux-${tone})">${inner}</button>`:`<div class="ux-kpi zero">${inner}</div>`; }).join("");
+  $("#tiles").className="ux-kpis";
+  /* UX-2: 7 ô số ở trên là bộ lọc chính; hàng tab chỉ còn các mục không có ô (bỏ trùng) */
+  const V=[["nhap","Bản nháp"],["huy","Đã huỷ"],["all","Tất cả"]];
+  let NN={}; try { NN=JSON.parse(localStorage.getItem("nvl-v3"))||{}; } catch(e){}
+  const nCt=ctSx(S).length+ctNvl(NN).length, nVm=vmItems(S,NN).filter(x=>vmSt(x.v)!=="xong").length;
+  $("#tabs").innerHTML=`<span class="muted small" style="align-self:center;margin-right:8px">Xem thêm:</span>`+V.map(([k,l])=>`<button class="tab" data-view="${k}" aria-pressed="${view===k}">${l} (${by(k).length})</button>`).join("")
+    +`<span class="ux-sep" style="margin:0 6px"></span><button class="tab" data-view="ct" aria-pressed="${view==="ct"}" style="border-radius:7px 0 0 7px">Chứng từ (${nCt})</button><button class="tab" data-view="vm" aria-pressed="${view==="vm"}" style="border-radius:0 7px 7px 0">Vướng mắc (${nVm})</button>`;
+  if(XV[view]){ $("#list").hidden=true; $("#xv").hidden=false; $("#bgBar").innerHTML=""; if(view==="ct") renderCt(S,NN); else renderVm(S,NN); return; }
+  $("#list").hidden=false; $("#xv").hidden=true; $("#xv").innerHTML="";
+  $("#cfg").innerHTML=`<details class="cfgd"${cfgOpen?" open":""}><summary>Cài đặt nhắc gọi xưởng: mỗi ${c.every} ngày · xác nhận trước ${c.confirm} ngày${Khung.isAdmin()?"":" (Admin cài đặt)"}</summary><div class="cfg" style="margin-top:6px">Gọi hỏi tình hình mỗi <input class="field num" data-cfg="every" value="${c.every}" inputmode="numeric"${Khung.isAdmin()?"":" disabled"}> ngày · gọi xác nhận trước ngày giao <input class="field num" data-cfg="confirm" value="${c.confirm}" inputmode="numeric"${Khung.isAdmin()?"":" disabled"}> ngày</div></details>`;
+  /* UX V5: 5 nhóm trạng thái chung (Chưa bắt đầu / Đang xử lý / Cần hành động / Quá hạn / Hoàn tất) — lọc thêm trong mục đang xem; cần xử lý lên trước */
+  const base=(F[view]?by(view):all); base.forEach(x=>{ x.cat=Don.uxCat(x.o,S,x.m.key); });
+  const CK=["qua-han","can","dang","chua","xong","huy"], catN=k=>base.filter(x=>x.cat.k===k).length;
+  if(catF&&!catN(catF)) catF="";
+  $("#tabs").innerHTML+=`<span class="ux-sep" style="margin:0 6px"></span><span class="ux-chips">${CK.filter(k=>catN(k)).map(k=>`<button type="button" class="ux-chip${k==="qua-han"?" t-r":k==="can"?" t-o":""}${catF===k?" on":""}" data-cat="${k}"><span class="ux-b plain ux-t-${Don.UXCAT[k][1]}">${Don.UXCAT[k][0]}</span> <span class="n">${catN(k)}</span></button>`).join("")}</span>`;
+  /* V5.4 Đợt 1: xếp theo Q8 (Quá hạn → Bị trả lại → Thiếu NVL → Thiếu PO → Vướng mắc → Thiếu chứng từ), cùng thứ tự với Tổng quan / Công việc của tôi */
+  const list=Don.prioSort(base.filter(x=>!catF||x.cat.k===catF).slice(),S);
+  const TONE={"p-mute":"g","p-info":"b","p-warn":"o","p-run":"b","p-ok":"k","p-bad":"r"};
+  /* UX-1: cột Tiến trình (8 bước) + Hành động luôn hiện, gọn để không phải cuộn ngang ở màn 1366–1440px. Số liệu / trạng thái giữ nguyên */
+  $("#list").innerHTML=list.length?`<table class="t" style="table-layout:auto"><thead><tr><th>Mã đơn</th><th>Tiến trình</th><th>Trạng thái chính</th><th>Vấn đề / cảnh báo</th><th class="r">Đã giao / đặt</th><th>Hẹn giao</th><th>Việc tiếp theo</th><th class="r">Hành động</th></tr></thead><tbody>
+    ${list.map(({m,o,ph,nv,cat,iss})=>{ const r=SoLuong.receiptInfo(o,S.perRoll||65), st=Don.statusOf(o,S), nt=Don.nextTask(o,S,m.key), href=`don-hang.html?id=${encodeURIComponent(o.id)}`, sp=Don.steps(o,S), act=Don.stepAction(o,m.key,S), can=Khung.canEdit(m.key);
+      const worst=nv&&nv.rows?nv.rows.filter(z=>z.status!=="du").sort((a,b)=>(b.short||b.gap||0)-(a.short||a.gap||0))[0]:null;
+      const eta=nv&&nv.rows?nv.rows.flatMap(z=>z.eta||[]).filter(Boolean).sort().pop():null;
+      const nvTxt=nv&&!o.doneAt&&!o.arrived&&nv.state!=="khong-can"?`<div class="sub"><span class="pill ${NV.STATE_PILL[nv.state]}" style="font-size:10.5px">NVL: ${NV.STATE[nv.state]}</span>${worst?` ${esc(worst.it.name)}${worst.short||worst.gap?" thiếu "+NV.fmt(worst.short||worst.gap):""}${eta?" · về "+dm(eta):""}`:""}${nv.risk&&nv.risk.length?` <span style="color:${nv.risk.some(z=>z.lv==="crit")?"var(--crit)":"var(--warn)"}" title="${esc(nv.risk.map(z=>z.t).join("\n"))}">⚠ nguy cơ trễ</span>`:""}</div>`:"";
+      const ds=Don.docState(o);
+      const bgOk=(ph==="chua-bg"||ph==="tra-lai")&&can, sk=m.key+"|"+o.id;
+      return `<tr class="row" data-href="${href}"><td>${bgOk?`<input type="checkbox" data-bgsel="${esc(sk)}"${BSEL.has(sk)?" checked":""} aria-label="Chọn để bàn giao" style="margin-right:6px">`:""}<a class="code" href="${href}">${esc(Don.label(o,m))}</a><div class="sub">${esc(m.name)} · ${esc(Don.xOf(o).name)} · ${esc(Khung.userName(m.owner))}</div>${Don.poTxt(o)?`<div class="sub">${esc(Don.poTxt(o))}${o.qlvh?" ✓ QLVH đã duyệt":""}</div>`:""}</td>
+        <td style="min-width:120px">${sp?`<span class="dots" title="${esc(sp.list.map(z=>(z.cls.startsWith("d")?"✓ ":z.cls.startsWith("c")?"▶ ":"· ")+z.t).join("\n"))}">${sp.list.map(z=>`<i class="${z.cls}"></i>`).join("")}</span><div class="sub">${sp.cur?esc(sp.cur.t):"Hoàn tất"}</div>`:`<span class="muted small">—</span>`}</td>
+        <td><span class="ux-b ${TONE[Don.PHASE_PILL[ph]]||"g"}" data-main="${ph}">${Don.PHASE[ph]}</span>${(ph==="dang-sx"||ph==="giao-mot-phan")&&st.text!==Don.PHASE[ph]?`<div class="sub">${esc(st.text)}</div>`:""}${ds.receipts&&!o.doneAt?`<div class="sub">${esc(ds.label)}</div>`:""}${nvTxt}</td>
+        <td style="max-width:220px"><span class="chips5">${(iss||[]).length?iss.map(i=>`<span class="ic ${i.tone}" data-ik="${i.k}" title="${esc(i.cause||"")}">${esc(i.t)}</span>`).join(""):`<span class="sub">—</span>`}</span></td>
+        <td class="r num" style="white-space:nowrap"><b>${fmt(r.got)}</b> / ${fmt(r.total)}<div><span class="prog" style="margin:3px 0 0"><i style="width:${r.total?Math.min(100,Math.round(r.got/r.total*100)):0}%"></i></span></div></td>
+        <td style="white-space:nowrap">${dm(o.dueDate)}</td>
+        <td class="nx${nt&&nt.due?" due":""}" style="max-width:240px">${nt?esc(nt.label):"—"}</td>
+        <td class="r"><a class="btn${act.main&&can?" primary":" ghost"}" href="${can?act.href:href}">${esc(can?act.label:"Xem")}</a></td></tr>`; }).join("")}
+    </tbody></table>`:`<div class="empty">Không có đơn nào ở mục này.</div>`;
+  lastList=list; renderBg(list);
+}
+/* ===== V5.4 Đợt 3 (Q5): bàn giao hàng loạt cho 1 người thực thi. Gọi lần lượt lệnh bàn giao từng đơn trên server (server kiểm quyền, chặn trùng, ghi lịch sử riêng từng đơn);
+   1 đơn lỗi không làm hỏng đơn khác; bảng kết quả theo từng đơn. Chỉ chọn được đơn "Đã chốt — Chưa bàn giao" hoặc "Bị trả lại" của mã mình có quyền ===== */
+const BSEL=new Set(); let BRES=null, BBUSY=false, BTO="";
+function renderBg(list){
+  const el=$("#bgBar"); if(!el) return;
+  const okRows=(list||[]).filter(x=>(x.ph==="chua-bg"||x.ph==="tra-lai")&&Khung.canEdit(x.m.key)).map(x=>x.m.key+"|"+x.o.id);
+  [...BSEL].forEach(k=>{ if(!okRows.includes(k)&&!BBUSY) BSEL.delete(k); });
+  const us=(Khung.users||[]).filter(u=>u.active&&u.role!=="kho"), def=(Khung.catalog().exec||{}).user||"";
+  if(!BTO) BTO=def||((us.find(u=>u.role==="staff")||{}).id||"");
+  const res=BRES?`<div class="panel" id="bgRes" style="margin-top:8px"><div class="ph" style="padding:10px 14px 0"><h2 style="font-size:14px">Kết quả bàn giao · ${BRES.filter(r=>r.ok).length}/${BRES.length} thành công</h2><button type="button" class="btn ghost" data-bgresx>Đóng</button></div>
+    <div class="scroll"><table class="t"><thead><tr><th>Đơn</th><th>Mẫu</th><th>Kết quả bàn giao</th></tr></thead><tbody>${BRES.map(r=>`<tr data-bgres="${esc(r.oid)}" data-ok="${r.ok?1:0}"><td><b>${esc(r.code)}</b></td><td>${esc(r.name)}</td><td>${r.ok?`<span class="ux-b k">✓ Đã bàn giao ${esc(r.time)}</span>`:`<span class="ux-b r">✕ ${esc(r.msg)}</span>`}</td></tr>`).join("")}</tbody></table></div></div>`:"";
+  el.innerHTML=(okRows.length||BSEL.size?`<div class="panel" style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><b>Đã chọn ${BSEL.size} đơn</b>
+    <label class="small">Bàn giao cho <select class="field" data-bgto>${us.map(u=>`<option value="${esc(u.id)}"${u.id===BTO?" selected":""}>${esc(u.name||u.username)}${u.id===def?" (mặc định)":""}</option>`).join("")}</select></label>
+    <button type="button" class="btn primary" data-bggo${BSEL.size&&!BBUSY?"":" disabled"}>${BBUSY?"Đang bàn giao…":`Bàn giao ${BSEL.size} đơn`}</button>
+    <button type="button" class="btn ghost" data-bgall>Chọn cả ${okRows.length} đơn có thể bàn giao</button>${BSEL.size?`<button type="button" class="btn ghost" data-bgnone>Bỏ chọn</button>`:""}
+    <span class="ux-hint">Chỉ đơn Đã chốt — Chưa bàn giao / Bị trả lại · mỗi đơn có lịch sử, thời gian riêng</span></div>`:"")+res;
+}
+async function runBg(){
+  if(BBUSY||!BSEL.size) return; const to=BTO, keys=[...BSEL], S=Don.readS(), nm=Khung.userName(to);
+  if(!confirm(`Bàn giao ${keys.length} đơn cho ${nm}?\n\nMỗi đơn tạo đúng 1 việc chờ ${nm} tiếp nhận. Đơn nào lỗi thì báo riêng, không ảnh hưởng đơn khác.`)) return;
+  BBUSY=true; BRES=[]; render();
+  for(const k of keys){ const [mk,oid]=k.split("|"); let f=null; Don.all(Don.readS(),true).forEach(x=>{ if(x.m.key===mk&&x.o.id===oid) f=x; });
+    const code=f?Don.label(f.o,f.m):oid, name=f?f.m.name:mk;
+    let r; try { r=await Don.op({op:"ban-giao", model:mk, oid, toUser:to}); } catch(e){ r={status:0, j:{error:String(e)}}; }
+    BRES.push({oid, code, name, ok:r.status===200, msg:(r.j&&r.j.error)||("Lỗi "+r.status), time:new Date().toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"})});
+    BSEL.delete(k); }
+  BBUSY=false; render(); const el=$("#bgRes"); if(el) el.scrollIntoView({block:"nearest"});
+}
+document.addEventListener("change",e=>{ const c=e.target.closest&&e.target.closest("[data-bgsel]"); if(c){ c.checked?BSEL.add(c.dataset.bgsel):BSEL.delete(c.dataset.bgsel); renderBg(lastList); return; } const s=e.target.closest&&e.target.closest("[data-bgto]"); if(s){ BTO=s.value; } });
+document.addEventListener("click",e=>{
+  if(e.target.closest("[data-bggo]")){ runBg(); return; }
+  if(e.target.closest("[data-bgall]")){ (lastList||[]).filter(x=>(x.ph==="chua-bg"||x.ph==="tra-lai")&&Khung.canEdit(x.m.key)).forEach(x=>BSEL.add(x.m.key+"|"+x.o.id)); render(); return; }
+  if(e.target.closest("[data-bgnone]")){ BSEL.clear(); render(); return; }
+  if(e.target.closest("[data-bgresx]")){ BRES=null; render(); return; }
+});
+let lastList=[];
+/* ===== Bộ lọc Chứng từ: lấy nguyên cách tính / hiển thị của chung-tu.html V5.3 (chỉ xem và điều hướng; ghi chứng từ ở Chi tiết đơn / Đơn mua NVL) ===== */
+const me=()=>Khung.me&&Khung.me.id, isEx=()=>Khung.me&&Khung.me.role==="staff";
+let CF="", CQ="";
+function ctSx(S){
+  return Don.all(S,true).filter(({o})=>o.closed&&!o.cancelled&&!o.doneAt&&(o.arrived||SoLuong.validReceipts(o).length)&&(!isEx()||Don.isMyExec(o))).map(({m,o})=>{
+    const ds=Don.docState(o), hs=Don.handState(o), nt=Don.nextTask(o,S,m.key), late=o.arrived&&Don.diff(o.arrived,Don.today())>3&&!ds.all;
+    const k=hs==="cho"?"cho-xn":!ds.all?(late?"qua-han":"thieu"):"cho-bg";
+    return {m,o,ds,hs,nt,k,late};
+  });
+}
+function ctNvl(N){
+  return (N.buyLists||[]).filter(B=>B.giao&&!B.doneAt&&B.status!=="huy"&&(!isEx()||B.giao.user===me())).map(B=>{
+    const S0=Don.buyBatchState(B), miss=Don.buyDocsMissing(B), P=(B.handovers||[]).find(h=>h.state==="cho"), hq=Don.buyHsLate(B);
+    if(!S0.length&&B.status!=="da-nhan") return null;
+    const k=P?"cho-xn":hq?"qua-han":miss.length?"thieu":"cho-bg";
+    return {B,S0,miss,P,hq,k};
+  }).filter(Boolean);
+}
+const KN={"qua-han":["Hồ sơ quá hạn","r"],"thieu":["Còn thiếu chứng từ","o"],"cho-bg":["Đủ chứng từ · chờ bàn giao","o"],"cho-xn":["Chờ người nhận xác nhận","b"]};
+function renderCt(S,N){
+  const A=ctSx(S), B=ctNvl(N), hit=t=>!CQ||Khung.norm(t).includes(Khung.norm(CQ)), cnt=k=>A.filter(x=>x.k===k).length+B.filter(x=>x.k===k).length;
+  const tiles=Object.entries(KN).map(([k,[t,tone]])=>{ const v=cnt(k), inner=`<span class="v num">${v}</span><span class="l">${t}</span><span class="d">${k==="qua-han"?"SX: quá 3 ngày sau chốt giao nhận · NVL: đợt quá 3 ngày":k==="cho-xn"?"bước 2 bàn giao":k==="cho-bg"?"ghi nhận bàn giao (bước 1)":"ghi tiếp chứng từ"}</span>`;
+    return v||CF===k?`<button type="button" class="ux-kpi tone-${tone}${CF===k?" on":""}" data-ctf="${k}" style="--c:var(--ux-${tone})">${inner}</button>`:`<div class="ux-kpi zero">${inner}</div>`; }).join("");
+  const bar=`<input class="ux-q" id="xq" type="search" placeholder="Tìm mã đơn, PO, mẫu, NVL, NCC…" value="${esc(CQ)}" autocomplete="off"> ${CF||CQ?`<button type="button" class="ux-clear" data-xclear>Bỏ lọc</button>`:""}<span class="ux-hint" style="margin-left:auto">${isEx()?"Đơn được giao cho tôi":"Tất cả đơn"} · ghi chứng từ ở chi tiết đơn</span>`;
+  const sx=A.filter(x=>(!CF||x.k===CF)&&hit([x.o.code,Don.label(x.o,x.m),Don.poTxt(x.o),x.m.name,Don.xOf(x.o).name].join(" "))).sort((a,b)=>Object.keys(KN).indexOf(a.k)-Object.keys(KN).indexOf(b.k));
+  const sxH=`<div class="ph"><h2>Đơn sản xuất</h2><span class="muted small">${sx.length} đơn</span></div>`+(sx.length?`<div class="scroll"><table class="t"><thead><tr><th>Mã đơn</th><th>Mẫu · xưởng</th><th>Giao nhận</th><th>Chứng từ</th><th>Bàn giao</th><th>Tình trạng</th><th>Việc tiếp theo</th><th></th></tr></thead><tbody>
+    ${sx.map(x=>`<tr class="${x.k==="qua-han"?"ux-row-r":""}" data-ctrow="sx"><td><b>${esc(Don.label(x.o,x.m))}</b><div class="sub">${esc(Don.poTxt(x.o)||"")}</div></td><td>${esc(x.m.name)} · ${esc(Don.xOf(x.o).name)}</td>
+      <td class="small">${x.o.arrived?"Chốt "+dm(x.o.arrived):SoLuong.validReceipts(x.o).length+" lần giao"}</td>
+      <td><span class="prog"><i style="width:${x.ds.total?Math.round(x.ds.done/x.ds.total*100):0}%"></i></span><span class="small">${x.ds.done}/${x.ds.total}</span></td>
+      <td class="small">${esc(Don.HAND[x.hs]||"")}</td><td><span class="ux-b ${KN[x.k][1]}">${KN[x.k][0]}</span></td><td class="small">${esc(x.nt?x.nt.label:"—")}</td>
+      <td><a class="btn${Khung.canEdit(x.m.key)||Don.isMyExec(x.o)?" primary":""}" href="don-hang.html?id=${encodeURIComponent(x.o.id)}#chung-tu">Mở hồ sơ</a></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Không có đơn sản xuất nào đang chờ chứng từ / bàn giao.</div>`);
+  const nv=B.filter(x=>(!CF||x.k===CF)&&hit([x.B.no,x.B.po&&x.B.po.code,x.B.title,x.B.ncc].join(" "))).sort((a,b)=>Object.keys(KN).indexOf(a.k)-Object.keys(KN).indexOf(b.k));
+  const nvH=`<div class="ph"><h2>Đơn mua NVL (hồ sơ từng đợt)</h2><span class="muted small">${nv.length} đơn</span></div>`+(nv.length?`<div class="scroll"><table class="t"><thead><tr><th>Đơn mua · PO</th><th>NVL · NCC</th><th>Đợt nhận</th><th>Hồ sơ đợt</th><th>Còn thiếu</th><th>Tình trạng</th><th></th></tr></thead><tbody>
+    ${nv.map(x=>{ const full=x.S0.filter(z=>!z.miss.length).length; return `<tr class="${x.k==="qua-han"?"ux-row-r":""}" data-ctrow="nvl"><td><b>${esc(x.B.no)}</b><div class="sub">${x.B.po?"PO "+esc(x.B.po.code):""}</div></td><td>${esc(x.B.title)}<div class="sub">${esc(x.B.ncc||"")}</div></td>
+      <td class="small">${x.S0.length} đợt${x.B.status==="da-nhan"?" · đã nhận đủ":" · còn giao"}</td><td><span class="prog"><i style="width:${x.S0.length?Math.round(full/x.S0.length*100):0}%"></i></span><span class="small">${full}/${x.S0.length} đủ</span>${x.hq?` <span class="ux-b r">quá ${x.hq} ngày</span>`:""}</td>
+      <td class="small">${esc(x.miss.join(", ")||"—")}</td><td><span class="ux-b ${KN[x.k][1]}">${KN[x.k][0]}</span>${x.P?`<div class="sub">${esc(x.P.to)}</div>`:""}</td>
+      <td><a class="btn primary" href="nvl.html?tab=dang-mua#ds-${encodeURIComponent(x.B.id)}">Mở hồ sơ</a></td></tr>`; }).join("")}</tbody></table></div>`:`<div class="empty">Không có đơn mua NVL nào đang chờ chứng từ / bàn giao.</div>`);
+  $("#xv").innerHTML=`<div class="ux-kpis" id="xvTiles" style="margin-bottom:10px">${tiles}</div><div class="ux-bar" style="margin-bottom:10px">${bar}</div><div class="panel" id="xvSx">${sxH}</div><div class="panel" id="xvNvl">${nvH}</div>`;
+  if(window.__xqf){ const q=$("#xq"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); window.__xqf=false; }
+}
+/* ===== Bộ lọc Vướng mắc: lấy nguyên cách tính / hiển thị của vuong-mac.html V5.3 (chỉ xem, mở đúng đơn để báo / xử lý) ===== */
+let VF="mo", VL="", VQ="";
+const vmHm=t=>t?new Date(t).toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}):"";
+function vmItems(S,N){
+  const out=[];
+  Don.all(S,true).forEach(({m,o})=>{ if(isEx()&&!Don.isMyExec(o)&&!(o.vuong||[]).some(v=>v.by===me())) return;
+    (o.vuong||[]).forEach(v=>out.push({v, kind:"Đơn SX", code:Don.label(o,m), sub:m.name+" · "+Don.xOf(o).name, href:"don-hang.html?id="+encodeURIComponent(o.id)+"#vuong", ex:Don.execTxt(o)})); });
+  (N.buyLists||[]).forEach(B=>{ if(isEx()&&!(B.giao&&B.giao.user===me())&&!(B.vuong||[]).some(v=>v.by===me())) return;
+    (B.vuong||[]).forEach(v=>out.push({v, kind:"Đơn mua NVL", code:B.no, sub:(B.title||"")+(B.ncc?" · "+B.ncc:""), href:"nvl.html?tab=dang-mua#ds-"+encodeURIComponent(B.id), ex:B.giao?Khung.userName(B.giao.user):""})); });
+  return out;
+}
+const vmSt=v=>v.state==="xong"?"xong":v.state==="dang"?"dang":"mo";
+const vmRecent=v=>vmSt(v)!=="xong"||(Date.now()-(v.doneAt||0))<7*864e5;
+function renderVm(S,N){
+  const A=vmItems(S,N).filter(x=>vmRecent(x.v)), c=k=>A.filter(x=>vmSt(x.v)===k).length;
+  const T=[["mo","Chưa xử lý","o","cần người quản lý kế hoạch nhận"],["dang","Đang xử lý","b","đã có người nhận"],["xong","Đã giải quyết","k","trong 7 ngày qua"]];
+  const tiles=T.map(([k,t,tone,d])=>{ const v=c(k), inner=`<span class="v num">${v}</span><span class="l">${t}</span><span class="d">${d}</span>`; return v||VF===k?`<button type="button" class="ux-kpi tone-${tone}${VF===k?" on":""}" data-vmf="${k}" style="--c:var(--ux-${tone})">${inner}</button>`:`<div class="ux-kpi zero">${inner}</div>`; }).join("");
+  const LO=Khung.VUONG_LOAI;
+  const bar=`<input class="ux-q" id="xq" type="search" placeholder="Tìm mã đơn, nội dung…" value="${esc(VQ)}" autocomplete="off"><span class="ux-sep"></span><div class="ux-chips">${LO.map(([k,t])=>{ const n=A.filter(x=>(x.v.loai||"khac")===k&&(!VF||vmSt(x.v)===VF)).length; return n||VL===k?`<button type="button" class="ux-chip${VL===k?" on":""}" data-vml="${k}">${t} <span class="n">${n}</span></button>`:""; }).join("")}</div>${VF||VL||VQ?` <button type="button" class="ux-clear" data-xclear>Bỏ lọc</button>`:""}`;
+  const pri={cao:0,tb:1,thap:2}, R=A.filter(x=>(!VF||vmSt(x.v)===VF)&&(!VL||(x.v.loai||"khac")===VL)&&(!VQ||Khung.norm([x.code,x.sub,x.v.text,x.v.can].join(" ")).includes(Khung.norm(VQ))))
+    .sort((a,b)=>["mo","dang","xong"].indexOf(vmSt(a.v))-["mo","dang","xong"].indexOf(vmSt(b.v))||(pri[a.v.uu||"tb"]-pri[b.v.uu||"tb"])||b.v.at-a.v.at);
+  const list=`<div class="ph"><h2>${VF?T.find(x=>x[0]===VF)[1]:"Tất cả"}</h2><span class="muted small">${R.length} vướng mắc · bấm để mở đúng đơn</span></div>`+(R.length?`<div style="display:grid;gap:6px;padding:10px 14px">${R.map(x=>{ const v=x.v, s=vmSt(v), S0=Khung.VUONG_ST[s], U=Khung.VUONG_UU.find(z=>z[0]===(v.uu||"tb"))||Khung.VUONG_UU[1];
+      return `<a class="ux-v ${s}" data-vmrow href="${x.href}" style="text-decoration:none;color:inherit"><span class="t"><b>${esc(x.kind)} ${esc(x.code)}</b><span class="ux-b ${S0[1]}">${S0[0]}</span>${s!=="xong"?`<span class="ux-b ${U[2]}">Ưu tiên ${U[1].toLowerCase()}</span>`:""}<span class="ux-b g">${esc((LO.find(z=>z[0]===(v.loai||"khac"))||[,"Khác"])[1])}</span></span>
+        <span>${esc(v.text)}${v.can?` <span class="muted">· cần: ${esc(v.can)}</span>`:""}</span>
+        <span class="s">${esc(x.sub)} · ${esc(Khung.userName(v.by))} báo ${vmHm(v.at)}${v.nhanAt?` · ${esc(Khung.userName(v.nhanBy))} nhận ${vmHm(v.nhanAt)}`:""}${s==="xong"?` · ✓ ${esc(Khung.userName(v.doneBy))} ${vmHm(v.doneAt)}${v.reply?": "+esc(v.reply):""}`:""}${x.ex?` · thực thi ${esc(x.ex)}`:""}</span></a>`; }).join("")}</div>`
+    :`<div class="empty">Không có vướng mắc nào ở mục này.</div>`);
+  $("#xv").innerHTML=`<div class="ux-kpis" id="xvTiles" style="margin-bottom:10px">${tiles}</div><div class="ux-bar" style="margin-bottom:10px">${bar}</div><div class="panel" id="xvList">${list}</div>`;
+  if(window.__xqf){ const q=$("#xq"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); window.__xqf=false; }
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-ctf]"); if(a){ CF=CF===a.dataset.ctf?"":a.dataset.ctf; render(); return; }
+  const b=e.target.closest("[data-vmf]"); if(b){ VF=VF===b.dataset.vmf?"":b.dataset.vmf; render(); return; }
+  const l=e.target.closest("[data-vml]"); if(l){ VL=VL===l.dataset.vml?"":l.dataset.vml; render(); return; }
+  if(e.target.closest("[data-xclear]")){ if(view==="ct"){ CF=""; CQ=""; } else { VF=""; VL=""; VQ=""; } render(); }
+});
+let xqt=null; document.addEventListener("input",e=>{ if(e.target.id!=="xq") return; if(view==="ct") CQ=e.target.value; else VQ=e.target.value; clearTimeout(xqt); xqt=setTimeout(()=>{ window.__xqf=true; render(); },200); });
+let cfgOpen=false, catF="";
+document.addEventListener("click",e=>{ const c=e.target.closest("[data-cat]"); if(!c) return; catF=catF===c.dataset.cat?"":c.dataset.cat; render(); }, true);
+document.addEventListener("toggle",e=>{ if(e.target.matches&&e.target.matches("details.cfgd")) cfgOpen=e.target.open; },true);
+document.addEventListener("click",e=>{
+  const v=e.target.closest("[data-view]"); if(v){ view=v.dataset.view; try { if(!XV[view]) localStorage.setItem("_ui_don_view",view); } catch(err){}
+    try { const u=new URL(location.href); if(XV[view]) u.searchParams.set("f",view==="ct"?"chung-tu":"vuong-mac"); else u.searchParams.delete("f"); history.replaceState(null,"",u.pathname+u.search+u.hash); } catch(err){}
+    render(); return; }
+  if(e.target.closest("a,button,input")) return;
+  const r=e.target.closest("tr[data-href]"); if(r) location.href=r.dataset.href;
+});
+document.addEventListener("change",e=>{
+  const t=e.target; if(!t.dataset.cfg) return;
+  const S=Don.readS(); S.trackCfg=S.trackCfg||{}; const v=parseInt(t.value,10);
+  if(v>=0){ S.trackCfg[t.dataset.cfg]=t.dataset.cfg==="every"?Math.max(1,v):v; localStorage.setItem(Don.KEY,JSON.stringify(S)); }
+  render();
+});
+Don.onChange(render); Khung.onFilter(render);
+window.addEventListener("storage",e=>{ if(["kehoach-sx-v3","danhmuc-v1","checkhero-v3","nvl-v3"].includes(e.key)) render(); });
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+render();
+setInterval(render, 30*60*1000);   // sang ngày mới thì trạng thái tự cập nhật
+</script>
+</body>
+</html>

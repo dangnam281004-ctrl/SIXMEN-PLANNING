@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<script src="mau-gui.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chi tiết đơn · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<link rel="stylesheet" href="ux.css">
+<style>
+.head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.head h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
+.head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.kv .field{padding:3px 7px;width:100%;max-width:220px}
+.kv>div{min-width:0;overflow-wrap:anywhere}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 10px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:9px 12px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--brand)}
+.tl{display:grid;grid-template-columns:120px 130px minmax(0,1fr);gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.tl:last-child{border-bottom:none} .tl .w{color:var(--muted)} .tl b.u{font-weight:600}
+.next{display:grid;gap:2px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.next:last-child{border-bottom:none} .next.due b{color:var(--crit)}
+.call{display:grid;grid-template-columns:96px minmax(0,1fr) 110px minmax(0,1.3fr);gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.call:last-child{border-bottom:none}
+.recv{padding:12px 14px;display:grid;gap:10px}
+.recv table td,.recv table th{text-align:center;padding:4px 6px} .recv table td:first-child,.recv table th:first-child{text-align:left}
+.recv input.q{width:62px;text-align:right}
+.rl{padding:8px 14px;border-bottom:1px solid var(--line);font-size:12.5px} .rl.void{color:var(--muted);text-decoration:line-through}
+table.nvlt{min-width:1240px} table.nvlt td:first-child,table.nvlt td:nth-child(2){white-space:nowrap} table.nvlt td{vertical-align:top}
+.ro{background:var(--warn-bg);color:var(--warn);border-radius:7px;padding:8px 12px;font-size:12.5px}
+@media (max-width:1100px){.split{grid-template-columns:1fr}}
+@media (max-width:700px){.tl,.call{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b><a href="theo-doi.html" style="color:var(--muted);text-decoration:none;font-weight:500">Đơn sản xuất ›</a> <span id="crumb"></span></b><small id="crumbSub"></small></div></header>
+    <div class="content" id="main"></div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s), esc=Khung.esc, fmt=Don.fmt, dm=Don.dm, SZ=Khung.live(()=>{ const f=find(); return Khung.sizesOf(f&&f.m&&f.m.key); });   // 09/11/2026: size theo mã của đơn (quần: 29–34)
+const CNM=c=>{ const f=find(); return Khung.colorName(c,f&&f.m&&f.m.key)||Don.COLOR_NAME[c]||""; };   // 13/11: tên màu riêng của mã (Jeans XDA = Xanh Đậm)
+const OID=new URLSearchParams(location.search).get("id");
+let tab=(location.hash||"#san-xuat").slice(1), recvOpen=false, draft=null, SRV=[], chotOpen=false, chotSnap=null, chotTxt={reason:"", note:""};
+if(tab==="nhan-hang") tab="san-xuat";   // link cũ
+const dmy=s=>s?s.split("-").reverse().join("/"):"—";
+function find(){ const S=Don.readS(); SoLuong.mark(S); for(const k of Object.keys(S.models||{})){ const p=S.models[k]; for(const o of [...(p.orders||[]),...(p.gapOrders||[])]) if(o.id===OID) return {S,o,p,m:Don.modelOf(k)}; } return null; }
+const nvlItems=()=>{ try { return (JSON.parse(localStorage.getItem("nvl-v3"))||{}).items||[]; } catch(e){ return []; } };
+const readN=()=>{ try { return JSON.parse(localStorage.getItem("nvl-v3"))||{items:[]}; } catch(e){ return {items:[]}; } };
+const fmt1=x=>(Math.round((+x||0)*100)/100).toLocaleString("vi-VN");
+const isKho=()=>Khung.me&&Khung.me.role==="kho";
+const AL_KIND={"giu":"Giữ","nha":"Nhả","cap":"Cấp khi xuất","hoan":"Trả lại (huỷ phiếu)","khoi-tao":"Chuyển phần giữ cũ"};
+const LIST_ST={"nhap":"Nháp","da-gui":"Đã gửi NCC","ncc-xac-nhan":"NCC xác nhận","nhan-mot-phan":"Nhận một phần","da-nhan":"Đã nhận đủ","huy":"Đã huỷ"};
+/* Phiếu xuất là gốc: chép tổng đã xuất vào đơn (o.ship / nvlOut) cho các phần cũ dùng */
+function syncShip(o,N){
+  const L=NV.issuesOf(N,o);
+  if(!L.length){ if(o.shipPx){ o.ship=null; o.nvlOut=false; o.shipDate=null; delete o.shipPx; } return; }
+  const sum={}; L.forEach(p=>(p.lines||[]).forEach(l=>{ sum[l.item]=(sum[l.item]||0)+(+l.qty||0)+(+l.fromX||0); }));
+  o.ship=sum; o.nvlOut=true; o.shipPx=L.map(p=>p.no); o.shipDate=L[0].date||Don.today(); o.shipBy=L[0].by; o.noDeduct=false;
+}
+/* Giữ / nhả / xuất / huỷ phiếu qua server (sổ phân bổ), rồi cập nhật đơn */
+async function nvlAct(m, body){
+  const r=await NV.op(Object.assign({oid:OID, model:m.key}, body));
+  if(r.status!==200){ if(window.DongBo) DongBo.fresh("nvl-v3"); alert((r.j&&r.j.error)||"Không thực hiện được"); render(); return false; }
+  const N=readN(); Don.mutate(OID,o=>{ const before=JSON.stringify([o.ship,o.nvlOut,o.shipPx]); syncShip(o,N); if(JSON.stringify([o.ship,o.nvlOut,o.shipPx])===before) return false; });
+  render(); return true;
+}
+const CHECK=gc=>[...(gc?[["vai","Vải"],["bo","Bo"],["mavach","Mã vạch"],["nhan","Nhãn sườn"],["phieu","Biên bản giao nhận NVL đã ký"]]:[]),["erp","Đã lên đơn trên ERP"],["g_anh","Zalo: ảnh bảng đơn"],["g_file","Zalo: file thiết kế / thêu"],["g_note","Zalo: ghi chú màu"],["g_hinh","Zalo: hình áo mẫu"]];
+function render(){
+  const f=find();
+  if(!f){ $("#main").innerHTML=`<div class="panel empty">Không tìm thấy đơn này. <a href="theo-doi.html">Về danh sách đơn sản xuất</a></div>`; $("#crumb").textContent="Không tìm thấy"; return; }
+  const {S,o,m}=f, X=Don.xOf(o), st=Don.statusOf(o,S), r=SoLuong.receiptInfo(o,S.perRoll||65), canP=Khung.canEdit(m.key), can=Don.canAct(o,m.key), stage=Don.stage(o);   // V5: can = được làm phần thực thi (người phụ trách mã, Admin, người thực thi đơn); canP = phần kế hoạch
+  const gc=!o.type&&X.type==="GC", hasRecv=SoLuong.validReceipts(o).length>0, ph=Don.phase(o), C=gc?Don.nvlOf(o,S,m.key):null;
+  document.title=`${Don.label(o,m)} · Chi tiết đơn`;
+  $("#crumb").textContent=Don.label(o,m); $("#crumbSub").textContent=`${m.name} · ${X.name} (${Don.typeLabel(o)})${o.flow===3?(Don.poTxt(o)?" · "+Don.poTxt(o):""):o.erpCode?" · ERP "+o.erpCode:""}`;
+  const acts=[], v3=o.flow===3, qOk=Don.qlvhOk(o);
+  /* V5.3: đơn đã bàn giao chờ tiếp nhận → Tiếp nhận / Trả lại (người được bàn giao; Admin hỗ trợ không đổi người thực thi). Chốt chưa bàn giao / bị trả lại → bàn giao ở Kế hoạch */
+  if(ph==="cho-nhan"&&(Don.isMyExec(o)||Khung.isAdmin())) acts.push(`<button class="btn primary" data-exack title="Xác nhận đã nhận việc thực hiện đơn này">✓ Tiếp nhận</button><button class="btn" data-extra title="Trả lại người quản lý kế hoạch, bắt buộc ghi lý do">Trả lại…</button>`);
+  if((ph==="chua-bg"||ph==="tra-lai")&&canP) acts.push(`<a class="btn primary" href="ke-hoach.html?m=${m.key}&bg=${encodeURIComponent(o.id)}#b4" title="Bàn giao ở Kế hoạch › Kiểm tra & Chốt">${ph==="tra-lai"?"Xử lý & bàn giao lại →":"Bàn giao ở Kế hoạch →"}</a>`);
+  if(o.closed&&!o.cancelled&&window.MauGui) acts.push(`<button class="btn" data-maugui title="Xem trước mẫu gửi xưởng · sao chép ảnh dán Zalo · tải PNG / PDF">Mẫu gửi xưởng</button>`);   // V5.2
+  /* V3: sau khi QLVH đã duyệt → gửi xưởng (gia công / FOB ở Kế hoạch; thêu / phôi bấm ở đây) → xưởng xác nhận nhận đơn → xưởng bắt đầu (2 mốc riêng) */
+  if(can&&v3&&qOk&&stage==="run"&&!hasRecv){
+    if(!o.sentAt&&o.type) acts.push(`<button class="btn primary" data-gapsend title="Đã gửi đơn (ảnh phiếu) cho xưởng qua Zalo">✓ Đã gửi đơn cho xưởng</button>`);
+    if(!o.sentAt&&!o.type) acts.push(`<a class="btn primary" href="${Don.guiHref(o,m.key)}" title="Màn hình gửi xưởng: xuất NVL, tick việc gửi xưởng, bấm Gửi xưởng">Gửi xưởng →</a>`);
+    if(o.sentAt&&!o.ackAt) acts.push(`<button class="btn primary" data-ack title="Ghi ngày xưởng xác nhận đã nhận đơn">✓ Xưởng xác nhận nhận đơn</button>`);
+    if(o.ackAt&&!o.startedAt&&!o.type) acts.push(`<button class="btn primary" data-start title="Ghi ngày xưởng báo bắt đầu may thực tế; mốc gọi xưởng tính từ ngày này">✓ Xưởng đã bắt đầu</button>`);
+  }
+  if(can&&stage==="run"&&qOk&&ph!=="da-chot"&&ph!=="cho-trien-khai") acts.push(`<button class="btn ok" data-recv title="Ghi số xưởng giao thực tế theo màu × size. Chỉ cập nhật tiến độ trong Planning, không cộng vào tồn SIXMEN">📦 Ghi nhận xưởng giao</button>`);
+  if(can&&stage==="run"&&hasRecv) acts.push(`<button class="btn${r.full?" primary":""}" data-chot title="Xác nhận kết thúc giao hàng với xưởng: giao đủ, hoặc giao thiếu (không nhận tiếp phần còn lại)">🔒 Chốt giao nhận</button>`);
+  if(can&&o.arrived&&hasRecv&&!o.doneAt&&!o.cancelled) acts.push(`<button class="btn ghost" data-chot-reopen title="VD xưởng giao bổ sung sau khi đã chốt">Mở lại giao nhận</button>`);
+  if(can&&ph==="giao-du"&&Don.canFinish(o)) acts.push(`<button class="btn primary" data-tab="chung-tu" title="Ghi nhận bàn giao hồ sơ ở tab Chứng từ & Bàn giao">✓ Bàn giao hồ sơ →</button>`);
+  if(ph==="giao-du"&&Don.handState(o)==="cho") acts.push(`<button class="btn${o.handover.toUser===ME()||(!o.handover.toUser&&Khung.isAdmin())?" primary":""}" data-tab="chung-tu">${Don.HAND.cho} →</button>`);
+  if(can&&ph==="da-chot") acts.push(`<a class="btn primary" href="${Don.guiHref(o,m.key)}" title="Màn hình gửi xưởng: xuất NVL, tick việc gửi xưởng, bấm Gửi xưởng">Gửi xưởng →</a>`);
+  if(can&&ph==="cho-trien-khai") acts.push(`<button class="btn primary" data-start title="Ghi ngày xưởng báo bắt đầu may thực tế; mốc gọi xưởng tính từ ngày này">✓ Xưởng đã bắt đầu</button>`);
+  if(canP&&stage==="pending") acts.push(`<a class="btn primary" href="ke-hoach.html?m=${m.key}">Mở ở Kế hoạch →</a>`);
+  if(canP&&stage==="run"&&!hasRecv&&!o.qlvh) acts.push(`<button class="btn" data-reopen title="Đưa đơn về Kế hoạch để sửa">Mở lại kế hoạch</button>`);
+  if(canP&&(o.closed||o.type)&&!o.nvlOut&&!o.cancelled&&!hasRecv) acts.push(`<button class="btn ghost" data-cancel>Huỷ đơn</button>`);
+  if(canP&&o.cancelled) acts.push(`<button class="btn" data-uncancel>Khôi phục đơn</button>`);
+  /* UX-2: chỉ 1 nút chính (xanh dương) ở đầu trang = việc của bước hiện tại; các nút khác giữ nguyên chức năng, chỉ đổi kiểu */
+  { const sp=Don.steps(o,S), ck=sp&&sp.cur?sp.cur.k:null;
+    const isPri=a=>ck==="sx"?(v3&&!o.ackAt&&!hasRecv?/\sdata-ack[\s>]/.test(a):!o.startedAt&&!o.type&&!hasRecv&&(v3||o.flow===2)?/\sdata-start[\s>]/.test(a):/\sdata-recv[\s>]/.test(a))
+      :ck==="tn"?/data-exack|&bg=/.test(a)
+      :ck==="giao"?/\sdata-chot[\s>]/.test(a):ck==="gui"?(/\sdata-gapsend[\s>]/.test(a)||/[?&]gui=/.test(a)):ck==="bg"?/data-tab="chung-tu"/.test(a):/Mở ở Kế hoạch|data-start|#b4"/.test(a)&&!ck;
+    for(let i=0;i<acts.length;i++){ acts[i]=isPri(acts[i])?acts[i].replace(/class="btn( ok| primary)?"/,'class="btn primary"'):acts[i].replace(/class="btn (ok|primary)"/,'class="btn"'); } }
+  const lock=SoLuong.locked(o)||o.closed?`<span class="pill p-ok">🔒 ${o.nvlOut?"Đã xuất NVL":"Số lượng đã khóa"}</span>`:"";
+  /* bảng size: đặt / đã nhận / còn thiếu / dư. Thiếu, dư tính theo từng ô màu × size (size dư không bù size thiếu),
+     nên cột Còn thiếu từng dòng cộng lại đúng bằng ô tổng; Đặt − Đã nhận = Còn thiếu − Dư */
+  const Z=[0,0,0,0,0], sum=a=>a.reduce((x,y)=>x+y,0);
+  const rows=Object.keys(r.short).filter(c=>(r.ordered[c]||Z).some(v=>v)||(r.received[c]||Z).some(v=>v));
+  const lines=o.lines&&!o.lines.some(l=>Array.isArray(l.q))?o.lines:null, anyOver=r.overQty>0;   // đơn quần (nhập thẳng số) không có cột cây vải
+  const sizeTbl=`<div class="scroll"><table class="t navy" id="sizeTbl"><thead><tr><th>Màu</th>${lines?"<th class='r'>Cây</th>":""}${SZ.map(s=>`<th class="r">${s}</th>`).join("")}<th class="r">Tổng đặt</th><th class="r">Đã nhận</th><th class="r">Còn thiếu</th>${anyOver?`<th class="r" title="Nhận nhiều hơn số đặt ở size đó">Giao dư</th>`:""}</tr></thead><tbody>
+    ${rows.map(c=>{ const ord=r.ordered[c]||Z, got=r.received[c]||Z, sh=r.short[c], ov=r.over[c], cay=lines?lines.filter(l=>l.color===c).reduce((a,l)=>a+Don.n(+l.cay),0):null;
+      return `<tr data-color="${c}"><td><b>${c}</b> <span class="muted">${CNM(c)||""}</span></td>${lines?`<td class="r num">${cay}</td>`:""}${ord.map((v,i)=>`<td class="r num">${v}${got[i]?`<div class="small" style="color:var(--ok)">về ${got[i]}</div>`:""}${hasRecv&&sh[i]?`<div class="small" style="color:var(--crit)">thiếu ${sh[i]}</div>`:""}${ov[i]?`<div class="small" style="color:var(--warn)">dư ${ov[i]}</div>`:""}</td>`).join("")}<td class="r num"><b>${fmt(sum(ord))}</b></td><td class="r num">${fmt(sum(got))}</td><td class="r num" data-k="thieu">${sum(sh)?`<b style="color:var(--crit)">${fmt(sum(sh))}</b>`:"0"}</td>${anyOver?`<td class="r num" data-k="du">${sum(ov)?fmt(sum(ov)):"0"}</td>`:""}</tr>`; }).join("")}
+    <tr data-color="tong"><td><b>Tổng</b></td>${lines?`<td class="r num">${lines.reduce((a,l)=>a+Don.n(+l.cay),0)}</td>`:""}${SZ.map((_,i)=>`<td class="r num">${rows.reduce((a,c)=>a+(r.ordered[c]||Z)[i],0)}</td>`).join("")}<td class="r num"><b>${fmt(r.total)}</b></td><td class="r num"><b>${fmt(r.got)}</b></td><td class="r num" data-k="thieu"><b>${fmt(r.left)}</b></td>${anyOver?`<td class="r num" data-k="du"><b>${fmt(r.overQty)}</b></td>`:""}</tr></tbody></table></div>
+    ${anyOver?`<div class="muted small" style="padding:6px 14px">Đặt ${fmt(r.total)} − đã nhận ${fmt(r.got)} = ${fmt(r.total-r.got)} = còn thiếu ${fmt(r.left)} − giao dư ${fmt(r.overQty)}. Size giao dư không bù cho size còn thiếu.</div>`:""}`;
+  const nt=Don.nextTask(o,S,m.key), ms=Don.milestones(o,Don.cfgOf(S));
+  const nexts=[]; if(nt) nexts.push({...nt, main:true});
+  ms.filter(x=>stage==="run"&&!o.arrived&&!((o.calls||{})[x.date]||{}).done&&(!nt||x.date!==nt.date)).forEach(   /* UX-2: đã chốt giao nhận thì không hiện mốc gọi cũ */x=>nexts.push({date:x.date,label:x.label}));
+  if(stage==="run"&&o.dueDate&&(!nt||nt.date!==o.dueDate)) nexts.push({date:o.dueDate,label:"Nhận hàng · nhập số về theo màu × size"});
+  $("#main").innerHTML=`
+    <div class="head"><h1>${esc(Don.label(o,m))}</h1><span class="pill ${Don.PHASE_PILL[ph]}" title="Trạng thái thực hiện">${Don.PHASE[ph]}</span>${(ph==="dang-sx"||ph==="giao-mot-phan"||ph==="giao-du")&&st.text!==Don.PHASE[ph]?`<span class="pill ${st.cls}">${esc(st.text)}</span>`:""}
+      ${C&&!o.arrived&&!o.doneAt?`<span class="pill ${NV.STATE_PILL[C.state]}" title="Trạng thái đáp ứng NVL">NVL: ${NV.STATE[C.state]}</span>`:""}${C&&!o.arrived&&!o.doneAt&&C.risk&&C.risk.length?`<span class="pill ${C.risk.some(x=>x.lv==="crit")?"p-bad":"p-warn"}" title="${esc(C.risk.map(x=>x.t).join("\n"))}">Nguy cơ trễ</span>`:""}${lock}${can?"":`<span class="pill p-mute">Chỉ xem · ${esc(Khung.userName(m.owner))} phụ trách</span>`}<div class="acts">${acts.join("")}</div></div>
+    ${(()=>{ const sp=Don.steps(o,S); if(!sp) return "";   /* UX-1: tiến trình 8 bước (chỉ hiển thị, lấy từ các mốc đã lưu) */
+      return `<div class="panel" id="steps" style="padding:12px 14px;display:grid;gap:8px"><div class="steps">${sp.list.map(z=>`<div class="st ${z.cls}">${esc(z.t)}</div>`).join("")}</div>
+        <div class="small">${sp.cur?`<b style="color:${sp.tone==="x"?"var(--crit)":sp.tone==="w"?"var(--warn)":"var(--accent)"}">Bước hiện tại: ${esc(sp.cur.t)}</b> · ${esc(sp.detail)}`:`<b style="color:var(--ok)">✓ Đã xong mọi bước · Hoàn tất Planning</b>`}</div></div>`; })()}
+    ${alertBox(o,S,m)}
+    ${o.cancelled?`<div class="ro">Đơn đã huỷ ${Don.hm(o.cancelled.at)} bởi ${esc(Khung.userName(o.cancelled.by))} · lý do: ${esc(o.cancelled.reason)}. Đơn không còn trừ vào Cần đặt.</div>`:""}
+    <div class="split"><div style="display:grid;gap:16px;min-width:0">
+      <div class="panel kv">
+        <div><span class="k">Mã sản phẩm</span>${esc(m.code||"—")} · ${esc(m.name)}</div>
+        <div><span class="k">Quản lý kế hoạch</span>${esc(Khung.userName(m.owner))} <span class="muted small">(phụ trách mã)</span></div>
+        ${o.closed?`<div><span class="k">Người thực thi</span>${o.exec?`<b>${esc(Don.execTxt(o))}</b> · ${o.exec.auto?"tự giao khi chốt (trước V5.3)":`${esc(Khung.userName(o.exec.by))} bàn giao`} ${Don.hm(o.exec.at)}${o.exec.reason?" · đổi: "+esc(o.exec.reason):""} · ${o.exec.traAt?`<span class="pill p-warn">Đã trả lại ${Don.hm(o.exec.traAt)} · ${esc(o.exec.traReason||"")}</span>`:o.exec.ackAt?`<span class="pill p-ok">Đã tiếp nhận ${Don.hm(o.exec.ackAt)}${o.exec.ackBy&&o.exec.ackBy!==o.exec.user?" · "+esc(Khung.userName(o.exec.ackBy))+" hỗ trợ":""}</span>`:`<span class="pill p-info">Đã bàn giao — Chờ tiếp nhận</span>`}`:Don.phase(o)==="chua-bg"?`<span class="pill p-warn">Đã chốt — Chưa bàn giao</span>`:`<span class="muted">chưa giao (đơn chốt trước V5)</span>`}${Khung.isAdmin()&&o.exec&&!o.cancelled&&!o.doneAt?` <button class="btn ghost" data-exdoi>Đổi người thực thi</button>`:""}
+          ${(o.execLog||[]).length?`<details class="small"><summary>Lịch sử bàn giao (${o.execLog.length})</summary>${o.execLog.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${({giao:"bàn giao "+Khung.userName(e.user), nhan:"tiếp nhận", tra:"trả lại", doi:"đổi người thực thi → "+Khung.userName(e.user)})[e.act]||e.act}${e.reason?" · lý do: "+esc(e.reason):""}</div>`).join("")}</details>`:""}</div>`:""}
+        ${(()=>{ const W=Don.whoDid(o); return W.length?`<div><span class="k">Người thao tác</span>${W.map(w=>`${esc(w.t)}: ${esc(Khung.userName(w.by))}${w.help?` <span class="pill p-info" title="Không phải người thực thi chính">hỗ trợ</span>`:""}`).join(" · ")}</div>`:""; })()}
+        <div><span class="k">Người tạo đơn</span>${o.createdBy?esc(Khung.userName(o.createdBy)):`<span class="muted">trước khi có tài khoản</span>`}</div>
+        <div><span class="k">Xưởng</span>${esc(X.name)} · ${Don.typeLabel(o)}</div>
+        <div><span class="k">Ngày đặt</span>${dmy(o.date)}</div>
+        ${o.khtl&&o.closed?`<div><span class="k">Từ kế hoạch tương lai</span><b>${esc(o.khtl.code)}</b> · lập ${dmy(o.khtl.planDate)}${o.khtl.planCode?` (mã lúc lập ${esc(o.khtl.planCode)})`:""} · chốt ${o.khtl.closedAt?Don.hm(o.khtl.closedAt):"—"} · chờ NVL ${Math.max(0,Math.round(((o.khtl.closedAt||0)-(o.khtl.at||0))/864e5))} ngày
+          ${(o.khtl.log||[]).length?`<details class="small"><summary>Lịch sử kế hoạch (${o.khtl.log.length})</summary>${o.khtl.log.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${esc(e.act)}${e.note?" · "+esc(e.note):""}</div>`).join("")}</details>`:""}</div>`:""}
+        <div><span class="k">Xưởng hẹn giao</span>${can&&!o.arrived&&!o.cancelled?`<input type="date" class="field" id="due" value="${o.dueDate||""}">`:dmy(o.dueDate)}</div>
+        <div><span class="k">Mã PO ERP</span>${o.qlvh||(v3&&o.closed&&!o.cancelled)?poCell(o)   /* mã PO chỉ nhập ở Duyệt PO — tránh ô trùng */
+          :!o.closed?`<span class="muted small">nhập sau khi chốt, ở mục Duyệt PO (QLVH)</span>`
+          :can?`<input class="field" id="erp" value="${esc(o.erpCode||"")}" placeholder="Mã PO trên ERP">`:esc(o.erpCode||"—")}</div>
+        <div><span class="k">NVL</span>${o.type?`<span class="muted">không cần (đặt gấp)</span>`:gc?`<span class="pill ${NV.STATE_PILL[C.state]}">${NV.STATE[C.state]}</span> ${o.nvlOut?`<span class="muted small">đã xuất ${(o.shipPx||[]).length||1} đợt</span>`:`<span class="muted small">chưa xuất</span>`}`:`<span class="muted">FOB · xưởng tự lo</span>`}</div>
+        ${gc?`<div><span class="k">Ngày cần NVL</span>${canP&&!o.arrived&&!o.cancelled?`<input type="date" class="field" id="nvlNeed" value="${o.nvlNeedDate||""}" title="Ngày phải giao NVL cho xưởng">`:dmy(o.nvlNeedDate)}${o.nvlNeedDate?"":` <span class="small" style="color:var(--warn)">cần bổ sung</span>`}</div>`:""}
+        ${o.flow===2?`<div><span class="k">Chốt / gửi xưởng</span>${dmy(o.closed)}${o.closedBy?" · "+esc(Khung.userName(o.closedBy)):""} / ${o.sentAt?dmy(o.sentAt)+" · "+esc(Khung.userName(o.sentBy)):`<span class="muted">chưa gửi</span>`}${o.sendOverride?` <span class="pill p-warn" title="${esc(o.sendOverride.reason)}">Ngoại lệ gửi thiếu NVL</span>`:""}</div>
+        <div><span class="k">Xưởng bắt đầu</span>${o.startedAt?(can&&!o.arrived?`<input type="date" class="field" id="started" value="${o.startedAt}">`:dmy(o.startedAt))+" · "+esc(Khung.userName(o.startedBy)):`<span class="muted">chưa xác nhận</span>`}</div>`:""}
+        ${v3?`<div><span class="k">Tiến độ sản xuất</span>${o.sentAt?`Gửi xưởng ${dmy(o.sentAt)}${o.sentBy?" · "+esc(Khung.userName(o.sentBy)):""}`:`<span class="muted">chưa gửi xưởng</span>`}
+          · ${o.ackAt?`xưởng xác nhận ${dmy(o.ackAt)}${o.ackBy?" · "+esc(Khung.userName(o.ackBy)):""}`:`<span class="muted">xưởng chưa xác nhận</span>`}
+          ${o.type?"":` · ${o.startedAt?(can&&!o.arrived?`bắt đầu <input type="date" class="field" id="started" value="${o.startedAt}">`:"bắt đầu "+dmy(o.startedAt))+" · "+esc(Khung.userName(o.startedBy)):`<span class="muted">chưa bắt đầu</span>`}`}
+          ${o.sendOverride?` <span class="pill p-warn" title="${esc(o.sendOverride.reason)}">Ngoại lệ gửi thiếu NVL</span>`:""}${o.chotOverride?` <span class="pill p-warn" title="${esc(o.chotOverride.reason)}">Chốt ngoại lệ thiếu NVL · ${esc(Khung.userName(o.chotOverride.by))} ${Don.hm(o.chotOverride.at)}: ${esc(o.chotOverride.reason)}</span>`:""}</div>`:""}
+        <div><span class="k">Đã nhận / còn thiếu</span><b>${fmt(r.got)}</b> / ${fmt(r.left)} áo${r.overQty?` · <span style="color:var(--warn)">giao dư ${fmt(r.overQty)}</span>`:""}</div>
+        <div><span class="k">Số áo</span><b>${fmt(r.total)}</b>${lines?` · ${lines.reduce((a,l)=>a+Don.n(+l.cay),0)} cây vải`:""}</div>
+      </div>
+      ${v3&&o.closed?qlvhPanel(o,can):""}
+      ${o.closed?vuongPanel(o,m,can):""}
+      <div class="panel"><div class="ph"><h2>Số lượng theo màu × size</h2><span class="muted small">${o.closed||o.nvlOut?"Đã lưu cố định khi chốt / xuất NVL":"Đơn chưa chốt: sửa ở Kế hoạch"}</span></div>${sizeTbl}</div>
+      ${recvOpen&&can&&stage==="run"?recvForm(o,r):""}
+      ${chotOpen&&can&&stage==="run"&&hasRecv?chotForm(o,r):""}
+      <div class="panel">
+        <div class="tabs" role="tablist">${[["san-xuat",`Sản xuất & Giao nhận (${SoLuong.validReceipts(o).length})`],["nvl","NVL"],["chung-tu",`Chứng từ & Bàn giao · ${(()=>{ const hs=Don.handState(o), ds=Don.docState(o); return hs==="xn"?"xong":hs==="cho"?"chờ xác nhận":ds.receipts?(ds.all?"chờ bàn giao":ds.done+"/"+ds.total):"chưa có"; })()}`],["goi-xuong",`Gọi xưởng (${ms.length})`],["gui-xuong","Gửi xưởng"],["timeline","Timeline"],["lich-su","Lịch sử"]].map(([k,t])=>`<button role="tab" data-tab="${k}" aria-selected="${tab===k}">${t}</button>`).join("")}</div>
+        <div id="tabBody">${tabBody(f)}</div>
+      </div>
+    </div>
+    <div class="panel"><div class="ph"><h2>Việc tiếp theo</h2></div>
+      ${nexts.length?nexts.map(x=>`<div class="next${x.due?" due":""}"><b>${x.date?dm(x.date)+" · "+Don.thu(x.date):"Ngay"}</b><span>${esc(x.label)}</span></div>`).join(""):`<div class="empty">Không còn việc nào.</div>`}
+    </div></div>`;
+}
+/* V3 · Duyệt PO (QLVH): Planning chỉ ghi nhận QLVH đã duyệt PO trên ERP (không tạo / sửa PO). Server ghi, chống bấm trùng.
+   Người phụ trách mã / Admin bấm xác nhận; chỉ Admin đính chính (sửa mã PO / bỏ xác nhận), bắt buộc lý do */
+const QACT={duyet:"QLVH đã duyệt", "sua-po":"Đính chính mã PO", bo:"Bỏ xác nhận QLVH"};
+const qlvhLogTxt=e=>`${QACT[e.act]||esc(e.act)}${e.act==="sua-po"?` ${esc(e.from)} → <b>${esc(e.po)}</b>${e.po2?` · PO 2 ${esc(e.from2||"chưa có")} → <b>${esc(e.po2)}</b>`:""}`:e.po?` · PO <b>${esc(e.po)}</b>${e.po2?` · PO 2 <b>${esc(e.po2)}</b>`:""}`:""}${e.reason?` · lý do: ${esc(e.reason)}`:""}`;
+/* Ô Mã PO ERP ở khung thông tin: chỉ hiển thị, dùng chung dữ liệu với Duyệt PO */
+const poCell=o=>{ const c=(n,v)=>`<div data-po-cell="${n}"><span class="muted small">${Don.PO_T[n]}</span><br>${v?`<b>${esc(v)}</b>`:`<span class="muted">chưa có</span>`}</div>`;
+  return Don.poOld(o)?`<b>${esc(o.erpCode||"")}</b>${Don.poUnk(o)?` <span class="pill p-warn">Chưa phân loại PO cũ</span>`:""}`
+    :c(1,o.erpCode)+c(2,o.erpCode2)+(o.qlvh?`<span class="muted small">đã khoá (QLVH đã ký &amp; duyệt)</span>`:`<span class="muted small">nhập ở mục <a href="#qlvh">Duyệt PO (QLVH)</a> bên dưới</span>`); };
+/* V5: vướng mắc người thực thi báo để Đăng Nam quyết định (server ghi, có người / giờ) */
+function vuongPanel(o,m,can){
+  const L=o.vuong||[], open=L.filter(v=>v.state!=="xong"), pl=Khung.canEdit(m.key);
+  if(!L.length&&!can) return "";
+  /* UX V5 (13/11): loại vấn đề, ưu tiên, Chưa xử lý / Đang xử lý / Đã giải quyết (Khung.vuongList dùng chung với đơn mua NVL) */
+  return `<div class="panel" id="vuong"><div class="ph"><h2>Vướng mắc cần quyết định</h2><span class="muted small">${open.length?open.length+" chưa giải quyết":"không có vướng mắc đang mở"}</span>${can&&!o.cancelled&&!o.doneAt?`<button class="btn" data-vbao style="margin-left:auto">+ Báo vướng mắc</button>`:""}</div>
+    ${L.length?`<div style="padding:10px 14px">${Khung.vuongList(L,pl)}</div>`:""}</div>`;
+}
+function qlvhPanel(o,can){
+  const q=o.qlvh, L=o.qlvhLog||[], adm=Khung.isAdmin(), busy=qBusy?" disabled":"";
+  const okRow=(n,v,id)=>`<div data-po-row="${n}" style="margin-top:4px">${Don.PO_T[n]}: <b id="${id}">${esc(v)}</b> <span class="pill p-ok">Đã ký &amp; duyệt</span></div>`;
+  const poRow=(n,id,v)=>`<div data-po-row="${n}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="min-width:170px">${Don.PO_T[n]}</span>${can?`<input class="field" id="${id}" value="${esc(v)}" placeholder="Mã PO trên ERP" aria-label="${Don.PO_T[n]}" style="min-width:260px">`:v?`<b>${esc(v)}</b>`:`<span class="muted">chưa có</span>`}<span class="pill ${v?"p-warn":"p-mute"}">${v?"Chờ QLVH ký, duyệt":"Chưa có mã"}</span></div>`;
+  const body=q?`<div class="rl" style="background:var(--ok-bg)" id="qlvhOk">${Don.poOld(o)?`<b>✓ QLVH đã duyệt PO <span id="qlvhPo">${esc(q.po)}</span></b> <span class="pill p-warn">Chưa phân loại PO cũ</span><div class="small">Đơn vẫn chạy bình thường. Admin đối chiếu ERP rồi bấm Phân loại PO cũ để ghi đúng PO 1, PO 2.</div>`:`<b>✓ QLVH đã ký &amp; duyệt 2 PO</b>${okRow(1,q.po,"qlvhPo")}${okRow(2,q.po2,"qlvhPo2")}`}
+      <div class="small" style="margin-top:4px">Xác nhận bởi ${esc(Khung.userName(q.by))} lúc ${Don.hm(q.at)} · đơn ở trạng thái Đang sản xuất</div>
+      ${adm&&!o.cancelled?`<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-qlvh-fix${busy}>${Don.poUnk(o)?"Phân loại PO cũ":"Đính chính mã PO"}</button>${o.sentAt||o.ackAt||o.startedAt||SoLuong.validReceipts(o).length?"":`<button class="btn ghost" data-qlvh-undo${busy}>Bỏ xác nhận (bấm nhầm)</button>`}</div>`:""}</div>`
+    :o.cancelled?`<div class="rl muted">Đơn đã huỷ.</div>`
+    :`<div class="rl" id="qlvhWait"><b>${Don.poFull(o)?"Chờ QLVH ký, duyệt 2 PO trên ERP":"Chờ nhập đủ 2 mã PO"}</b>${o.type?` <span class="pill p-warn">Đơn gấp · xử lý trước</span>`:""}
+      <div class="muted small">Lên 2 PO trên ERP → in từ ERP, trình QLVH ký → QLVH duyệt trên ERP → kiểm tra lại rồi bấm “QLVH đã ký &amp; duyệt”. Planning chỉ ghi nhận, không tạo, sửa hay in PO. Chưa xác nhận thì chưa gửi xưởng, chưa ghi nhận giao được.</div>
+      <div style="display:grid;gap:8px;margin-top:8px">${poRow(1,"qPo",qTxt.po!=null?qTxt.po:(o.erpCode||""))}${poRow(2,"qPo2",qTxt.po2!=null?qTxt.po2:(o.erpCode2||""))}</div>
+      ${can?`<div style="display:grid;gap:8px;margin-top:8px">
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="qAck"${qTxt.ack?" checked":""}> Tôi đã kiểm tra: 2 PO đã được QLVH ký và duyệt trên ERP</label>
+        <div><button class="btn primary" data-qlvh${busy}>✓ QLVH đã ký &amp; duyệt</button></div>
+        ${qMsg?`<div class="small" id="qMsg" style="color:var(--crit)">${esc(qMsg)}</div>`:""}</div>`:`<div class="muted small">Chỉ người phụ trách mã hoặc Admin được xác nhận.</div>`}</div>`;
+  return `<div class="panel" id="qlvh"><div class="ph"><h2>Duyệt PO (QLVH)</h2><span class="pill ${q?"p-ok":"p-warn"}">${q?"Đã ký &amp; duyệt":"Chưa ký, duyệt"}</span></div><div style="padding:0 14px 12px">${body}
+    ${L.length?`<details class="rl small"><summary>Lịch sử xác nhận QLVH (${L.length})</summary>${L.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${qlvhLogTxt(e)}</div>`).join("")}</details>`:""}</div></div>`;
+}
+let qBusy=false, qMsg="", qTxt={po:null, po2:null, ack:false};
+async function qlvhAct(body){
+  const f=find(); if(!f) return; qBusy=true; qMsg=""; render();
+  const r=await Don.op(Object.assign({model:f.m.key, oid:OID}, body));
+  qBusy=false;
+  if(r.status===200){ qTxt={po:null, po2:null, ack:false}; qMsg=""; } else { qMsg=(r.j&&r.j.error)||"Không thực hiện được"; if(body.op!=="qlvh-duyet") alert(qMsg); }
+  render(); loadLog();
+}
+function history(o){
+  const E=[], who=id=>id?Khung.userName(id):"—";
+  (o.qlvhLog||[]).forEach(e=>E.push({t:e.at, by:e.by, raw:true, txt:qlvhLogTxt(e)}));
+  if(o.flow===3&&o.sentAt) E.push({t:Date.parse(o.sentAt+"T13:00:00"), w:o.sentAt, by:o.sentBy, txt:"Gửi xưởng"+(o.sendOverride?` · ngoại lệ thiếu NVL (Admin): ${esc(o.sendOverride.reason)}`:""), raw:true});
+  if(o.ackAt) E.push({t:Date.parse(o.ackAt+"T13:30:00"), w:o.ackAt, by:o.ackBy, txt:"Xưởng xác nhận nhận đơn"});
+  if(o.date) E.push({t:Date.parse(o.date+"T00:00:00"), w:o.date, by:o.createdBy, txt:`Tạo đơn · ${o.type?"đặt gấp":Don.xOf(o).name}`});
+  if(o.shipDate) E.push({t:Date.parse(o.shipDate+"T08:00:00"), w:o.shipDate, by:o.shipBy, txt:`Xác nhận xuất NVL${o.noDeduct?" (chưa trừ kho)":""}`});
+  if(o.closed&&!o.type) E.push({t:Date.parse(o.closed+"T12:00:00"), w:o.closed, by:o.closedBy, txt:o.flow>=2?"Chốt đơn · khoá số lượng, tính vào Đã đặt":"Chốt đơn · chuyển sang theo dõi"});
+  if(o.sentAt&&o.flow!==3) E.push({t:Date.parse(o.sentAt+"T13:00:00"), w:o.sentAt, by:o.sentBy, txt:"Gửi xưởng · chờ triển khai"+(o.sendOverride?` · ngoại lệ thiếu NVL (Admin): ${esc(o.sendOverride.reason)}`:""), raw:true});
+  if(o.startedAt) E.push({t:Date.parse(o.startedAt+"T14:00:00"), w:o.startedAt, by:o.startedBy, txt:"Xưởng bắt đầu may"});
+  { const N=readN(); (N.issues||[]).filter(p=>p.oid===o.id).forEach(p=>{ E.push({t:p.at, by:p.by, raw:true, txt:`Xuất NVL ${esc(p.no)} (đợt ${p.batch}): ${(p.lines||[]).map(l=>`${esc(l.itemName)} ${fmt1(l.qty)} ${esc(l.unit||"")}`).join(", ")}`}); if(p.void) E.push({t:p.void.at, by:p.void.by, raw:true, txt:`Huỷ phiếu ${esc(p.no)} · ${esc(p.void.reason)}`}); });
+    (N.alloc||[]).filter(e=>e.oid===o.id&&e.kind!=="cap"&&e.kind!=="hoan").forEach(e=>E.push({t:e.at, by:e.by, raw:true, txt:`${AL_KIND[e.kind]||e.kind} NVL ${esc(e.itemName||"")} ${e.qty>0?"+":""}${fmt1(e.qty)}${e.reason?` · <span class="muted">${esc(e.reason)}</span>`:""}`})); }
+  (o.sizeLog||[]).forEach(e=>E.push({t:e.at, by:e.by, txt:`Điều chỉnh số lượng · ${e.reason}<br><span class="muted">Trước: ${e.before.map(l=>`${l.color} ${l.sizes.join("/")}`).join(" · ")}<br>Sau: ${e.after.map(l=>`${l.color} ${l.sizes.join("/")}`).join(" · ")}</span>`, raw:true}));
+  (o.receipts||[]).forEach(x=>{ const q=Object.values(x.sizes||{}).reduce((a,v)=>a+v.reduce((p,y)=>p+(y||0),0),0);
+    E.push({t:x.savedAt||x.at, by:x.by, txt:`Xưởng giao ${fmt(q)} áo (giờ giao ${Don.hm(x.at)})${x.final?" · lần giao cuối":""}${x.note?" · "+esc(x.note):""}`, raw:true});
+    (x.docsLog||[]).forEach(e=>E.push({t:e.at, by:e.by, raw:true, txt:`Chứng từ lần giao ${Don.hm(x.at)}: ${e.act==="xong"?"xong":"bỏ"} “${esc((Don.DOCS.find(d=>d.k===e.k)||{}).t||e.k)}”${e.doc?" · số CT "+esc(e.doc):""}${e.reason?" · lý do: "+esc(e.reason):""}`}));
+    if(x.sixmen) E.push({t:x.sixmen.at, by:x.sixmen.by, txt:`Đối chiếu: bảng tồn SIXMEN ${Don.hm(x.sixmen.tonAt)} đã có lần giao ${Don.hm(x.at)}`});
+    (x.sixmenLog||[]).forEach(e=>E.push({t:e.offAt, by:e.offBy, raw:true, txt:`Bỏ đối chiếu tồn SIXMEN lần giao ${Don.hm(x.at)} · lý do: ${esc(e.reason)}`}));
+    if(x.void) E.push({t:x.void.at, by:x.void.by, txt:`Huỷ lần nhận ${fmt(q)} áo · lý do: ${esc(x.void.reason)}`, raw:true}); });
+  (o.recvLog||[]).forEach(e=>E.push({t:e.at, by:e.by, raw:true, txt:recvLogTxt(e)}));
+  (o.cancelLog||[]).forEach(c=>{ E.push({t:c.at, by:c.by, txt:`Huỷ đơn · ${esc(c.reason)}`, raw:true}); E.push({t:c.restoredAt, by:c.restoredBy, txt:"Khôi phục đơn", raw:true}); });
+  if(o.cancelled) E.push({t:o.cancelled.at, by:o.cancelled.by, txt:`Huỷ đơn · ${esc(o.cancelled.reason)}`, raw:true});
+  Object.entries(o.calls||{}).forEach(([d,c])=>{ if(c.done) E.push({t:Date.parse((c.at||d)+"T09:00:00"), w:c.at||d, by:c.by, txt:`Đã gọi xưởng (mốc ${dm(d)})${c.note?" · "+esc(c.note):""}`, raw:true}); });
+  /* Nhật ký server (có tên người sửa): các trường chưa có dòng lịch sử riêng ở trên */
+  { const HA={ghi:"Ghi nhận bàn giao hồ sơ", "xac-nhan":"Người nhận xác nhận đã nhận hồ sơ · Hoàn tất Planning", "xac-nhan-admin":"Admin xác nhận bàn giao hợp lệ · Hoàn tất Planning", "huy-ghi":"Huỷ ghi nhận bàn giao", "mo-lai":"Mở lại đơn đã hoàn tất (Admin)"};
+    (o.handoverLog||[]).forEach(e=>E.push({t:e.at, by:e.by, raw:true, txt:`${esc(HA[e.act]||e.act)}${e.to?" cho "+esc(e.to):""}${e.evidence?" · bằng chứng: "+esc(e.evidence):""}${e.reason?" · lý do: "+esc(e.reason):""}`})); }
+  (o.ctuLog||[]).forEach(e=>{ if(e.act!=="sua"||e.f==="status") E.push({t:e.at, by:e.by, raw:true, txt:`Chứng từ ${esc((Don.CTU.find(c=>c.k===e.t)||{}).t||e.t)}: ${e.act==="them"?"thêm":e.act==="xoa"?"xoá":e.act==="na"?"không áp dụng":e.act==="bo-na"?"bỏ không áp dụng":"trạng thái → "+esc(Don.CT_ST[e.to]||e.to)}${e.reason?" · lý do: "+esc(e.reason):""}`}); });
+  const SKIP=/(receipts|recvClose|recvLog|arrived|cancelled|cancelLog|sizeLog|calls|closed|closedBy|nvlOut|shipDate|shipBy|ship|noDeduct|adjust|reopenLog|sentAt|sentBy|startedAt|startedBy|sendOverride|chotOverride|flow|handover|doneAt|doneBy|qlvh|qlvhLog|ackAt|ackBy)/;
+  const G={}; SRV.filter(e=>e.key!=="he-thong"&&!SKIP.test(e.path||"")).forEach(e=>{ const k=e.at+"|"+e.by; (G[k]=G[k]||{t:e.at, by:e.by, items:[]}).items.push(e); });
+  Object.values(G).forEach(g=>E.push({t:g.t, by:g.by, raw:true, txt:g.items.map(e=>`${esc(Don.logLabel(e))}: <span class="muted" style="text-decoration:line-through">${esc(Don.logVal(e.before))}</span> → <b>${esc(Don.logVal(e.after))}</b>`).join("<br>")}));
+  E.sort((a,b)=>b.t-a.t);
+  return E.length?E.map(e=>`<div class="tl"><span class="w">${e.w?dmy(e.w):Don.hm(e.t)}</span><b class="u">${esc(who(e.by))}</b><span>${e.raw?e.txt:esc(e.txt)}</span></div>`).join("")
+    +`<div class="tl"><span class="w"></span><span></span><span class="muted small">Từ nay mọi lần sửa đều ghi tên người làm. Các thao tác trước khi có tài khoản hiện “—”.</span></div>`:`<div class="empty">Chưa có lịch sử.</div>`;
+}
+/* Chốt giao nhận (anh duyệt 29/10): một dòng lịch sử */
+const cellsTxt=g=>Object.entries(g||{}).map(([c,a])=>{ const p=a.map((v,i)=>v?SZ[i]+" "+v:"").filter(Boolean); return p.length?c+" "+p.join(", "):""; }).filter(Boolean).join(" · ");
+function recvLogTxt(e){
+  if(e.act==="chot-du") return `<b>Chốt giao nhận · giao đủ</b> ${fmt(e.got)}/${fmt(e.total)} áo${e.over?` · giao dư ${fmt(e.over)}`:""}`;
+  if(e.act==="chot-thieu") return `<b>Chốt giao thiếu</b> · thiếu ${fmt(e.short)} áo (nhận ${fmt(e.got)}/${fmt(e.total)}), không nhận tiếp · lý do: ${esc(e.reason)}`;
+  if(e.act==="cho") return `Tiếp tục chờ xưởng giao · còn thiếu ${fmt(e.short)} áo${e.note?" · "+esc(e.note):""}`;
+  if(e.act==="mo-lai") return `<b>Mở lại giao nhận</b>${e.prev&&e.prev.kind?` (trước: ${e.prev.kind==="du"?"chốt giao đủ":"chốt giao thiếu "+fmt(e.prev.short)})`:""} · lý do: ${esc(e.reason)}`;
+  return esc(e.act);
+}
+/* Khung chốt giao nhận: đủ → chốt giao đủ; thiếu → tiếp tục chờ / chốt giao thiếu (bắt buộc lý do). Không sửa số đặt, không đụng tồn / SIXMEN */
+function chotForm(o,r){
+  const lack=cellsTxt(r.short), over=cellsTxt(r.over);
+  return `<div class="panel recv" id="chot"><b style="font-size:14px">🔒 Chốt giao nhận · ${esc(Don.label(o))}</b>
+    <div>Đặt <b>${fmt(r.total)}</b> · đã nhận <b>${fmt(r.got)}</b> (${r.count} lần giao) · còn thiếu <b style="color:${r.left?"var(--crit)":"var(--ok)"}">${fmt(r.left)}</b>${r.overQty?` · giao dư <b style="color:var(--warn)">${fmt(r.overQty)}</b>`:""}</div>
+    ${r.left?`<div class="small"><b>Còn thiếu:</b> ${esc(lack)}</div>`:""}${r.overQty?`<div class="small"><b>Giao dư:</b> ${esc(over)}</div>`:""}
+    <div class="muted small">Số lượng đặt đã chốt giữ nguyên (không sửa cho khớp số nhận). Không cộng tồn thành phẩm, không đổi dữ liệu SIXMEN. Sau khi chốt, đơn sang bước Chứng từ &amp; Bàn giao hồ sơ (chưa Hoàn tất Planning).</div>
+    ${r.left?`<div style="display:grid;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="field" id="chotNote" value="${esc(chotTxt.note)}" placeholder="Ghi chú (VD xưởng hẹn giao bù ngày…)" style="min-width:260px"><button class="btn" data-chot-wait>Tiếp tục chờ giao</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="field" id="chotReason" value="${esc(chotTxt.reason)}" placeholder="Lý do chốt giao thiếu (bắt buộc)" style="min-width:320px"><button class="btn primary" data-chot-thieu>Chốt giao thiếu, không nhận tiếp ${fmt(r.left)} áo</button></div></div>`
+    :`<div><button class="btn primary" data-chot-du>✓ Chốt giao đủ</button></div>`}
+    <div><button class="btn ghost" data-chot-close>Đóng</button></div></div>`;
+}
+function tabBody({S,o,m}){
+  const can=Don.canAct(o,m.key);   // V5: người thực thi đơn làm được giao nhận, chứng từ, bàn giao
+  if(tab==="san-xuat"){
+    /* Giao nhận: chỉ là tiến độ trong Planning. Không cộng vào tồn SIXMEN; đối chiếu tồn SIXMEN là thao tác riêng của người dùng */
+    const R=o.receipts||[], r=SoLuong.receiptInfo(o,S.perRoll||65), tonAt=SoLuong.heroAt((Don.heroes()||{})[m.key]);
+    const rc=o.recvClose, kind=Don.closeKind(o);
+    const close=kind?`<div class="rl" id="chotInfo" style="background:${kind==="thieu"?"var(--warn-bg)":"var(--ok-bg)"}"><b>🔒 ${kind==="thieu"?"Đã chốt giao thiếu":kind==="du"?"Đã chốt giao đủ":"Đã kết thúc giao nhận (trước khi có chức năng chốt)"}</b>
+        ${rc?` · ${esc(Khung.userName(rc.by))} ${Don.hm(rc.at)} · nhận ${fmt(rc.got)}/${fmt(rc.total)} áo${rc.short?` · thiếu <b>${fmt(rc.short)}</b> (${esc(cellsTxt(rc.shortBy))})`:""}${rc.over?` · giao dư ${fmt(rc.over)}`:""}${rc.reason?` · lý do: ${esc(rc.reason)}`:""}`:` · ${dmy(o.arrived)}`}
+        <div class="muted small">Đơn đang ở bước Chứng từ &amp; Bàn giao hồ sơ.${can&&!o.doneAt&&R.length?" Xưởng giao bổ sung: bấm <b>Mở lại giao nhận</b> (ghi lý do), ghi nhận thêm rồi chốt lại.":""}${o.doneAt?" Đơn đã Hoàn tất Planning.":""}</div></div>`
+      :r.count?`<div class="rl"><span class="pill ${r.full?"p-warn":"p-info"}">${r.full?"Đã nhận đủ · chờ chốt giao nhận":"Chưa chốt giao nhận"}</span>${can&&Don.stage(o)==="run"?` <button class="btn${r.full?" primary":""}" data-chot>🔒 Chốt giao nhận</button>`:""}</div>`:"";
+    const head=`<div class="rl"><b>Xưởng đã giao ${fmt(r.got)} / ${fmt(r.total)} áo</b> · còn thiếu <b>${fmt(r.left)}</b>${r.overQty?` · giao dư ${fmt(r.overQty)}`:""}
+      <div class="muted small">Ghi nhận xưởng giao chỉ cập nhật tiến độ trong Planning, không cộng vào tồn kho SIXMEN. Tồn chỉ đổi khi dán bảng SIXMEN mới. Bảng tồn đang dùng: ${tonAt?Don.hm(tonAt):"chưa có"}.</div></div>`+close
+      +((o.recvLog||[]).length?`<details class="rl small"><summary>Lịch sử chốt giao nhận (${o.recvLog.length})</summary>${o.recvLog.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${recvLogTxt(e)}</div>`).join("")}</details>`:"");
+    return head+(R.length?R.map(x=>{ const q=Object.values(x.sizes||{}).reduce((a,v)=>a+v.reduce((p,y)=>p+(y||0),0),0), sx=x.sixmen, ok=sx&&sx.tonAt&&tonAt&&sx.tonAt<=tonAt;
+      return `<div class="rl${x.void?" void":""}">Lần giao ${Don.hm(x.at)} · <b>${fmt(q)}</b> áo · ${Object.entries(x.sizes||{}).filter(([,v])=>v.some(y=>y)).map(([c,v])=>`${c} ${v.join("/")}`).join(" · ")}${x.final?" · <b>lần giao cuối</b>":""}${x.note?" · "+esc(x.note):""} · người ghi ${esc(Khung.userName(x.by))}
+        ${x.void?` · đã huỷ (${esc(x.void.reason)})`:`<div class="small" style="margin-top:3px">Đối chiếu tồn SIXMEN: ${ok?`<span style="color:var(--ok)">✓ bảng tồn ${Don.hm(sx.tonAt)} đã có lần giao này</span> · ${esc(Khung.userName(sx.by))} ${Don.hm(sx.at)}${can?` <button class="btn ghost" data-sixmen-off="${x.id}">Bỏ</button>`:""}`:`<span style="color:var(--warn)">chưa đối chiếu · vẫn tính vào Đã đặt để không đặt trùng</span>${can?` <button class="btn ghost" data-sixmen="${x.id}" title="Bấm khi đã thấy số của lần giao này trong bảng tồn SIXMEN đang dùng">Tồn SIXMEN đã có lần giao này</button>`:""}`}
+          ${can&&!o.arrived?` · <button class="btn ghost" data-void="${x.id}">Huỷ lần giao</button>`:""}</div>`}</div>`; }).join("")
+      :`<div class="empty">Xưởng chưa giao lần nào.${can&&Don.stage(o)==="run"?" Bấm <b>📦 Ghi nhận xưởng giao</b> khi xưởng giao.":""}</div>`);
+  }
+  if(tab==="chung-tu") return docsTab(S,o,m,can);
+  if(tab==="goi-xuong"){
+    const ms=Don.milestones(o,Don.cfgOf(S)), t=Don.today(), ph=((Don.info().xuong||{})[o.type?"hoang":o.xuong]||{}).dien_thoai;
+    if(!ms.length) return `<div class="empty">${o.dueDate?"Không có mốc gọi.":"Nhập ngày xưởng hẹn giao để chia mốc gọi."}</div>`;
+    return (ph?`<div class="rl">Số điện thoại xưởng: <b>${esc(ph)}</b></div>`:"")+ms.map(x=>{ const lg=(o.calls||{})[x.date]||{}, due=x.date<=t&&!lg.done&&!o.arrived;
+      return `<div class="call"><span><b>${dm(x.date)}</b> <span class="muted">${Don.thu(x.date)}</span></span><span>${x.label}</span>
+        <label style="display:flex;gap:6px;align-items:center;font-weight:600;color:${lg.done?"var(--ok)":due?"var(--crit)":"var(--muted)"}"><input type="checkbox" data-tick="${x.date}"${lg.done?" checked":""}${can?"":" disabled"}>${lg.done?"Đã gọi":due?(x.date<t?"Quá ngày":"Hôm nay"):"Sắp tới"}</label>
+        <input class="field" data-note="${x.date}" placeholder="Kết quả cuộc gọi" value="${esc(lg.note||"")}"${can?"":" disabled"}></div>`; }).join("");
+  }
+  if(tab==="nvl"){
+    if(o.type) return `<div class="empty">Đơn đặt gấp qua anh Hoàng không cần xuất NVL.</div>`;
+    if(Don.XUONG[o.xuong].type!=="GC") return `<div class="empty">Đơn FOB: xưởng tự lo NVL.</div>`;
+    return nvlTab(S,o,m,can);
+  }
+  if(tab==="gui-xuong"){
+    const gc=!o.type&&Don.XUONG[o.xuong].type==="GC", L=CHECK(gc), ck=o.check||{}, done=L.filter(([k])=>ck[k]).length;
+    if(o.type) return `<div class="empty">Đơn đặt gấp: không có checklist gửi xưởng.</div>`;
+    return `<div class="rl"><b>${done}/${L.length} việc</b> · tick ở <a href="${Don.guiHref(o,m.key)}">màn hình Gửi xưởng</a>${o.sentAt?` · đã gửi xưởng ${dmy(o.sentAt)}`:o.flow>=2?" · chưa gửi xưởng":""}</div>`+L.map(([k,t])=>`<div class="rl">${ck[k]?"✅":"⬜"} ${t}</div>`).join("");
+  }
+  if(tab==="timeline") return timelineTab(o);
+  return history(o);
+}
+/* V5.4 Đợt 1: Timeline = mốc nghiệp vụ theo thời gian tăng dần (Don.timeline: các khối lịch sử đã lưu + Nhật ký server). Chỉ xem.
+   Cảnh báo KHÔNG nằm trong timeline: xem khung "Cảnh báo của đơn" (UX4) */
+function timelineTab(o){
+  const E=Don.timeline?Don.timeline(o,SRV,readN()):[];
+  if(!E.length) return `<div class="empty">Chưa có mốc nào.</div>`;
+  return `<div class="rl small muted">${E.length} mốc · cũ → mới · mốc V5.3 chỉ lưu ngày ghi “chỉ có ngày”. Cảnh báo xem ở khung <a href="#canh-bao">Cảnh báo của đơn</a>.</div>`
+    +E.map(e=>`<div class="tl tl54" data-g="${esc(e.g)}" data-t="${e.t}"><span class="w">${e.d?dmy(new Date(e.t-new Date(e.t).getTimezoneOffset()*6e4).toISOString().slice(0,10))+' <span class="small">(chỉ có ngày)</span>':Don.hm(e.t)}</span><b class="u">${esc(e.by?Khung.userName(e.by):"—")}</b><span><span class="pill p-mute" style="font-size:10.5px;margin-right:6px">${esc(e.g)}</span>${e.txt}</span></div>`).join("");
+}
+/* V5.4 Đợt 1: khung Cảnh báo của đơn — độc lập với trạng thái chính (UX4), theo ngưỡng mặc định X1, xếp theo Q8 */
+function alertBox(o,S,m){
+  if(!Don.issues||!o.closed||o.cancelled||o.doneAt) return "";
+  const I=Don.issues(o,S,m.key), ph=Don.phase(o), C={r:"var(--crit)",o:"var(--warn)",g:"var(--muted)"};
+  return `<div class="panel" id="canh-bao"><div class="ph"><h2>Cảnh báo của đơn</h2><span class="muted small">độc lập với trạng thái · trạng thái chính: <b>${esc(Don.PHASE[ph])}</b></span></div>
+    ${I.length?I.map(i=>`<div class="rl" data-ik="${i.k}" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px"><span><b style="color:${C[i.tone]||"inherit"}">${esc(i.t)}</b><div class="small muted">${esc(i.cause||"")}</div></span><span class="small" style="text-align:right">${i.due!=null?"hạn "+esc(Don.dueTxt(i.due)):""}${i.who?`<div class="muted">${esc(Khung.userName(i.who))}</div>`:""}</span></div>`).join("")
+      :`<div class="rl small" style="color:var(--ok)">✓ Không có cảnh báo nào.</div>`}</div>`;
+}
+/* Tab NVL: cần theo định mức · đã giữ · đã xuất · còn thiếu · danh sách đặt mua (bấm mở) · đang mua · đã nhận hợp lệ · chờ kiểm · ngày về · nguy cơ trễ;
+   thao tác giữ / nhả / xuất bổ sung qua server (sổ phân bổ). Không tự chuyển trạng thái đơn khi NVL về */
+function nvlTab(S,o,m,can){
+  const N=readN(), C=NV.check(N,S,m.key,o), canShip=can||isKho(), live=!o.cancelled&&!o.arrived;
+  const AL=(N.alloc||[]).filter(e=>e.oid===o.id), PX=(N.issues||[]).filter(p=>p.oid===o.id);
+  const legacyShip=!PX.length&&o.nvlOut&&o.ship;
+  const rows=C.rows.map(r=>{ const lack=Math.max(0,r.need-r.holdKho-r.holdXuong-r.issued);
+    return `<tr><td>${esc(r.it.name)}</td><td class="r num">${fmt1(r.need)} ${esc(r.unit)}</td><td class="r num">${fmt1(r.holdKho+r.holdXuong)}</td><td class="r num">${fmt1(r.issued)}</td>
+      <td class="r num">${lack>1e-9?`<b style="color:var(--crit)">${fmt1(lack)}</b>`:"0"}</td><td class="r num">${fmt1(r.freeKho)}</td>
+      <td class="small">${r.lists.length?r.lists.map(L=>`<a href="dat-mua.html#ds-${encodeURIComponent(L.id)}">${esc(L.no||"DS")}</a> · ${LIST_ST[L.status]||L.status}`).join("<br>"):lack>1e-9?`<span style="color:var(--crit)">chưa có</span>`:"—"}</td>
+      <td class="r num">${r.buying?fmt1(r.buying):"—"}</td><td class="r num">${r.gotOk?fmt1(r.gotOk):"—"}</td><td class="r num">${r.pending?fmt1(r.pending):"—"}</td>
+      <td class="small">${r.eta.length?r.eta.map(e=>e?dmy(e):`<span style="color:var(--warn)">chưa có</span>`).join(", "):"—"}</td>
+      <td><span class="pill ${{"du":"p-ok","du-chua-giu":"p-warn","dang-ve":"p-info","thieu":"p-bad"}[r.status]}">${NV.STATUS[r.status]}</span></td>
+      ${live?`<td>${can?`<input class="field" style="width:70px;padding:2px 5px" data-nq="giu|${r.it.id}" inputmode="decimal" placeholder="giữ" title="Giữ thêm">`:""}${can&&(r.holdKho>1e-9)?` <input class="field" style="width:70px;padding:2px 5px" data-nq="nha|${r.it.id}" inputmode="decimal" placeholder="nhả" title="Nhả">`:""}${canShip&&o.closed?` <input class="field" style="width:70px;padding:2px 5px" data-nq="xuat|${r.it.id}" inputmode="decimal" placeholder="xuất" title="Xuất đợt mới">`:""}</td>`:""}</tr>`; }).join("");
+  return `${C.missing.length||C.noRate.length?`<div class="ro" style="margin:10px 14px">Chưa kiểm tra được đủ: ${esc([C.missing.length?"kho chưa có "+C.missing.join(", "):"", C.noRate.length?"chưa có định mức "+C.noRate.join(", "):""].filter(Boolean).join(" · "))}</div>`:""}
+    ${C.risk.length?`<div style="padding:8px 14px;display:grid;gap:3px">${C.risk.map(x=>`<div class="small" style="color:${x.lv==="crit"?"var(--crit)":"var(--warn)"}">⚠ Nguy cơ trễ: ${esc(x.t)}</div>`).join("")}</div>`:""}
+    <div class="scroll"><table class="t nvlt"><thead><tr><th>NVL</th><th class="r">Cần</th><th class="r">Đã giữ</th><th class="r">Đã xuất</th><th class="r">Còn thiếu</th><th class="r">Khả dụng</th><th>Đơn mua</th><th class="r">Đang mua</th><th class="r">Đã nhận đạt</th><th class="r">Chờ kiểm</th><th>Ngày về</th><th>Kết quả</th>${live?"<th>Thao tác</th>":""}</tr></thead>
+    <tbody>${rows||`<tr><td colspan="13" class="muted">Chưa tính được NVL nào cho đơn này.</td></tr>`}</tbody></table></div>
+    ${live&&(can||canShip)&&C.rows.length?`<div class="rl" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${can?`<button class="btn primary" data-nvl="giu">Giữ số đã nhập</button><button class="btn" data-nvl="nha">Nhả số đã nhập…</button>`:""}${canShip&&o.closed?`<input class="field" id="pxNote" placeholder="Số chứng từ / ghi chú phiếu xuất" style="width:260px"><button class="btn ok" data-nvl="xuat">Xuất NVL đợt ${NV.issuesOf(N,o).length+1}</button>`:""}
+      <span class="muted small">Server kiểm tra khả dụng lúc bấm; không lấy vào phần đơn khác đang giữ. NVL về không tự giữ cho đơn.</span></div>`:""}
+    <div class="rl"><b>Phiếu xuất NVL</b> ${PX.length?"":`<span class="muted">chưa có${legacyShip?" (đơn xuất trước khi có phiếu, xem dưới)":""}</span>`}</div>
+    ${PX.map(p=>`<div class="rl${p.void?" void":""}"><b>${esc(p.no)}</b> · đợt ${p.batch} · ${dmy(p.date)} · ${esc(Khung.userName(p.by))} · ${(p.lines||[]).map(l=>`${esc(l.itemName)} <b>${fmt1(l.qty)}</b> ${esc(l.unit||"")}`).join(" · ")}${p.note?" · "+esc(p.note):""}${p.override?` · <span class="pill p-warn">Ngoại lệ Admin: ${esc(p.override.reason)}</span>`:""}
+      ${p.void?` · đã huỷ (${esc(p.void.reason)})`:canShip&&live?` <button class="btn ghost" data-pxvoid="${p.id}">Huỷ phiếu</button>`:""}</div>`).join("")}
+    ${legacyShip?`<div class="rl">Xuất ${dmy(o.shipDate)} (kiểu cũ): ${Object.entries(o.ship).map(([id,q])=>{ const x=(N.items||[]).find(i=>i.id===id); return `${esc(x?x.name:id)} ${fmt1(q)}`; }).join(" · ")}</div>`:""}
+    <details class="rl"><summary><b>Sổ phân bổ NVL của đơn (${AL.length})</b></summary>${AL.slice().reverse().map(e=>`<div class="small" style="margin:3px 0">${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · <b>${AL_KIND[e.kind]||e.kind}</b> ${esc(e.itemName||"")} ${e.qty>0?"+":""}${fmt1(e.qty)}${e.reason?` · <span class="muted">${esc(e.reason)}</span>`:""}</div>`).join("")||`<div class="muted small">Chưa có dòng nào.</div>`}</details>`;
+}
+/* Chứng từ & Bàn giao (bản chốt V1 27/10): mỗi lần giao 5 bước hoá đơn, đi đúng thứ tự; bàn giao hồ sơ = Hoàn tất Planning.
+   Phạm vi Planning dừng ở đây: không có bước nhập kho ERP / Nhanh.vn / mở bán */
+function docsTab(S,o,m,can){
+  const R=SoLuong.validReceipts(o), ds=Don.docState(o), r=SoLuong.receiptInfo(o,S.perRoll||65);
+  if(!R.length){ const c=Don.ctuState(o).types[0].state;   /* chưa giao lần nào: chỉ hiện trạng thái 2 PO, các chứng từ khác giữ như cũ */
+    return (o.flow===3||!o.closed?`<div class="rl" id="ctu" data-ctype="po"><b class="small">PO ERP</b> <span class="pill ${c==="xong"?"p-ok":c==="dang"?"p-info":"p-warn"}">${c==="xong"?"Hoàn thành":c==="dang"?"Đang xử lý":"Chưa có"}</span>${poDocRows(o)}</div>`:"")+`<div class="empty">Chưa có lần xưởng giao nào. Chứng từ theo dõi theo từng lần giao.</div>`; }
+  const cards=R.map((x,ri)=>{ const q=Object.values(x.sizes||{}).reduce((a,v)=>a+v.reduce((p,y)=>p+(y||0),0),0);
+    const nextI=Don.DOCS.findIndex(d=>!Don.docDone(x,d.k)), lastI=nextI<0?Don.DOCS.length-1:nextI-1;
+    return `<div class="rl"><b>Lần giao ${ri+1} · ${Don.hm(x.at)} · ${fmt(q)} áo</b>${x.final?" · lần giao cuối":""}
+      ${Don.DOCS.map((d,i)=>{ const v=(x.docs||{})[d.k]||{};
+        return `<div class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:3px 0 0 6px">${v.at?"✅":"⬜"} <span style="min-width:300px">${i+1}. ${esc(d.t)}</span>
+          ${v.at?`<span class="muted">${esc(Khung.userName(v.by))} · ${Don.hm(v.at)}${v.doc?` · số CT <b>${esc(v.doc)}</b>`:""}${v.note?" · "+esc(v.note):""}</span>${can&&i===lastI&&!o.doneAt?` <button class="btn ghost" data-docundo="${x.id}|${d.k}">Bỏ</button>`:""}`
+            :i===nextI&&can&&!o.doneAt?`<button class="btn ghost" data-doc="${x.id}|${d.k}">Đánh dấu đã xong</button>`:`<span class="muted">chờ bước trước</span>`}</div>`; }).join("")}
+      ${(x.docsLog||[]).length?`<details class="small" style="margin:4px 0 0 6px"><summary>Lịch sử chứng từ (${x.docsLog.length})</summary>${x.docsLog.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${e.act==="xong"?"xong":"bỏ"} “${esc((Don.DOCS.find(d=>d.k===e.k)||{}).t||e.k)}”${e.doc?" · số CT "+esc(e.doc):""}${e.reason?" · lý do: "+esc(e.reason):""}</div>`).join("")}</details>`:""}</div>`; }).join("");
+  /* UX-1: nêu cụ thể còn thiếu gì (thay cho con số gộp "x/y bước"); điều kiện vẫn do Don.canFinish / server quyết định */
+  const miss=[]; if(!o.arrived) miss.push(`chưa chốt giao nhận (còn thiếu ${fmt(r.left)} áo; bấm Chốt giao nhận ở tab Sản xuất & Giao nhận)`);
+  R.forEach((x,ri)=>{ const k=Don.DOCS.filter(d=>!Don.docDone(x,d.k)).length; if(k) miss.push(`lần giao ${ri+1}: còn ${k}/${Don.DOCS.length} bước hoá đơn`); });
+  if(o.flow===3) Don.ctuState(o).types.filter(t=>t.state!=="xong"&&t.state!=="na").forEach(t=>miss.push(`${t.t} ${t.state==="dang"?"đang xử lý":"chưa có"}`));
+  const c4=o.flow===3?Don.ctuState(o):null, invDone=R.reduce((a,x)=>a+Don.DOCS.filter(d=>Don.docDone(x,d.k)).length,0), invTot=R.length*Don.DOCS.length;
+  const h=o.handover||{}, hs=Don.handState(o), me=ME(), adm=Khung.isAdmin(), hb=bgBusy?" disabled":"";
+  const hInfo=`bàn giao cho <b>${esc(h.to||"")}</b>${h.toUser?` <span class="pill p-info">tài khoản</span>`:h.at?` <span class="pill p-mute">chưa có tài khoản</span>`:""} · ghi nhận bởi ${esc(Khung.userName(h.by))} ${Don.hm(h.at)}${h.evidence?` · bằng chứng: <b>${esc(h.evidence)}</b>`:""}${h.note?" · "+esc(h.note):""}`;
+  const users=((window.TOI&&TOI.users)||[]).filter(u=>u.active&&u.id!==me);
+  const fin=hs==="xn"?`<div class="rl" id="bgDone" style="background:var(--ok-bg)"><b>✓ ${h.state?Don.HAND.xn:"Đã bàn giao hồ sơ (trước V3)"} · Hoàn tất Planning ${dmy(o.doneAt)}</b>${h.at?` · ${hInfo}${h.confirmAt?` · xác nhận bởi ${esc(Khung.userName(h.confirmBy))} ${Don.hm(h.confirmAt)}${h.toUser?"":" (Admin kiểm tra bằng chứng)"}`:""}`:""}
+      ${adm?` <button class="btn ghost" data-undone${hb}>Mở lại (Admin)</button>`:""}<div class="muted small">Phần nhập kho ERP, cập nhật tồn Nhanh.vn / SIXMEN, mở bán do bộ phận khác làm sau khi bàn giao, Planning không theo dõi.</div></div>`
+    :hs==="cho"?`<div class="rl" id="bgWait" style="background:var(--warn-bg)"><b>${Don.HAND.cho}</b> · ${hInfo}
+      <div class="muted small">${h.toUser?`Chờ <b>${esc(h.to)}</b> đăng nhập tài khoản của mình và bấm “Xác nhận đã nhận hồ sơ”.`:"Người nhận chưa có tài khoản: Admin kiểm tra bằng chứng rồi bấm “Xác nhận bàn giao hợp lệ”."} Chưa xác nhận thì chưa Hoàn tất Planning.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${h.toUser&&h.toUser===me?`<button class="btn primary" data-bgok${hb}>✓ Xác nhận đã nhận hồ sơ</button>`:""}${!h.toUser&&adm?`<button class="btn primary" data-bgok${hb}>✓ Xác nhận bàn giao hợp lệ</button>`:""}${adm||h.by===me?`<button class="btn ghost" data-bghuy${hb}>Huỷ ghi nhận</button>`:""}</div></div>`
+    :`<div id="bgForm">${Don.canFinish(o)?(can?`<div style="display:grid;gap:8px;margin-top:8px">
+        <label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">Người nhận <select class="field" id="bgTo"><option value="">— Người nhận chưa có tài khoản —</option>${users.map(u=>`<option value="${esc(u.id)}"${bgTxt.to===u.id?" selected":""}>${esc(u.name)} (tài khoản)</option>`).join("")}</select>
+          <input class="field" id="bgName" placeholder="Tên người / bộ phận nhận" value="${esc(bgTxt.name)}"${bgTxt.to?" hidden":""}></label>
+        <input class="field" id="bgEv" placeholder="Bằng chứng (bắt buộc khi người nhận chưa có tài khoản): VD ảnh ký nhận, tin nhắn Zalo 30/10…" value="${esc(bgTxt.ev)}">
+        <input class="field" id="bgNote" placeholder="Ghi chú (không bắt buộc)" value="${esc(bgTxt.note)}">
+        <div><button class="btn primary" data-finish${hb}>Ghi nhận bàn giao hồ sơ</button> <span class="muted small">Sau khi ghi nhận: chờ bên nhận xác nhận mới Hoàn tất Planning.</span></div>
+        ${bgMsg?`<div class="small" id="bgMsg" style="color:var(--crit)">${esc(bgMsg)}</div>`:""}</div>`:`<span class="s">Đủ điều kiện · người phụ trách mã hoặc Admin ghi nhận.</span>`):`<div class="s" id="bgMiss"><b style="color:var(--warn)">Chưa đủ điều kiện:</b><ul style="margin:4px 0 0;padding-left:18px">${miss.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`}</div>`;
+  const HACT={ghi:"Ghi nhận bàn giao", "xac-nhan":"Người nhận xác nhận đã nhận hồ sơ", "xac-nhan-admin":"Admin xác nhận bàn giao hợp lệ", "huy-ghi":"Huỷ ghi nhận bàn giao", "mo-lai":"Mở lại (Admin)"};
+  /* UX-1: tóm tắt hồ sơ tách rõ 3 thước đo (4 loại chứng từ · hoá đơn theo lần giao · bàn giao) + bàn giao hiển thị đúng 2 bước */
+  const sum=`<div class="rl" id="ctSum" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>Tình trạng hồ sơ</b>
+      ${c4?`<span class="pill ${c4.all?"p-ok":"p-warn"}" id="ctSum4">4 loại chứng từ: ${c4.done}/${c4.total}</span>`:""}
+      <span class="pill ${invDone===invTot?"p-ok":"p-warn"}" id="ctSumInv">Hoá đơn theo lần giao: ${invDone}/${invTot} bước</span>
+      <span class="pill ${hs==="xn"?"p-ok":hs==="cho"?"p-run":"p-mute"}" id="ctSumBg">Bàn giao: ${hs==="xn"?(h.state?"đã xác nhận":"đã bàn giao (trước V3)"):hs==="cho"?"chờ bên nhận xác nhận":"chưa ghi nhận"}</span></div>`;
+  const bg=`<div class="rl"><b>Bàn giao hồ sơ · 2 bước</b> <span class="muted small">Hoàn tất Planning sau bước 2</span>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:8px">
+      <div class="stepc ${hs==="chua"?"cur":"done"}" id="bgStep1"><span class="h">${hs==="chua"?"Bước 1":"✓ Bước 1"} · Ghi nhận bàn giao</span>${hs==="chua"?fin:`<span class="s">${hInfo}</span>`}</div>
+      <div class="stepc ${hs==="xn"?"done":hs==="cho"?"cur":""}" id="bgStep2"><span class="h">${hs==="xn"?"✓ Bước 2":"Bước 2"} · Bên nhận xác nhận</span>${hs==="chua"?`<span class="s">Người nhận có tài khoản tự xác nhận bằng tài khoản của mình; chưa có tài khoản thì Admin xác nhận dựa trên bằng chứng.</span>`:fin}</div>
+    </div></div>`;
+  return sum+(o.flow===3?ctuPanel(o,can):"")+cards+bg+((o.handoverLog||[]).length?`<details class="rl small"><summary>Lịch sử bàn giao / hoàn tất / mở lại (${o.handoverLog.length})</summary>${o.handoverLog.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${esc(HACT[e.act]||e.act)}${e.to?" cho "+esc(e.to):""}${e.evidence?" · bằng chứng: "+esc(e.evidence):""}${e.reason?" · lý do: "+esc(e.reason):""}</div>`).join("")}</details>`:"");
+}
+/* V3 · 4 loại chứng từ: PO ERP (từ xác nhận QLVH, không tạo PO thứ hai) · Giấy đề nghị thanh toán · Phiếu giao hàng · Hoá đơn VAT.
+   Mỗi chứng từ: trạng thái, số / file tham chiếu, người phụ trách, ngày hoàn thành, ghi chú, lịch sử. Khoá khi đã ghi nhận bàn giao */
+/* Trạng thái 2 PO ở tab Chứng từ: chỉ hiển thị, dùng chung dữ liệu với Duyệt PO */
+const poDocRows=o=>o.qlvh&&Don.poOld(o)?`<div class="small" style="margin:4px 0 0 6px">PO <b>${esc(o.qlvh.po)}</b> · QLVH đã duyệt ${Don.hm(o.qlvh.at)} · xác nhận bởi ${esc(Khung.userName(o.qlvh.by))} <span class="pill p-warn">Chưa phân loại PO cũ</span></div>`
+      :[[1,o.erpCode],[2,o.erpCode2]].map(([n,v])=>`<div class="small" data-ctpo="${n}" style="margin:4px 0 0 6px">${Don.PO_T[n]}: ${v?`<b>${esc(v)}</b>`:`<span class="muted">chưa có mã</span>`} <span class="pill ${o.qlvh?"p-ok":v?"p-warn":"p-mute"}">${o.qlvh?"QLVH đã ký &amp; duyệt":v?"Chờ QLVH ký, duyệt":"Chưa có mã"}</span></div>`).join("")
+        +`<div class="small muted" style="margin:4px 0 0 6px">${o.qlvh?`Xác nhận bởi ${esc(Khung.userName(o.qlvh.by))} lúc ${Don.hm(o.qlvh.at)}`:`Nhập mã và xác nhận ở khung Duyệt PO (QLVH)`}</div>`;
+function ctuPanel(o,can){
+  const C=Don.ctuState(o), lock=Don.handState(o)!=="chua"||!!o.cancelled, ed=can&&!lock, adm=Khung.isAdmin();
+  const users=((window.TOI&&TOI.users)||[]).filter(u=>u.active);
+  const pill=s=>`<span class="pill ${s==="xong"?"p-ok":s==="na"?"p-mute":s==="dang"?"p-info":"p-warn"}">${s==="xong"?"Hoàn thành":s==="na"?"Không áp dụng":s==="dang"?"Đang xử lý":"Chưa có"}</span>`;
+  const rowsOf=t=>t.k==="po"?poDocRows(o)
+    :t.na?`<div class="small" style="margin:4px 0 0 6px">Không áp dụng · ${esc(Khung.userName(t.na.by))} ${Don.hm(t.na.at)} · lý do: ${esc(t.na.reason)}${adm&&ed?` <button class="btn ghost" data-ctna-off="${t.k}">Bỏ “Không áp dụng”</button>`:""}</div>`
+    :t.list.map(i=>`<div class="ct-row" data-ctrow="${t.k}|${i.id}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 0 6px">
+        <select class="field" data-ct="${t.k}|${i.id}|status"${ed?"":" disabled"}>${Object.entries(Don.CT_ST).map(([k,l])=>`<option value="${k}"${i.status===k?" selected":""}>${l}</option>`).join("")}</select>
+        <input class="field" data-ct="${t.k}|${i.id}|ref" placeholder="Số chứng từ / tên file / đường dẫn" value="${esc(i.ref||"")}" style="min-width:220px"${ed?"":" disabled"}>
+        <select class="field" data-ct="${t.k}|${i.id}|owner" title="Người phụ trách"${ed?"":" disabled"}>${users.map(u=>`<option value="${esc(u.id)}"${i.owner===u.id?" selected":""}>${esc(u.name)}</option>`).join("")}</select>
+        <input type="date" class="field" data-ct="${t.k}|${i.id}|doneDate" title="Ngày hoàn thành" value="${i.doneDate||""}"${ed?"":" disabled"}>
+        <input class="field" data-ct="${t.k}|${i.id}|note" placeholder="Ghi chú" value="${esc(i.note||"")}"${ed?"":" disabled"}>
+        ${ed&&i.status!=="xong"?`<button class="btn" data-ctdone="${t.k}|${i.id}" title="Đánh dấu Hoàn thành, ngày hoàn thành = hôm nay nếu chưa ghi (như chọn Hoàn thành ở ô trạng thái)">✓ Hoàn thành</button>`:""}
+        ${ed?`<button class="btn ghost" data-ctdel="${t.k}|${i.id}" aria-label="Xoá">×</button>`:""}</div>`).join("")
+      +(ed?`<div style="margin:4px 0 0 6px;display:flex;gap:6px"><button class="btn ghost" data-ctadd="${t.k}">+ Thêm ${esc(t.t.toLowerCase())}</button>${adm&&!t.list.length?`<button class="btn ghost" data-ctna="${t.k}">Không áp dụng (Admin)</button>`:""}</div>`:"");
+  const LG=o.ctuLog||[], CT_NAME=Object.fromEntries(Don.CTU.map(c=>[c.k,c.t]));
+  return `<div class="rl" id="ctu"><b>Chứng từ theo V3 · ${C.done}/${C.total} loại hoàn thành</b>${lock&&!o.cancelled?` <span class="muted small">đã khoá (đã ghi nhận bàn giao)</span>`:""}
+    ${C.types.map(t=>`<div style="margin-top:8px" data-ctype="${t.k}"><b class="small">${esc(t.t)}</b> ${pill(t.state)}${t.k==="pgh"&&!t.na?` <span class="muted small">${t.list.length} phiếu · ${SoLuong.validReceipts(o).length} lần giao</span>`:""}${rowsOf(t)}</div>`).join("")}
+    ${LG.length?`<details class="small" style="margin-top:6px"><summary>Lịch sử chứng từ V3 (${LG.length})</summary>${LG.slice().reverse().map(e=>`<div>${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} · ${esc(CT_NAME[e.t]||e.t)}: ${esc(e.act==="them"?"thêm":e.act==="xoa"?"xoá":e.act==="na"?"không áp dụng":e.act==="bo-na"?"bỏ không áp dụng":"sửa "+(({status:"trạng thái",ref:"số / file",owner:"người phụ trách",doneDate:"ngày hoàn thành",note:"ghi chú"})[e.f]||e.f))}${e.act==="sua"?` ${esc(e.f==="owner"?Khung.userName(e.from):e.f==="status"?(Don.CT_ST[e.from]||e.from||"—"):(e.from||"—"))} → ${esc(e.f==="owner"?Khung.userName(e.to):e.f==="status"?(Don.CT_ST[e.to]||e.to):(e.to||"—"))}`:""}${e.reason?" · lý do: "+esc(e.reason):""}</div>`).join("")}</details>`:""}</div>`;
+}
+let bgBusy=false, bgMsg="", bgTxt={to:"", name:"", ev:"", note:""};
+/* V5: tiếp nhận / đổi người thực thi / vướng mắc: server ghi (người, giờ); 2 người cùng bấm thì người sau được báo, không ghi đè */
+async function exAct(body){
+  const f=find(); if(!f) return false;
+  const r=await Don.op(Object.assign({model:f.m.key, oid:OID}, body));
+  if(r.status!==200) alert((r.j&&r.j.error)||"Không thực hiện được");
+  render(); loadLog(); return r.status===200;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  /* V5.4 Đợt 3: Tiếp nhận / Trả lại mở màn Tiếp nhận (checklist bắt buộc · 5 nhóm lý do), server kiểm lại */
+  if((b.hasAttribute("data-exack")||b.hasAttribute("data-extra"))&&Don.tiepNhan54){ const f=find(); if(f){ Don.tiepNhan54(f.o,f.m.key,{mode:b.hasAttribute("data-exack")?"nhan":"tra", onDone:()=>{ render(); loadLog(); }}); } return; }
+  if(b.hasAttribute("data-exack")){ exAct({op:"nhan-viec"}); return; }
+  if(b.hasAttribute("data-extra")){ const reason=(prompt("Trả lại đơn cho người quản lý kế hoạch. Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return; exAct({op:"tra-lai", reason}); return; }
+  if(b.hasAttribute("data-maugui")){ const f=find(); if(f){ MauGui.preview(MauGui.sx(f.o,f.m,f.S),`${Don.label(f.o,f.m)}`,`Mẫu gửi xưởng · ${Don.label(f.o,f.m)}`); } return; }
+  if(b.hasAttribute("data-exdoi")){ const us=((window.TOI&&TOI.users)||[]).filter(u=>u.active&&u.role!=="kho"); const pick=(prompt("Đổi người thực thi. Gõ tên đăng nhập:\n"+us.map(u=>`${u.username} · ${u.name}`).join("\n"))||"").trim().toLowerCase(); if(!pick) return;
+    const u=us.find(x=>x.username===pick); if(!u){ alert("Không có tài khoản "+pick); return; } const reason=(prompt("Lý do đổi người thực thi (bắt buộc):")||"").trim(); if(!reason) return; exAct({op:"doi-thuc-thi", toUser:u.id, reason}); return; }
+  if(b.hasAttribute("data-vbao")){ Khung.vuongForm("Báo vướng mắc cần Đăng Nam quyết định",v=>exAct(Object.assign({op:"vuong-bao"},v))); return; }
+  if(b.dataset.vnhan){ exAct({op:"vuong-nhan", vid:b.dataset.vnhan}); return; }
+  if(b.dataset.vxong){ const reply=(prompt("Cách xử lý / quyết định (ghi lại cho người thực thi):")||"").trim(); exAct({op:"vuong-xong", vid:b.dataset.vxong, reply}); return; }
+});
+async function bgAct(body){
+  const f=find(); if(!f) return; bgBusy=true; bgMsg=""; render();
+  const r=await Don.op(Object.assign({model:f.m.key, oid:OID}, body)); bgBusy=false;
+  if(r.status===200){ bgTxt={to:"", name:"", ev:"", note:""}; } else { bgMsg=(r.j&&r.j.error)||"Không thực hiện được"; if(body.op!=="bg-ghi") alert(bgMsg); }
+  render(); loadLog();
+}
+/* Sửa 1 chứng từ V3 (lưu thường, có lịch sử từng trường) */
+function ctEdit(t,id,fn){ Don.mutate(OID,o=>{ if(Don.handState(o)!=="chua"||o.cancelled) return false; const x=((o.ctu=o.ctu||{})[t]=o.ctu[t]||{}); x.list=x.list||[]; return fn(o,x,x.list.find(i=>i.id===id)); }); }
+const ctLog=(o,e)=>{ (o.ctuLog=o.ctuLog||[]).push(Object.assign({at:Date.now(), by:ME()},e)); };
+function recvForm(o,r){
+  const cols=Object.keys(r.ordered).filter(c=>r.ordered[c].some(v=>v));
+  draft=draft||{q:{}, at:(()=>{ const x=new Date(); return new Date(x-x.getTimezoneOffset()*6e4).toISOString().slice(0,16); })(), note:""};
+  return `<div class="panel recv" id="recv"><b style="font-size:14px">📦 Ghi nhận xưởng giao · ${esc(Don.label(o))}</b><span class="muted small">Số xưởng giao thực tế theo màu × size. Chỉ cập nhật tiến độ trong Planning, không cộng vào tồn SIXMEN.</span>
+    <div class="scroll"><table class="t"><thead><tr><th>Màu</th>${SZ.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>
+    ${cols.map(c=>`<tr><td>${c} · ${CNM(c)||c}</td>${SZ.map((s,i)=>{ const left=Math.max(0,r.ordered[c][i]-((r.received[c]||[])[i]||0));
+      return `<td>${r.ordered[c][i]?`<input class="field q" inputmode="numeric" data-rq="${c}|${i}" value="${draft.q[c+i]??""}" placeholder="${left}" aria-label="${c} ${s}"><div class="small muted">còn ${left}</div>`:""}</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <label class="small">Giờ nhận <input type="datetime-local" class="field" id="rAt" value="${draft.at}"></label>
+      <button class="btn ghost" data-rfill>Điền đủ số còn lại</button>
+      <input class="field" id="rNote" placeholder="Ghi chú (không bắt buộc)" value="${esc(draft.note)}" style="min-width:200px">
+      <button class="btn ok" data-rsave>Ghi nhận</button><button class="btn ghost" data-rclose>Đóng</button></div></div>`;
+}
+/* Trước thao tác giao nhận: lấy bản mới nhất trong thư mục (người khác có thể vừa ghi / vừa chốt) */
+const fresh=()=>{ if(window.DongBo) DongBo.fresh(Don.KEY); };
+const closedMsg=o=>o.recvClose?`Đơn ${Don.label(o)} đã được ${Khung.userName(o.recvClose.by)} chốt giao nhận lúc ${Don.hm(o.recvClose.at)}.`:`Đơn ${Don.label(o)} đã kết thúc giao nhận.`;
+function saveReceipt(){
+  let ok=false; fresh();
+  Don.mutate(OID,(o,S)=>{
+    if(o.arrived){ alert(closedMsg(o)+"\nXưởng giao bổ sung: bấm “Mở lại giao nhận” (ghi lý do) rồi ghi nhận."); recvOpen=false; return false; }
+    const r=SoLuong.receiptInfo(o,S.perRoll||65), sizes={}, over=[]; let tot=0;
+    Object.keys(r.ordered).forEach(c=>{ const a=[0,1,2,3,4].map(i=>Math.max(0,parseInt(draft.q[c+i],10)||0)); if(a.some(v=>v)){ sizes[c]=a; a.forEach((v,i)=>{ tot+=v; const left=Math.max(0,r.ordered[c][i]-((r.received[c]||[])[i]||0)); if(v>left) over.push(`${c} ${SZ[i]}: nhận ${v}, còn ${left}`); }); } });
+    const at=new Date(draft.at).getTime();
+    if(!tot){ alert("Chưa nhập số áo nhận về."); return false; }
+    if(!(at>0)){ alert("Giờ nhận chưa đúng."); return false; }
+    if(at>Date.now()+6e4){ alert("Giờ nhận đang ở tương lai."); return false; }
+    const after=r.got+tot;
+    if(!confirm(`Ghi nhận xưởng giao ${fmt(tot)} áo cho đơn ${Don.label(o)} lúc ${Don.hm(at)}?\nSau lần này: xưởng đã giao ${fmt(after)}/${fmt(r.total)} áo.\n(Chỉ cập nhật tiến độ Planning, không cộng vào tồn SIXMEN.)${over.length?`\n\n⚠ Nhận dư so với số còn lại:\n${over.join("\n")}`:""}\n\nKhi xưởng giao xong (đủ hoặc không giao thêm): bấm “Chốt giao nhận”.`)) return false;
+    (o.receipts=o.receipts||[]).push({id:"r"+Date.now(), at, date:draft.at.slice(0,10), sizes, note:(draft.note||"").trim(), savedAt:Date.now(), by:Khung.me&&Khung.me.id});
+    ok=true;
+  });
+  if(ok){ recvOpen=false; draft=null; tab="san-xuat"; render(); }
+}
+const ME=()=>Khung.me&&Khung.me.id;
+/* kind: du = chốt giao đủ · thieu = chốt giao thiếu, không nhận tiếp (bắt buộc lý do) · cho = tiếp tục chờ giao (chỉ ghi lịch sử).
+   Kiểm lại trên bản mới nhất: đã có người chốt, hoặc số lần giao / số nhận đổi so với lúc mở khung → không lưu */
+function doChot(kind){
+  const reason=kind==="thieu"?(($("#chotReason")||{}).value||"").trim():"", note=(($("#chotNote")||{}).value||"").trim();
+  if(kind==="thieu"&&!reason){ alert("Ghi lý do chốt giao thiếu (bắt buộc)."); const el=$("#chotReason"); if(el) el.focus(); return; }
+  fresh(); let ok=false;
+  Don.mutate(OID,(o,S)=>{
+    if(o.arrived){ alert(closedMsg(o)); return false; }
+    const r=SoLuong.receiptInfo(o,S.perRoll||65), R=SoLuong.validReceipts(o), now=Date.now();
+    if(!R.length){ alert("Chưa có lần xưởng giao nào."); return false; }
+    if(!chotSnap||R.length!==chotSnap.n||r.got!==chotSnap.got){ alert(`Số xưởng giao vừa thay đổi (người khác vừa ghi / huỷ lần giao): nay đã nhận ${fmt(r.got)}/${fmt(r.total)} áo, còn thiếu ${fmt(r.left)}.\nXem lại số rồi chốt lại.`); chotSnap={n:R.length, got:r.got}; return false; }
+    if(kind==="du"&&r.left){ alert(`Còn thiếu ${fmt(r.left)} áo: không chốt giao đủ được.`); return false; }
+    if(kind!=="du"&&!r.left){ alert("Đã nhận đủ: chọn Chốt giao đủ."); return false; }
+    if(kind==="cho"){ (o.recvLog=o.recvLog||[]).push({at:now, by:ME(), act:"cho", note, short:r.left, got:r.got, total:r.total}); ok=true; return; }
+    const lack={}, over={}; Object.keys(r.short).forEach(c=>{ if(r.short[c].some(v=>v)) lack[c]=r.short[c].slice(); if(r.over[c].some(v=>v)) over[c]=r.over[c].slice(); });
+    if(!confirm(kind==="du"?`Chốt giao đủ đơn ${Don.label(o)}?\nĐã nhận ${fmt(r.got)}/${fmt(r.total)} áo${r.overQty?` (giao dư ${fmt(r.overQty)}: ${cellsTxt(over)})`:""}.\n\nSau khi chốt: sang bước Chứng từ & Bàn giao hồ sơ. Không cộng tồn, không đổi dữ liệu SIXMEN.`
+      :`Chốt giao THIẾU đơn ${Don.label(o)}?\nĐã nhận ${fmt(r.got)}/${fmt(r.total)} áo · thiếu ${fmt(r.left)} áo (${cellsTxt(lack)}).\nLý do: ${reason}\n\nKhông nhận tiếp phần còn lại: phần thiếu thôi tính vào Đã đặt. Số đặt giữ nguyên.\nSau khi chốt: sang bước Chứng từ & Bàn giao hồ sơ.`)) return false;
+    const date=R.map(x=>x.date).sort().pop();
+    o.recvClose={kind, at:now, by:ME(), date, reason, total:r.total, got:r.got, short:r.left, over:r.overQty, shortBy:lack, overBy:over, receipts:R.map(x=>x.id)};
+    (o.recvLog=o.recvLog||[]).push({at:now, by:ME(), act:kind==="du"?"chot-du":"chot-thieu", reason, total:r.total, got:r.got, short:r.left, over:r.overQty});
+    SoLuong.syncArrived(o); ok=true;
+  });
+  if(ok){ chotOpen=false; chotSnap=null; chotTxt={reason:"", note:""}; if(kind!=="cho") tab="chung-tu"; history_replace(); render(); }
+  else render();
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button,[data-tab]"); if(!b) return;
+  if(b.dataset.tab){ tab=b.dataset.tab; history_replace(); render(); return; }
+  if(b.hasAttribute("data-recv")){ recvOpen=true; render(); const f=document.querySelector("#recv input.q"); if(f){ f.focus(); f.scrollIntoView({block:"center"}); } return; }
+  if(b.hasAttribute("data-rclose")){ recvOpen=false; draft=null; render(); return; }
+  if(b.hasAttribute("data-rsave")){ saveReceipt(); return; }
+  if(b.hasAttribute("data-rfill")){ document.querySelectorAll("#recv input.q").forEach(el=>{ const [c,i]=el.dataset.rq.split("|"); draft.q[c+i]=el.placeholder; el.value=el.placeholder; }); return; }
+  if(b.dataset.void){ const reason=(prompt("Huỷ lần nhận này (ghi nhầm số, nhầm đơn…)?\nGhi lý do (bắt buộc):")||"").trim(); if(!reason) return; fresh();
+    Don.mutate(OID,o=>{ if(o.arrived){ alert(closedMsg(o)+"\nMở lại giao nhận trước khi huỷ lần giao."); return false; } const x=(o.receipts||[]).find(y=>y.id===b.dataset.void); if(!x) return false; x.void={at:Date.now(), reason, by:ME()}; }); return; }
+  /* Chốt giao nhận */
+  if(b.hasAttribute("data-chot")){ fresh(); const f=find(); if(!f) return; if(f.o.arrived){ alert(closedMsg(f.o)); render(); return; }
+    const r=SoLuong.receiptInfo(f.o,f.S.perRoll||65); chotSnap={n:r.count, got:r.got}; chotOpen=true; recvOpen=false; render(); const el=$("#chot"); if(el) el.scrollIntoView({block:"center"}); return; }
+  if(b.hasAttribute("data-chot-close")){ chotOpen=false; chotSnap=null; render(); return; }
+  if(b.hasAttribute("data-chot-du")||b.hasAttribute("data-chot-thieu")||b.hasAttribute("data-chot-wait")){ doChot(b.hasAttribute("data-chot-du")?"du":b.hasAttribute("data-chot-thieu")?"thieu":"cho"); return; }
+  if(b.hasAttribute("data-chot-reopen")){ fresh(); const f=find(); if(!f||!f.o.arrived) { render(); return; }
+    if(f.o.doneAt){ alert("Đơn đã Hoàn tất Planning: Admin mở lại Hoàn tất trước (tab Chứng từ & Bàn giao)."); return; }
+    const reason=(prompt("Mở lại giao nhận? (VD xưởng giao bổ sung sau khi đã chốt)\nĐơn quay về Giao một phần: ghi nhận thêm rồi chốt lại. Chứng từ đã làm giữ nguyên, số đặt không đổi.\nGhi lý do (bắt buộc):")||"").trim(); if(!reason) return;
+    Don.mutate(OID,o=>{ if(!o.arrived||o.doneAt) return false; (o.recvLog=o.recvLog||[]).push({at:Date.now(), by:ME(), act:"mo-lai", reason, prev:o.recvClose||{legacy:true, date:o.arrived}}); delete o.recvClose; delete o.arrived; });
+    tab="san-xuat"; history_replace(); render(); return; }
+  if(b.hasAttribute("data-cancel")){ const f=find(); if(f&&f.o.nvlOut){ alert("Đơn đã xuất NVL cho xưởng: không được huỷ, chỉ điều chỉnh tỉ lệ size."); return; }
+    const reason=(prompt("Huỷ đơn này? Đơn huỷ không trừ vào Cần đặt nữa nhưng vẫn giữ lại để xem. NVL đang giữ được nhả hết.\nGhi lý do (bắt buộc):")||"").trim(); if(!reason) return;
+    const held=f&&Object.keys(NV.heldOf(readN(),f.o).kho||{}).length>0;
+    Don.mutate(OID,o=>{ if(o.nvlOut) return false; o.cancelled={at:Date.now(), date:Don.today(), reason, by:ME()}; });
+    if(held) setTimeout(()=>nvlAct(f.m,{op:"nha", all:true, reason:"Huỷ đơn: "+reason}),800);   // chờ lưu trạng thái huỷ rồi nhả hết NVL (ghi sổ)
+    return; }
+  /* V3 · QLVH */
+  if(b.hasAttribute("data-qlvh")){ const po=(($("#qPo")||{}).value||"").trim(), po2=(($("#qPo2")||{}).value||"").trim(), ack=!!($("#qAck")||{}).checked; qTxt={po, po2, ack};
+    if(!po||!po2){ qMsg="Nhập đủ 2 mã PO ERP trước khi xác nhận."; render(); return; }
+    if(po===po2){ qMsg="2 mã PO phải khác nhau."; render(); return; }
+    if(!ack){ qMsg="Tick xác nhận đã kiểm tra 2 PO được QLVH ký và duyệt trên ERP."; render(); return; }
+    qlvhAct({op:"qlvh-duyet", po, po2, ack:true}); return; }
+  if(b.hasAttribute("data-qlvh-fix")){ const f=find(); if(!f||!f.o.qlvh) return; const q=f.o.qlvh, unk=Don.poUnk(f.o), po=(prompt(unk?`Phân loại PO cũ của đơn ${Don.label(f.o,f.m)}. Mã đang lưu: ${q.po}.\nĐối chiếu ERP rồi nhập đúng vai trò.\n${Don.PO_T[1]}:`:`Đính chính mã PO của đơn ${Don.label(f.o,f.m)}.\n${Don.PO_T[1]} (hiện: ${q.po}):`, unk?"":q.po)||"").trim(); if(!po) return;
+    const po2=(prompt(unk?`${Don.PO_T[2]}:`:`${Don.PO_T[2]} (hiện: ${q.po2}):`, unk?"":q.po2)||"").trim(); if(!po2||(po===q.po&&po2===(q.po2||""))) return;
+    if(po===po2){ alert("2 mã PO phải khác nhau."); return; }
+    if(unk&&po!==q.po&&po2!==q.po&&!confirm(`Không mã nào trùng mã đang lưu ${q.po}. Vẫn ghi?`)) return;
+    const reason=(prompt("Lý do đính chính (bắt buộc):")||"").trim(); if(!reason) return; qlvhAct({op:"qlvh-sua-po", po, po2, reason}); return; }
+  if(b.hasAttribute("data-qlvh-undo")){ const f=find(); if(!f||!f.o.qlvh) return; const reason=(prompt(`Bỏ xác nhận QLVH đã duyệt của đơn ${Don.label(f.o,f.m)}? Đơn quay về Chờ QLVH duyệt.\nLý do (bắt buộc):`)||"").trim(); if(!reason) return;
+    qlvhAct({op:"qlvh-bo", reason}); return; }
+  /* V3 · tiến độ sản xuất: 2 mốc riêng (xưởng xác nhận nhận đơn, xưởng bắt đầu); đơn thêu / phôi: đã gửi đơn cho xưởng */
+  if(b.hasAttribute("data-gapsend")){ fresh(); const f=find(); if(f&&!f.o.sentAt&&Don.qlvhOk(f.o)&&!Don.sendOk(f.o)){ alert("Đơn chưa đủ 2 mã PO: Admin bấm Phân loại PO cũ để bổ sung rồi mới gửi xưởng."); return; } if(!f||!Don.sendOk(f.o)||f.o.sentAt){ render(); return; } if(!confirm(`Đã gửi đơn ${Don.label(f.o,f.m)} cho xưởng (ảnh phiếu qua Zalo)?`)) return;
+    Don.mutate(OID,o=>{ if(!Don.sendOk(o)||o.sentAt) return false; o.sentAt=Don.today(); o.sentBy=ME(); }); return; }
+  if(b.hasAttribute("data-ack")||b.hasAttribute("data-start")){ const ack=b.hasAttribute("data-ack");
+    const v=(prompt(ack?"Ngày xưởng xác nhận đã nhận đơn (dd/mm/yyyy):":"Ngày xưởng bắt đầu may thực tế (dd/mm/yyyy):", Don.today().split("-").reverse().join("/"))||"").trim(); if(!v) return;
+    const p=v.split(/[\/.-]/); const d=p.length===3?`${p[2].length===2?"20"+p[2]:p[2]}-${p[1].padStart(2,"0")}-${p[0].padStart(2,"0")}`:""; if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||isNaN(Date.parse(d))){ alert("Ngày chưa đúng (VD 27/10/2026)."); return; }
+    if(d>Don.today()){ alert("Ngày đang ở tương lai."); return; }
+    fresh(); const f=find(); if(f&&!Don.qlvhOk(f.o)){ alert("Đơn chưa được xác nhận QLVH đã duyệt PO."); render(); return; }
+    if(ack){ if(f&&f.o.sentAt&&d<f.o.sentAt){ alert("Ngày xác nhận trước ngày gửi xưởng."); return; } Don.mutate(OID,o=>{ if(o.ackAt) return false; o.ackAt=d; o.ackBy=ME(); }); }
+    else Don.mutate(OID,o=>{ o.startedAt=d; o.startedBy=ME(); });
+    return; }
+  if(b.dataset.nvl){ const f=find(); if(!f) return; const op=b.dataset.nvl, Q=[...document.querySelectorAll(`[data-nq^="${op}|"]`)].map(i=>({item:i.dataset.nq.split("|")[1], qty:parseFloat(String(i.value).replace(",","."))||0})).filter(x=>x.qty>0);
+    if(!Q.length){ alert("Nhập số vào cột Thao tác (ô "+({giu:"giữ",nha:"nhả",xuat:"xuất"})[op]+") trước."); return; }
+    if(op==="giu"){ nvlAct(f.m,{op:"giu", items:Q, reason:"Giữ thêm NVL cho đơn"}); return; }
+    if(op==="nha"){ const reason=(prompt("Nhả NVL đã nhập? Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return; nvlAct(f.m,{op:"nha", items:Q, reason}); return; }
+    if(op==="xuat"){ const C=Don.nvlOf(f.o,f.S,f.m.key), names=Q.map(x=>{ const r=C.rows.find(y=>y.it.id===x.item); return `• ${r?r.it.name:x.item}: ${fmt1(x.qty)} ${r?r.unit:""}`; }).join("\n");
+      if(!confirm(`Xuất NVL đợt mới cho đơn ${Don.label(f.o,f.m)}:\n${names}\n\nKho trừ ngay theo phiếu.`)) return;
+      nvlAct(f.m,{op:"xuat", lines:Q, note:(($("#pxNote")||{}).value||"").trim()}); return; } }
+  if(b.dataset.pxvoid){ const f=find(); if(!f) return; const reason=(prompt("Huỷ phiếu xuất này? Số đã xuất cộng lại vào kho, phần giữ trả lại cho đơn.\nGhi lý do (bắt buộc):")||"").trim(); if(!reason) return;
+    nvlAct(f.m,{op:"huy-phieu", issue:b.dataset.pxvoid, reason}); return; }
+  /* Đối chiếu tồn SIXMEN cho 1 lần giao: người dùng xác nhận bảng tồn đang dùng đã có số lần giao này → thôi tính vào Đã đặt */
+  if(b.dataset.sixmen){ const f=find(); if(!f) return; const tonAt=SoLuong.heroAt((Don.heroes()||{})[f.m.key]), x=(f.o.receipts||[]).find(y=>y.id===b.dataset.sixmen); if(!x) return;
+    if(!tonAt){ alert("Chưa có bảng tồn SIXMEN cho mã này. Dán bảng tồn ở Phân tích nhu cầu trước."); return; }
+    if(tonAt<x.at){ alert(`Bảng tồn SIXMEN đang dùng dán lúc ${Don.hm(tonAt)}, TRƯỚC lần giao ${Don.hm(x.at)} → chưa thể có số này.\nDán bảng tồn mới ở Phân tích nhu cầu rồi đối chiếu lại.`); return; }
+    if(!confirm(`Xác nhận bảng tồn SIXMEN dán lúc ${Don.hm(tonAt)} ĐÃ CÓ số của lần giao ${Don.hm(x.at)}?\nSau khi xác nhận, lần giao này thôi tính vào Đã đặt (đã nằm trong tồn SIXMEN). Planning không đổi số tồn.`)) return;
+    Don.mutate(OID,o=>{ const y=(o.receipts||[]).find(z=>z.id===x.id); if(!y) return false; y.sixmen={at:Date.now(), by:ME(), tonAt}; }); return; }
+  if(b.dataset.sixmenOff){ const reason=(prompt("Bỏ đối chiếu tồn SIXMEN của lần giao này? Lần giao sẽ tính lại vào Đã đặt.\nGhi lý do (bắt buộc):")||"").trim(); if(!reason) return;
+    Don.mutate(OID,o=>{ const y=(o.receipts||[]).find(z=>z.id===b.dataset.sixmenOff); if(!y||!y.sixmen) return false; (y.sixmenLog=y.sixmenLog||[]).push({...y.sixmen, offAt:Date.now(), offBy:ME(), reason}); delete y.sixmen; }); return; }
+  /* Chứng từ: đánh dấu bước kế tiếp đã xong (đúng thứ tự), không hỏi số chứng từ (anh chốt 27/10: số HĐ đã có ở nghiệp vụ khác, hỏi lại là trùng).
+     Vẫn ghi người + giờ. Bỏ bước cuối cùng phải có lý do */
+  if(b.dataset.doc){ const [rid,k]=b.dataset.doc.split("|"), d=Don.DOCS.find(z=>z.k===k); if(!d) return;
+    const doc="", note="";
+    Don.mutate(OID,o=>{ const y=(o.receipts||[]).find(z=>z.id===rid); if(!y||y.void||o.doneAt) return false;
+      const i=Don.DOCS.findIndex(z=>z.k===k); if(Don.DOCS.slice(0,i).some(z=>!Don.docDone(y,z.k))||Don.docDone(y,k)){ alert("Phải xong bước trước."); return false; }
+      const now=Date.now(); (y.docs=y.docs||{})[k]={at:now, by:ME(), doc, note}; (y.docsLog=y.docsLog||[]).push({at:now, by:ME(), k, act:"xong", doc, note}); }); return; }
+  if(b.dataset.docundo){ const [rid,k]=b.dataset.docundo.split("|"), d=Don.DOCS.find(z=>z.k===k); const reason=(prompt(`Bỏ đánh dấu “${d?d.t:k}”? Ghi lý do (bắt buộc):`)||"").trim(); if(!reason) return;
+    Don.mutate(OID,o=>{ const y=(o.receipts||[]).find(z=>z.id===rid); if(!y||o.doneAt||!Don.docDone(y,k)) return false; const i=Don.DOCS.findIndex(z=>z.k===k); if(Don.DOCS.slice(i+1).some(z=>Don.docDone(y,z.k))){ alert("Bỏ từ bước cuối cùng trước."); return false; }
+      const old=y.docs[k]; delete y.docs[k]; (y.docsLog=y.docsLog||[]).push({at:Date.now(), by:ME(), k, act:"bo", doc:old.doc, reason}); }); return; }
+  /* Hoàn tất Planning: xưởng giao đủ (hoặc lần giao cuối đã xác nhận thiếu / dư) + đủ chứng từ mọi lần giao + bàn giao hồ sơ (người nhận, thời điểm).
+     Không chờ nhập kho ERP / Nhanh.vn / SIXMEN cập nhật tồn */
+  /* Bàn giao hồ sơ (V3, server ghi, chống bấm trùng): ghi nhận → bên nhận xác nhận (tài khoản) / Admin xác nhận hợp lệ (chưa có tài khoản) → Hoàn tất */
+  if(b.hasAttribute("data-finish")){ const f=find(); if(!f||!Don.canFinish(f.o)){ alert("Chưa đủ điều kiện: xưởng phải được chốt giao nhận và đủ chứng từ."); return; }
+    const to=(($("#bgTo")||{}).value||""), name=(($("#bgName")||{}).value||"").trim(), ev=(($("#bgEv")||{}).value||"").trim(), note=(($("#bgNote")||{}).value||"").trim(); bgTxt={to, name, ev, note};
+    if(!to&&!name){ bgMsg="Chọn tài khoản người nhận, hoặc ghi tên người / bộ phận nhận."; render(); return; }
+    if(!to&&!ev){ bgMsg="Người nhận chưa có tài khoản: ghi bằng chứng bàn giao."; render(); return; }
+    if(!confirm(`Ghi nhận bàn giao hồ sơ đơn ${Don.label(f.o,f.m)} cho ${to?Khung.userName(to):name}?\nĐơn chuyển sang “Đã ghi nhận bàn giao — Chờ xác nhận”; Hoàn tất khi ${to?"người nhận xác nhận bằng tài khoản":"Admin xác nhận bằng chứng hợp lệ"}.`)) return;
+    bgAct({op:"bg-ghi", toUser:to, toName:name, evidence:ev, note}); return; }
+  if(b.hasAttribute("data-bgok")){ const f=find(); if(!f) return; if(!confirm(`Xác nhận đã nhận đủ hồ sơ đơn ${Don.label(f.o,f.m)}? Đơn sẽ Hoàn tất Planning.`)) return; bgAct({op:"bg-xac-nhan"}); return; }
+  if(b.hasAttribute("data-bghuy")){ const reason=(prompt("Huỷ ghi nhận bàn giao? Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return; bgAct({op:"bg-huy", reason}); return; }
+  if(b.hasAttribute("data-undone")){ if(!Khung.isAdmin()) return; const reason=(prompt("Mở lại đơn đã hoàn tất Planning? Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return; bgAct({op:"bg-mo-lai", reason}); return; }
+  /* Chứng từ V3 */
+  if(b.dataset.ctadd){ const t=b.dataset.ctadd; ctEdit(t,null,(o,x)=>{ const id="ct"+Date.now(); x.list.push({id, status:"chua", ref:"", owner:ME(), doneDate:"", note:"", at:Date.now(), by:ME()}); ctLog(o,{t, id, act:"them"}); }); return; }
+  /* UX-2: tick nhanh Hoàn thành = đúng thao tác chọn "Hoàn thành" ở ô trạng thái (ghi ngày hôm nay nếu chưa có, có lịch sử) */
+  if(b.dataset.ctdone){ const [t,id]=b.dataset.ctdone.split("|");
+    ctEdit(t,id,(o,x,i)=>{ if(!i||i.status==="xong") return false; if(!i.doneDate){ ctLog(o,{t, id, act:"sua", f:"doneDate", from:"", to:Don.today()}); i.doneDate=Don.today(); }
+      ctLog(o,{t, id, act:"sua", f:"status", from:i.status||"", to:"xong"}); i.status="xong"; i.at=Date.now(); i.by=ME(); }); return; }
+  if(b.dataset.ctdel){ const [t,id]=b.dataset.ctdel.split("|"); const f=find(), it=f&&(((f.o.ctu||{})[t]||{}).list||[]).find(i=>i.id===id); if(!it) return;
+    const reason=it.status==="xong"||it.ref?(prompt("Xoá chứng từ này? Ghi lý do (bắt buộc):")||"").trim():"-"; if(!reason) return;
+    ctEdit(t,id,(o,x,i)=>{ if(!i) return false; x.list=x.list.filter(z=>z.id!==id); ctLog(o,{t, id, act:"xoa", prev:i, reason:reason==="-"?"":reason}); }); return; }
+  if(b.dataset.ctna){ if(!Khung.isAdmin()) return; const t=b.dataset.ctna; const reason=(prompt("Đánh dấu loại chứng từ này Không áp dụng cho đơn? Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return;
+    ctEdit(t,null,(o,x)=>{ if(x.list.length) return false; x.na={at:Date.now(), by:ME(), reason}; ctLog(o,{t, act:"na", reason}); }); return; }
+  if(b.dataset.ctnaOff){ if(!Khung.isAdmin()) return; const t=b.dataset.ctnaOff; const reason=(prompt("Bỏ “Không áp dụng”? Ghi lý do (bắt buộc):")||"").trim(); if(!reason) return;
+    ctEdit(t,null,(o,x)=>{ if(!x.na) return false; ctLog(o,{t, act:"bo-na", prev:x.na, reason}); delete x.na; }); return; }
+  if(b.hasAttribute("data-uncancel")){ if(!confirm("Khôi phục đơn đã huỷ? Đơn sẽ trừ lại vào Cần đặt.")) return;
+    Don.mutate(OID,o=>{ (o.cancelLog=o.cancelLog||[]).push({...o.cancelled, restoredAt:Date.now(), restoredBy:ME()}); delete o.cancelled; }); return; }
+  if(b.hasAttribute("data-reopen")){ const f0=find(); if(f0&&f0.o.qlvh){ alert("Đơn đã được xác nhận QLVH duyệt PO: không mở lại kế hoạch được (PO trên ERP đã duyệt theo số này). Nếu bấm nhầm, Admin bỏ xác nhận trước."); return; }
+    if(!confirm("Mở lại đơn này ở trang Kế hoạch để sửa? Đơn sẽ rời mục Đang chạy cho tới khi chốt lại.")) return;
+    let mk=null;
+    Don.mutate(OID,(o,S,p)=>{ mk=Object.keys(S.models).find(k=>S.models[k]===p);
+      if(o.type){ const g=(p.grids=p.grids||{})[o.type]=p.grids[o.type]||{}; Object.entries(o.sizes).forEach(([c,a])=>{ g[c]=(g[c]||[null,null,null,null,null]).map((v,i)=>(v||0)+(a[i]||0)||null); }); p.gapOrders=p.gapOrders.filter(x=>x!==o); }
+      else { delete o.closed; o.reopenLog=(o.reopenLog||[]).concat({at:Date.now(), by:ME()}); } });
+    location.href="ke-hoach.html"+(mk?"?m="+mk:""); return; }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="due") Don.mutate(OID,o=>{ if(t.value) o.dueDate=t.value; else delete o.dueDate; });
+  if(t.id==="nvlNeed") Don.mutate(OID,o=>{ if(t.value) o.nvlNeedDate=t.value; else delete o.nvlNeedDate; });
+  if(t.id==="started"){ if(!t.value||t.value>Don.today()){ alert("Ngày bắt đầu chưa đúng."); render(); return; } Don.mutate(OID,o=>{ o.startedAt=t.value; o.startedBy=ME(); }); }
+  if(t.id==="qPo2") Don.mutate(OID,o=>{ if(o.qlvh) return false; const v=t.value.trim(); if(v===(o.erpCode2||"")) return false; o.erpCode2=v; if(v){ o.erpAt2=Date.now(); o.erpBy2=ME(); } else { delete o.erpAt2; delete o.erpBy2; } });
+  if(t.id==="erp"||t.id==="qPo") Don.mutate(OID,o=>{ if(o.qlvh) return false;   /* ô mã PO ở Duyệt PO: nhập xong lưu ngay (đơn sang "Chờ QLVH duyệt"), xác nhận duyệt vẫn là nút riêng */ const v=t.value.trim(); if(v===(o.erpCode||"")) return false; o.erpCode=v; if(v){ o.erpAt=Date.now(); o.erpBy=ME(); } else { delete o.erpAt; delete o.erpBy; } });
+  if(t.dataset.tick) Don.mutate(OID,o=>{ o.calls=o.calls||{}; o.calls[t.dataset.tick]={...(o.calls[t.dataset.tick]||{}), done:t.checked, at:Don.today(), by:ME()}; });
+  if(t.id==="rAt") draft.at=t.value;
+  if(t.id==="bgTo"){ bgTxt.to=t.value; const nm=$("#bgName"); if(nm) nm.hidden=!!t.value; }
+  if(t.dataset.ct){ const [ct,id,fld]=t.dataset.ct.split("|"); let v=t.value.trim();
+    ctEdit(ct,id,(o,x,i)=>{ if(!i||(i[fld]||"")===v) return false;
+      if(fld==="status"&&v==="xong"&&!i.doneDate){ ctLog(o,{t:ct, id, act:"sua", f:"doneDate", from:"", to:Don.today()}); i.doneDate=Don.today(); }   // hoàn thành mà chưa ghi ngày → lấy hôm nay (sửa được)
+      if(fld==="doneDate"&&v>Don.today()){ alert("Ngày hoàn thành đang ở tương lai."); return false; }
+      ctLog(o,{t:ct, id, act:"sua", f:fld, from:i[fld]||"", to:v}); i[fld]=v; i.at=Date.now(); i.by=ME(); }); }
+});
+let nt;
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.rq){ draft.q[t.dataset.rq.replace("|","")]=t.value; return; }
+  if(t.id==="rNote"){ draft.note=t.value; return; }
+  if(t.id==="chotReason"||t.id==="chotNote"){ chotTxt[t.id==="chotReason"?"reason":"note"]=t.value; return; }
+  if(t.id==="qPo"){ qTxt.po=t.value; return; }
+  if(t.id==="qPo2"){ qTxt.po2=t.value; return; }
+  if(t.id==="bgName"||t.id==="bgEv"||t.id==="bgNote"){ bgTxt[{bgName:"name",bgEv:"ev",bgNote:"note"}[t.id]]=t.value; return; }
+  if(t.id==="qAck"){ qTxt.ack=t.checked; return; }
+  if(t.dataset.note){ clearTimeout(nt); nt=setTimeout(()=>{ const S=Don.readS(); for(const p of Object.values(S.models||{})) for(const o of [...(p.orders||[]),...(p.gapOrders||[])]) if(o.id===OID){ o.calls=o.calls||{}; o.calls[t.dataset.note]={...(o.calls[t.dataset.note]||{}), note:t.value}; } localStorage.setItem(Don.KEY,JSON.stringify(S)); },400); }
+});
+function history_replace(){ try { history.replaceState(null,"","#"+tab); } catch(e){} }
+const typing=()=>{ const a=document.activeElement; return a&&(a.dataset&&(a.dataset.note||a.dataset.rq||a.dataset.nq)||a.id==="rNote"||a.id==="chotReason"||a.id==="chotNote"||a.id==="erp"||a.id==="pxNote"||a.id==="qPo"||a.id==="qPo2"||a.id==="bgName"||a.id==="bgEv"||a.id==="bgNote"||(a.dataset&&a.dataset.ct&&a.tagName==="INPUT")); };
+Don.onChange(()=>{ if(!typing()) render(); });
+window.addEventListener("storage",e=>{ if(["kehoach-sx-v3","danhmuc-v1","nvl-v3"].includes(e.key)&&!typing()) render(); });
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+render();
+const loadLog=()=>Don.fetchLog({oid:OID, limit:500}).then(r=>{ SRV=r; if((tab==="lich-su"||tab==="timeline")&&!typing()) render(); });
+loadLog(); Don.onChange(()=>setTimeout(loadLog,1500));   // sau mỗi lần sửa, đọc lại nhật ký server
+</script>
+</body>
+</html>

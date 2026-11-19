@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tech Pack hàng hóa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Khung chung (giống app SIXMEN Planning): sidebar trái, topbar, nội dung dạng thẻ trắng */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#1f2328; --ink2:#3d4450; --muted:#6b7280; --faint:#9aa1ab; --line:#e5e7eb; --hover:#f2f4f6; --head:#fafbfc;
+  --brand:#16794a; --brand-bg:#e7f4ec; --accent:#1f5fae;
+  --warn:#a85d00; --warn-bg:#fff3df; --ok:#16794a; --ok-bg:#e7f4ec; --crit:#c62828; --crit-bg:#fdecea;
+  --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 var(--font)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+img{max-width:100%}
+.muted{color:var(--muted)}
+h1,h2,h3{margin:0}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--line);padding:12px 10px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:9px;padding:2px 6px 12px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+.brand b{display:block;font-size:13px;font-weight:800;letter-spacing:.03em;line-height:1.2}
+.brand small{display:block;font-size:11px;color:var(--brand);font-weight:600}
+.nav{display:grid;gap:1px}
+.nav-label{font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.07em;text-transform:uppercase;padding:14px 8px 5px}
+.nav a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;color:var(--ink2);text-decoration:none}
+.nav a:hover{background:var(--hover)}
+.nav a.active{background:var(--brand);color:#fff;font-weight:600}
+.nav a svg{width:16px;height:16px;flex:none}
+.side-foot{margin-top:auto;padding:12px 8px 0;font-size:11px;color:var(--faint)}
+.col{min-width:0}
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding:9px 28px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-height:52px}
+.topbar .tt{flex:1;min-width:200px}
+.topbar .tt b{display:block;font-size:14.5px;font-weight:700}
+.topbar .tt small{display:block;font-size:11px;color:var(--muted)}
+#status{font-size:11.5px;color:var(--muted)}
+.content{padding:26px 32px 56px;display:grid;gap:18px}
+.page-head{display:grid;gap:6px}
+.page-head h1{font-size:26px;font-weight:800;letter-spacing:-.015em}
+.page-head p{margin:0;color:var(--muted);font-size:12.5px;max-width:900px}
+@media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.content{padding:18px 16px 40px}.topbar{padding:9px 16px}}
+
+/* Nút, thẻ */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:5px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:7px;padding:6px 12px;font-size:12.5px;font-weight:600}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.danger{color:var(--crit)}
+.btn.sm{padding:3px 10px;font-size:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}}
+.list-panel{display:grid;gap:10px;position:sticky;top:70px}
+@media (max-width:1100px){.list-panel{position:static}}
+.lbl{font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.07em;text-transform:uppercase}
+.add{display:flex;gap:6px}
+.add select{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:5px 8px;font-size:12.5px}
+.list{display:grid;gap:2px;max-height:52vh;overflow:auto}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 8px;text-align:left;border:1px solid transparent;background:transparent;border-radius:7px;padding:7px 9px}
+.item:hover{background:var(--hover)}
+.item[aria-current="true"]{border-color:var(--brand);background:var(--brand-bg)}
+.item .code{font-weight:700;font-size:12.5px}
+.item .nm{grid-column:1/-1;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:11px;font-weight:600;border-radius:99px;padding:0 8px;white-space:nowrap;align-self:center;line-height:18px}
+.chip.miss{background:var(--warn-bg);color:var(--warn)}
+.chip.done{background:var(--ok-bg);color:var(--ok)}
+.tools{display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.restore{display:grid;gap:6px}
+.restore textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:7px;background:var(--head);padding:8px;font-size:12px}
+.hint{color:var(--muted);font-size:12px;margin:0}
+main{min-width:0;display:grid;gap:14px}
+
+/* Phiếu nhập */
+.sec-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:12px}
+.sec-h h2{font-size:15px;font-weight:700}
+.sec-h .pg{font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-bg);border-radius:99px;padding:0 8px;line-height:18px}
+.sec-h p{margin:0;color:var(--muted);font-size:12px;flex-basis:100%}
+.headrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.line-tag{font-size:12px;font-weight:700;background:var(--brand-bg);color:var(--brand);border-radius:99px;padding:1px 10px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
+@media (max-width:720px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+@media (max-width:520px){.fields{grid-template-columns:minmax(0,1fr)}}
+.fld{display:grid;gap:3px;min-width:0;font-size:11.5px;color:var(--muted);font-weight:500}
+.fld input{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:6px 9px;font-size:13px;width:100%}
+.fld input:focus,.cell:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(31,95,174,.12);background:var(--surface)}
+.fld.empty input{border-color:#e8b46a;background:var(--warn-bg)}
+.sketches{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sk{display:grid;gap:6px;align-content:start}
+.drop{aspect-ratio:3/4;max-width:100%;border:1.5px dashed var(--line);border-radius:8px;background:var(--head);display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;padding:10px;position:relative;overflow:hidden;cursor:pointer}
+.drop:hover{border-color:var(--brand)}
+.drop img{width:100%;height:100%;object-fit:contain;background:#fff}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table.ed{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px}
+table.ed th{background:var(--head);text-align:left;font-weight:600;font-size:11.5px;color:var(--muted);padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.ed td{border-bottom:1px solid var(--line);padding:2px;vertical-align:top}
+table.ed tr:last-child td{border-bottom:0}
+.cell{width:100%;border:1px solid transparent;border-radius:5px;background:transparent;padding:6px;resize:vertical;min-height:32px;font-size:12.5px}
+.cell:hover{border-color:var(--line)}
+.cell.num{text-align:center;min-width:52px;font-variant-numeric:tabular-nums}
+.cell.blank{background:var(--warn-bg)}
+td.n{color:var(--faint);text-align:center;padding-top:8px;width:34px}
+td.x{width:34px;text-align:center}
+.del{border:0;background:transparent;color:var(--faint);padding:6px;border-radius:5px;line-height:1}
+.del:hover{color:var(--crit);background:var(--crit-bg)}
+.row-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.inline{display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:12px}
+.lst{display:grid;gap:6px}
+.lst .r{display:grid;grid-template-columns:200px minmax(0,1fr) 34px;gap:8px;align-items:start}
+.lst .r.one{grid-template-columns:minmax(0,1fr) 34px}
+@media (max-width:620px){.lst .r{grid-template-columns:minmax(0,1fr) 34px}.lst .r .cell:first-child{grid-column:1/-1}}
+.lst .cell{border-color:var(--line);background:var(--surface)}
+.sub{font-size:12px;font-weight:700;color:var(--ink2);margin:16px 0 8px}
+.aql{display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:6px}
+.aql .fld{width:150px}
+.empty-main{padding:40px 20px;text-align:center;color:var(--muted)}
+
+/* Bản Tech Pack (bản để sao chép sang Word/Docs, giữ màu cố định) */
+.sheet{background:#fff;color:#1f2328;border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
+.sheet .band{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;background:#16794a;color:#fff;padding:9px 18px;font-size:12px}
+.sheet .band b{font-size:14px;letter-spacing:.02em;margin-right:auto}
+.sheet .bd{padding:18px}
+.sheet h3{font-size:16px;font-weight:800;margin:0 0 12px;color:#1f2328}
+.sheet table{border-collapse:collapse;width:100%;font-size:12.5px}
+.sheet th,.sheet td{border:1px solid #d9dde2;padding:7px 8px;text-align:left;vertical-align:top}
+.sheet th{background:#f3f5f7;font-weight:600;font-size:12px}
+.sheet td.c,.sheet th.c{text-align:center}
+.sheet .gap{color:#a85d00;background:#fff3df;padding:0 4px;border-radius:3px}
+.sheet .pics{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sheet .pic{border:1px solid #d9dde2;border-radius:6px;aspect-ratio:3/4;display:grid;place-items:center;text-align:center;color:#6b7280;background:#fafbfc;font-size:12px;padding:8px;max-width:100%}
+.sheet .pic img{width:100%;height:100%;object-fit:contain}
+.sheet .cap{font-size:11.5px;color:#6b7280;text-align:center;margin-top:4px}
+.sheet ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.sheet .note{font-size:12px;color:#6b7280;margin:10px 0 0}
+.sheet .sign{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;font-size:12px;text-align:center}
+.sheet .sign div{border-top:1px solid #9aa1ab;padding-top:6px;min-height:60px}
+.sheet .box{display:inline-block;width:14px;height:14px;border:1.5px solid #3d4450;border-radius:2px;vertical-align:middle}
+.res-head{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.res-head p{margin:0;color:var(--muted);font-size:12.5px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:7px;font-size:12.5px;z-index:30;max-width:calc(100% - 32px)}
+/* GĐ1: trạng thái, thanh thao tác, hộp thoại, chế độ chỉ xem */
+.statebar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.statebar .sx{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.statebar .acts{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:11px;font-weight:700;border-radius:99px;padding:0 9px;line-height:19px;white-space:nowrap;display:inline-block}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.wait{background:var(--warn-bg);color:var(--warn)}.pill.draft{background:var(--hover);color:var(--ink2)}.pill.bad{background:var(--crit-bg);color:var(--crit)}
+.banner{border-radius:8px;padding:10px 14px;font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.banner.w{background:var(--warn-bg);color:var(--warn)}.banner.r{background:var(--crit-bg);color:var(--crit)}.banner.i{background:#eaf1fb;color:var(--accent)}
+.vers{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.vers button{border:0;background:none;color:var(--accent);padding:0;font:inherit;text-decoration:underline;cursor:pointer}
+.ro .cell,.ro .fld input{background:var(--head);pointer-events:none}
+.ro .del,.ro .row-actions [data-add],.ro [data-act=delstyle]{display:none}
+.nopic{aspect-ratio:3/4;max-width:100%;border:1.5px dashed var(--line);border-radius:8px;background:var(--head);display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;padding:10px}
+.seg button:disabled{color:#c3c9d0;cursor:not-allowed;background:var(--head)}
+.sketches{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;align-self:start}.sk{min-width:0}.nopic{width:100%;height:auto}.fields{align-content:start}
+.dlgwrap{position:fixed;inset:0;background:rgba(15,20,25,.35);display:grid;place-items:center;z-index:40;padding:16px}
+.dlg{background:var(--surface);border-radius:10px;padding:18px 20px;width:min(520px,100%);display:grid;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.dlg h3{font-size:15px}
+.dlg textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:13px}
+.dlg .err{color:var(--crit);font-size:12px;min-height:16px}
+.dlg .row{display:flex;justify-content:flex-end;gap:8px}
+.dlg label.ck{display:flex;gap:8px;align-items:flex-start;font-size:12.5px}
+.mig{display:grid;gap:8px}
+.mig label{display:flex;gap:8px;align-items:center;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div>
+    <nav class="nav" aria-label="Điều hướng"></nav>
+    <div class="side-foot"></div>
+  </aside>
+  <div class="col">
+    <header class="topbar">
+      <div class="tt"><b>Tech Pack hàng hóa</b><small>Hồ sơ kỹ thuật từng mã: NPL, thông số, quy cách may, QC · lưu chung trên server</small></div>
+      <div class="seg" role="group" aria-label="Chế độ xem">
+        <button id="vForm" aria-pressed="true">Nhập liệu</button>
+        <button id="vRes" aria-pressed="false">Bản Sản xuất</button>
+        <button id="vKho" aria-pressed="false" disabled title="Bản Kho có ở giai đoạn 2">Bản Kho</button>
+      </div>
+      <span id="status"></span>
+    </header>
+    <div class="content">
+      <div class="page-head">
+        <h1>Tech Pack hàng hóa</h1>
+        <p>Dữ liệu lưu chung trên server. Nhân viên có quyền Tech Pack sửa <b>bản nháp</b> và gửi đề xuất; chỉ Admin duyệt thành <b>bản chính thức</b>. Mỗi lần duyệt lưu một phiên bản, không bị ghi đè. Ô viền cam là ô còn trống.</p>
+      </div>
+      <div id="noAccess" hidden></div>
+      <div id="migBox" hidden></div>
+      <div class="layout" id="layout">
+        <aside class="panel list-panel">
+          <div class="lbl">Mã hàng</div>
+          <div class="add">
+            <select id="newLine" aria-label="Dòng sản phẩm">
+              <option value="polo">Áo Polo</option>
+              <option value="somi">Áo Sơ mi</option>
+              <option value="jeans">Quần Jeans</option>
+              <option value="quantay">Quần Tây</option>
+              <option value="khac">Mặt hàng khác (trống)</option>
+            </select>
+            <button class="btn primary" id="addBtn">+ Thêm</button>
+          </div>
+          <div class="list" id="list"><p class="hint">Đang tải…</p></div>
+          <p class="hint">Sao lưu: dữ liệu Tech Pack nằm trong thư mục du-lieu\techpack trên máy chủ. Nút xuất file sao lưu riêng có ở giai đoạn 3.</p>
+        </aside>
+        <main id="main"></main>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div id="dlg"></div>
+
+<script>
+const LINES={polo:'Áo Polo',somi:'Áo Sơ mi',jeans:'Quần Jeans',quantay:'Quần Tây',khac:'Mặt hàng khác'};
+const TPL={
+polo:{sizes:['S','M','L','XL'],
+ bom:[['Vải chính','Vải cá sấu (pique) CVC 65/35, 220 GSM','Theo màu duyệt','','Thân trước, thân sau, tay','Đã xử lý chống co rút, co ≤ 5%'],
+  ['Vải phối','Bo dệt cổ + bo tay (rib)','Đồng màu vải chính','','Cổ, cửa tay','Đàn hồi tốt, không vặn'],
+  ['Chỉ may','Chỉ Polyester 100% (40/2)','Đồng màu vải chính','','Toàn bộ đường ráp','Chỉ dai, không xù'],
+  ['Khuy','Khuy nhựa 4 lỗ 18L','Đồng màu vải','','Nẹp + 1 khuy dự phòng',''],
+  ['Keo','Keo vải mỏng','Trắng','','Nẹp','Không phồng, không bong'],
+  ['Nhãn mác','Nhãn dệt logo','Theo brand','','Giữa cổ sau','May gập mép, không gây ngứa'],
+  ['Nhãn size','Nhãn dệt size','Theo brand','','Cạnh nhãn chính',''],
+  ['Nhãn sườn','Nhãn in Nylon (Care label)','Trắng chữ đen','','Sườn trái (cách gấu 10 cm)','Thành phần, hướng dẫn giặt, xuất xứ + Size'],
+  ['Thẻ bài','Thẻ giấy + dây treo','Theo brand','','Nhãn chính hoặc nách trái','Mã, màu, size, giá, mã vạch'],
+  ['Bao bì','Túi PE có lỗ thoát khí, in cảnh báo','Trong suốt','','1 áo / 1 túi','']],
+ pom:[['Dài áo sau (HPS)','Từ đỉnh vai sát cổ thẳng xuống gấu','1.0'],['Rộng ngực','Đo ngang thân áo, dưới nách 2,5 cm','1.0'],
+  ['Rộng vai','Đo ngang từ đỉnh vai này sang đỉnh vai kia','0.5'],['Dài tay','Từ đỉnh vai xuống hết bo tay','0.5'],
+  ['Rộng bắp tay','Cách nách 2,5 cm, vuông góc sống tay','0.5'],['Rộng cửa tay','Đo duỗi phẳng mép bo tay','0.5'],
+  ['Cao bo tay','Từ đường tra bo đến mép','0.2'],['Rộng gấu','Đo ngang gấu khi để êm không kéo căng','1.0'],
+  ['Dài cổ','Dọc đường may chân cổ, đầu cổ đến đầu cổ','0.5'],['Bản cổ','Giữa sau, từ đường may đến mép lá cổ','0.3'],['Dài nẹp','Từ chân cổ đến đáy nẹp','0.5']],
+ spi:'11 – 13 mũi / 1 inch cho toàn bộ đường may 1 kim',
+ seams:[['Đường ráp sườn và tay','May vắt sổ 4 chỉ (overlock), đường vắt ôm mép, không sót mép vải.'],
+  ['Gấu áo, cửa tay','Trần đè 2 kim 10 – 12 mũi/inch, đều, không nhảy mũi, gấu không vặn.'],
+  ['Cổ','Tra bo cổ êm, hai đầu cổ cân đối (lệch ≤ 0,3 cm); viền cổ sau bằng vải chính để giấu đường may.'],
+  ['Nẹp – khuy','Nẹp thẳng phẳng, đáy nẹp vuông; khuyết thùa dọc, cắt sạch; khuy đính chắc, thẳng hàng khuyết.']],
+ pack:['Sản phẩm phải được ủi hơi nước, tẩy sạch chỉ thừa trước khi đóng gói.','Cài hết khuy, gấp áo theo kích thước 25 cm x 33 cm, mặt trước hướng lên trên để lộ logo/hình in.','1 áo / 1 túi PE có lỗ thoát khí → 40 áo / thùng carton (thùng 60 x 40 x 40 cm).'],
+ qc:['Màu khớp mẫu duyệt; thân, bo cổ, bo tay đồng màu','Vải không lỗi dệt, lủng lỗ, loang màu ở vùng A – B','Cổ cân đối, phẳng, không gợn sóng','Nẹp thẳng, đáy nẹp sạch; khuy đủ, chắc, thẳng hàng','Hai tay dài bằng nhau, bo tay phẳng đều','Không vặn sườn, gấu trần đều','Đúng mật độ mũi, không bỏ mũi, không bung khi kéo nhẹ','Logo thêu/in đúng vị trí, sắc nét, không bong nứt','Nhãn đủ, đúng vị trí và nội dung','Không chỉ thừa > 1 cm, không vết bẩn, không kim/vật lạ','Các điểm đo chính nằm trong dung sai','Gấp, túi, thẻ bài, thùng đúng quy cách']},
+somi:{sizes:['S','M','L','XL'],
+ bom:[['Vải chính','Vải dệt thoi cotton/CVC (ghi thành phần, khổ, định lượng)','Theo màu duyệt','','Thân, tay, cổ, nẹp','Co ≤ 3% sau giặt'],
+  ['Keo','Keo cổ, chân cổ, măng sét, nẹp','Trắng','','Cổ, chân cổ, măng sét, nẹp','Không phồng, không bong sau giặt'],
+  ['Chỉ may','Chỉ Polyester 100% (60/3)','Đồng màu vải chính','','Toàn bộ đường may',''],
+  ['Khuy','Khuy 4 lỗ 16L (nẹp, măng sét), 14L (chân cổ)','Đồng màu vải','','Nẹp, măng sét, chân cổ','Kèm khuy dự phòng'],
+  ['Nhãn mác','Nhãn dệt logo','Theo brand','','Giữa chân cổ sau','May gập mép, không gây ngứa'],
+  ['Nhãn size','Nhãn dệt size','Theo brand','','Cạnh nhãn chính',''],
+  ['Nhãn sườn','Nhãn in Nylon (Care label)','Trắng chữ đen','','Sườn trái trong, cách gấu 10 cm','Thành phần, hướng dẫn giặt, xuất xứ + Size'],
+  ['Thẻ bài','Thẻ giấy + dây treo','Theo brand','','Khuyết măng sét trái','Mã, màu, size, giá, mã vạch'],
+  ['Phụ liệu gấp','Bìa giấy lót + nơ cổ nhựa','Trắng/trong','','Lót thân, giữ dáng cổ','Không dùng ghim kim loại'],
+  ['Bao bì','Túi PE có lỗ thoát khí, in cảnh báo','Trong suốt','','1 áo / 1 túi','']],
+ pom:[['Dài áo sau','Giữa chân cổ sau thẳng xuống gấu','1.0'],['Rộng ngực','Đo ngang dưới nách 2,5 cm','1.0'],['Rộng eo','Tại vị trí eo theo mẫu','1.0'],
+  ['Rộng gấu','Đo ngang gấu (gấu lượn: tại điểm sườn)','1.0'],['Rộng vai','Đầu vai này sang đầu vai kia, qua cầu vai','0.5'],['Dài tay','Từ đầu vai đến mép măng sét','1.0'],
+  ['Rộng bắp tay','Cách nách 2,5 cm','0.5'],['Dài măng sét','Khi cài khuy, tâm khuy đến đầu khuyết','0.5'],['Cao măng sét','Thành phẩm','0.2'],
+  ['Vòng cổ','Tâm khuy chân cổ đến đầu khuyết, đo duỗi thẳng','0.5'],['Cao chân cổ','Giữa sau','0.2'],['Bản lá cổ','Giữa sau, từ đường may đến mép','0.3']],
+ spi:'14 – 16 mũi / 1 inch cho toàn bộ đường may 1 kim',
+ seams:[['Cổ','Hai đầu nhọn cổ bằng nhau (lệch ≤ 0,2 cm), đầu nhọn sắc; lá cổ ôm chân cổ, không vểnh; không phồng keo.'],
+  ['Nẹp – khuy','Nẹp thẳng, rộng đều; khuyết nẹp dọc, khuyết chân cổ và măng sét ngang; khuy chắc, thẳng hàng.'],
+  ['Sườn – bụng tay','May cuốn phẳng, bản đều (hoặc vắt sổ gọn theo mẫu).'],
+  ['Thép tay – măng sét','Thép tay thẳng, đầu thép vuông; ly cửa tay đúng số lượng, đúng chiều; hai măng sét bằng nhau.'],
+  ['Gấu – kẻ sọc','Vắt gấu cuốn đều; vải kẻ khớp sọc ở nẹp, túi ngực, cầu vai (lệch ≤ 0,2 cm).']],
+ pack:['Ủi phẳng, cắt sạch chỉ thừa trước khi đóng gói.','Cài khuy chân cổ và khuy nẹp 1-3-5, lót bìa giấy, nơ cổ giữ dáng; gấp kích thước 28 cm x 38 cm.','1 áo / 1 túi PE có lỗ thoát khí → 30 áo / thùng carton (thùng 60 x 40 x 40 cm).'],
+ qc:['Màu, kẻ sọc khớp mẫu duyệt; vải không lỗi dệt, không xéo canh','Cổ: đầu nhọn đều, không vểnh, không phồng keo','Nẹp thẳng; khuyết sạch; khuy chắc, thẳng hàng, khoảng cách đều','Túi ngực đúng vị trí, vuông vức, khớp sọc','Cầu vai cân, tra tay không nhăn, hai tay bằng nhau','Thép tay thẳng, ly đúng, măng sét phẳng','Sườn may cuốn phẳng, gấu đều không vặn','Đúng mật độ mũi, không bỏ mũi, không bung','Nhãn đủ, đúng vị trí và nội dung','Không chỉ thừa, không bẩn, không bóng/cháy do ủi','Các điểm đo chính nằm trong dung sai','Gấp, túi, thẻ bài, thùng đúng quy cách']},
+jeans:{sizes:['28','29','30','31','32','34'],
+ bom:[['Vải chính','Denim cotton/spandex 98/2, 12 oz','Theo màu wash duyệt','','Thân trước, thân sau, cạp','Co ≤ 3% sau wash'],
+  ['Vải lót túi','Vải TC 65/35 (pocketing)','Trắng/theo mẫu','','Lót túi trước, đáp khóa',''],
+  ['Chỉ diễu','Chỉ Polyester 20/3 (topstitch)','Vàng đồng/theo mẫu','','Đường diễu ngoài',''],
+  ['Chỉ may','Chỉ Polyester 100% (40/2)','Đồng màu vải','','Đường ráp, vắt sổ',''],
+  ['Khóa kéo','Khóa kim loại răng #4, có chặn tự khóa','Đồng cổ','','Cửa quần','Kéo êm, không kẹt'],
+  ['Nút','Nút đồng tán 17 mm','Đồng cổ','','Cạp trước','Chịu lực kéo ≥ 90 N'],
+  ['Đinh tán','Đinh tán đồng','Đồng cổ','','Miệng túi trước, túi đồng hồ',''],
+  ['Tem da','Tem da/PU in logo','Theo brand','','Cạp sau bên phải',''],
+  ['Nhãn sườn','Nhãn in Nylon (Care label)','Trắng chữ đen','','Sườn trái trong','Thành phần, hướng dẫn giặt, xuất xứ + Size'],
+  ['Thẻ bài','Thẻ giấy + dây treo','Theo brand','','Đỉa sau bên phải','Mã, màu, size, giá, mã vạch'],
+  ['Bao bì','Túi PE có lỗ thoát khí, in cảnh báo','Trong suốt','','1 quần / 1 túi','']],
+ pom:[['1/2 vòng cạp','Cài nút, đo duỗi thẳng mép trên cạp','1.0'],['1/2 vòng mông','Ngang điểm đầy nhất của mông, theo vị trí trong mẫu','1.0'],
+  ['1/2 đùi','Dưới đáy 2,5 cm, vuông góc sống ống','0.6'],['1/2 gối','Tại vị trí gối theo mẫu','0.5'],['1/2 ống','Mép gấu, đo duỗi phẳng','0.5'],
+  ['Đáy trước','Từ đường may đáy đến mép trên cạp','0.5'],['Đáy sau','Từ đường may đáy đến mép trên cạp sau','0.6'],
+  ['Dài trong (inseam)','Từ ngã tư đáy đến gấu','1.0'],['Dài ngoài','Từ mép trên cạp dọc sườn đến gấu','1.0'],['Cao cạp','Thành phẩm','0.2'],['Dài khóa','Phần răng khóa lộ dụng','0.3']],
+ spi:'8 – 10 mũi / 1 inch cho chỉ diễu; 10 – 12 mũi / 1 inch cho đường ráp',
+ seams:[['Đường diễu 2 kim','Hai đường song song đều, không nhảy mũi ở chỗ dày (đũng, cạp, sườn).'],
+  ['Đũng – sườn','May cuốn hoặc vắt sổ 5 chỉ, phẳng, không vặn ống.'],
+  ['Bọ (bartack)','Đủ và đúng vị trí: miệng túi trước, đáy khóa, đỉa, túi sau.'],
+  ['Túi sau','Hai túi đối xứng (lệch ≤ 0,3 cm), góc túi sạch, đường thêu túi đều.'],
+  ['Cửa quần – wash','Cửa quần phẳng, không lộ răng khóa; màu wash đều, không loang, không ố vàng.']],
+ pack:['Cắt sạch chỉ, kiểm kim loại (nếu có máy dò kim) trước khi đóng gói.','Gấp đôi theo chiều dài rồi gấp 3, kích thước 30 cm x 35 cm, mặt sau có tem da hướng lên.','1 quần / 1 túi PE có lỗ thoát khí → 20 quần / thùng carton (thùng 60 x 40 x 40 cm).'],
+ qc:['Màu wash khớp mẫu duyệt, đều, không loang ố','Vải không lỗi dệt, không rách, không lủng do wash','Đường diễu 2 kim song song, không nhảy mũi','Bọ đủ và đúng vị trí','Túi sau đối xứng, góc sạch','Cửa quần phẳng, khóa kéo êm, có chặn tự khóa','Nút, đinh tán tán chắc, không gỉ, không xoay','Đỉa đủ, đều, chắc','Ống không vặn, hai ống dài bằng nhau','Nhãn, tem da đủ, đúng vị trí và nội dung','Các điểm đo chính nằm trong dung sai','Gấp, túi, thẻ bài, thùng đúng quy cách']},
+quantay:{sizes:['29','30','31','32','33','34'],
+ bom:[['Vải chính','Vải tây Poly/Rayon (ghi thành phần, định lượng)','Theo màu duyệt','','Thân trước, thân sau, cạp','Co ≤ 3% sau giặt'],
+  ['Vải lót túi','Vải TC 65/35 (pocketing)','Đồng màu/theo mẫu','','Lót túi, đáp khóa',''],
+  ['Keo','Keo cạp, keo miệng túi mổ','Trắng/đen','','Cạp, túi mổ','Không phồng, không bong'],
+  ['Chỉ may','Chỉ Polyester 100% (60/3)','Đồng màu vải chính','','Toàn bộ đường may',''],
+  ['Khóa kéo','Khóa nhựa răng #3','Đồng màu vải','','Cửa quần','Kéo êm, có chặn tự khóa'],
+  ['Móc cạp','Móc kim loại 2 chi tiết','Bạc/đen','','Cạp trước',''],
+  ['Nút','Nút nhựa 4 lỗ 20L','Đồng màu vải','','Nút trong cạp, túi sau',''],
+  ['Nhãn mác','Nhãn dệt logo','Theo brand','','Cạp sau trong',''],
+  ['Nhãn sườn','Nhãn in Nylon (Care label)','Trắng chữ đen','','Sườn trái trong','Thành phần, hướng dẫn giặt, xuất xứ + Size'],
+  ['Thẻ bài','Thẻ giấy + dây treo','Theo brand','','Đỉa trước bên phải','Mã, màu, size, giá, mã vạch'],
+  ['Bao bì','Túi PE + móc kẹp gấu','Trong suốt','','1 quần / 1 túi','']],
+ pom:[['1/2 vòng cạp','Cài móc, đo duỗi thẳng mép trên cạp','1.0'],['1/2 vòng mông','Ngang điểm đầy nhất của mông, theo vị trí trong mẫu','1.0'],
+  ['1/2 đùi','Dưới đáy 2,5 cm','0.5'],['1/2 gối','Tại vị trí gối theo mẫu','0.5'],['1/2 ống','Mép gấu, đo duỗi phẳng','0.5'],
+  ['Đáy trước','Từ đường may đáy đến mép trên cạp','0.5'],['Đáy sau','Từ đường may đáy đến mép trên cạp sau','0.5'],
+  ['Dài trong (inseam)','Từ ngã tư đáy đến gấu','1.0'],['Dài ngoài','Từ mép trên cạp dọc sườn đến gấu','1.0'],['Cao cạp','Thành phẩm','0.2'],['Dài khóa','Phần răng khóa lộ dụng','0.3']],
+ spi:'11 – 13 mũi / 1 inch cho toàn bộ đường may 1 kim',
+ seams:[['Ly – đường chính trung','Ly đúng chiều, đúng vị trí; đường ly là sắc nét, thẳng giữa ống.'],
+  ['Cạp','Cạp phẳng, không gợn, hai đầu cạp ngang nhau; móc cạp đính chắc, thẳng hàng.'],
+  ['Túi mổ (welt)','Miệng túi đều, góc vuông, không xổ, không lòi lót túi.'],
+  ['Gấu','Vắt gấu chỉ ẩn, không lộ mũi ra mặt ngoài, hai ống dài bằng nhau.'],
+  ['Cửa quần','Phẳng, không lộ răng khóa, đáp khóa êm.']],
+ pack:['Ủi hơi nước theo đường chính trung, cắt sạch chỉ thừa.','Gấp theo đường chính trung rồi gấp đôi (hoặc treo móc kẹp gấu theo yêu cầu cửa hàng).','1 quần / 1 túi PE → 30 quần / thùng carton (thùng 60 x 40 x 40 cm).'],
+ qc:['Màu khớp mẫu duyệt; vải không lỗi dệt, không bóng do ủi','Ly đúng chiều, đường chính trung thẳng','Cạp phẳng, móc cạp chắc','Túi mổ góc vuông, không xổ, không lòi lót','Cửa quần phẳng, khóa kéo êm','Gấu vắt không lộ mũi, hai ống bằng nhau','Đúng mật độ mũi, không bỏ mũi, không bung','Đỉa đủ, đều, chắc','Nhãn đủ, đúng vị trí và nội dung','Không chỉ thừa, không bẩn, không kim/vật lạ','Các điểm đo chính nằm trong dung sai','Gấp, túi, thẻ bài, thùng đúng quy cách']},
+khac:{sizes:['S','M','L','XL'],bom:[['Vải chính','','','','',''],['Chỉ may','','','','',''],['Nhãn mác','','','','',''],['Nhãn sườn','Nhãn in Nylon (Care label)','','','','']],
+ pom:[['','','1.0']],spi:'',seams:[['','']],pack:[''],qc:['Màu khớp mẫu duyệt','Các điểm đo chính nằm trong dung sai','Nhãn đủ, đúng vị trí và nội dung','Gấp, túi, thẻ bài, thùng đúng quy cách']}
+};
+
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>{const d=new Date();return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()};
+const when=ms=>{if(!ms)return'';const d=new Date(ms);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const who=id=>id?Khung.userName(id):'';
+const ME=Khung.me||{}, ADMIN=Khung.isAdmin(), EDITOR=Khung.canTechPack();
+const OLD_LS='techpack.v1', MIG_LS='techpack.v1.da-chuyen';
+
+/* Mỗi dòng có mã cố định (để sau này gắn ảnh, hướng dẫn); đóng gói / QC chuyển từ chuỗi sang {id,t}. Mùa (season) giữ nguyên trong dữ liệu, không hiện. */
+function norm(s){
+  const d=JSON.parse(JSON.stringify(s||{}));
+  delete d.front;delete d.back;delete d.id;
+  d.line=TPL[d.line]?d.line:'khac';
+  d.sizes=Array.isArray(d.sizes)&&d.sizes.length?d.sizes.map(String):[...TPL[d.line].sizes];
+  ['bom','pom','seams'].forEach(k=>{d[k]=(Array.isArray(d[k])?d[k]:[]).map(r=>Object.assign({id:uid()},r))});
+  d.pom.forEach(p=>{p.vals=p.vals&&typeof p.vals==='object'?p.vals:{}});
+  ['pack','qc'].forEach(k=>{d[k]=(Array.isArray(d[k])?d[k]:[]).map(r=>typeof r==='string'?{id:uid(),t:r}:Object.assign({id:uid(),t:''},r))});
+  d.aql=Object.assign({crit:'0',maj:'2.5',min:'4.0'},d.aql||{});
+  ['brand','name','code','designer','created','revised','unit','spi'].forEach(k=>{if(d[k]==null)d[k]=''});
+  if(!d.unit)d.unit='cm';
+  return d;
+}
+function newData(line){
+  const t=TPL[line];
+  return norm({line,brand:'',name:'',code:'',sizes:[...t.sizes],designer:'',created:today(),revised:today(),unit:'cm',
+    bom:t.bom.map(r=>({cat:r[0],mat:r[1],color:r[2],sup:r[3],pos:r[4],note:r[5]})),
+    pom:t.pom.map(r=>({name:r[0],method:r[1],tol:r[2],vals:{}})),
+    spi:t.spi,seams:t.seams.map(r=>({label:r[0],text:r[1]})),pack:[...t.pack],aql:{crit:'0',maj:'2.5',min:'4.0'},qc:[...t.qc]});
+}
+
+/* ===== Gọi server ===== */
+async function api(method,url,body,headers){
+  let r;
+  try{r=await fetch(url,{method,headers:Object.assign({'Content-Type':'application/json'},headers||{}),body:body==null?undefined:JSON.stringify(body),cache:'no-store'})}
+  catch(e){return{ok:false,status:0,j:{error:'Không kết nối được server. Thay đổi chưa được lưu.'}}}
+  if(r.status===401){location.href='dang-nhap.html?next='+encodeURIComponent('Tech-Pack-Hang-Hoa.html');return{ok:false,status:401,j:{}}}
+  const t=await r.text();let j={};try{j=JSON.parse(t)}catch(e){}
+  return{ok:r.ok,status:r.status,j,t};
+}
+
+/* ===== Trạng thái trang ===== */
+let LIST=[], cur=null, view='form', showVer=null, pendingDel=null;
+let saveT=null, saving=null, editSeq=0, savedSeq=0, conflict=null, lastErr='';
+const D=()=>cur&&cur.v.draft?cur.v.draft.data:null;
+const editable=()=>EDITOR&&cur&&cur.v.draft&&cur.v.draft.status==='nhap'&&!conflict;
+const dirty=()=>editSeq!==savedSeq;
+/* dữ liệu đang xem: bản nháp (nếu có) ở Nhập liệu; Bản Sản xuất xem bản đã chọn */
+function shown(){
+  if(!cur)return null;
+  if(view==='res'){
+    if(showVer&&showVer.data)return showVer.data;
+    if(showVer==='draft'&&cur.v.draft)return cur.v.draft.data;
+    return cur.v.official?cur.v.official.data:cur.v.draft?cur.v.draft.data:null;
+  }
+  return cur.v.draft?cur.v.draft.data:cur.v.official?cur.v.official.data:null;
+}
+function setStatus(t){$('#status').textContent=t}
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,3600)}
+
+async function loadList(){
+  const r=await api('GET','/api/techpack');
+  if(!r.ok){$('#list').innerHTML=`<p class="hint">${esc(r.j.error||'Không tải được danh sách')}</p>`;return false}
+  LIST=(r.j.items||[]).sort((a,b)=>String(a.code||'zzz').localeCompare(String(b.code||'zzz'))||(b.draftAt||b.offAt||0)-(a.draftAt||a.offAt||0));
+  return true;
+}
+async function openRec(id,quiet){
+  const r=await api('GET','/api/techpack/'+id);
+  if(!r.ok){toast(r.j.error||'Không mở được mã này');return false}
+  const rev=+r.j.rev||0, v=r.j.value;
+  if(v.draft)v.draft.data=norm(v.draft.data);
+  if(v.official)v.official.data=norm(v.official.data);
+  cur={id,rev,v};editSeq=savedSeq=0;conflict=null;lastErr='';
+  if(!quiet){showVer=null;pendingDel=null}
+  try{localStorage.setItem('techpack.dang-xem',id)}catch(e){}
+  return true;
+}
+
+/* Lưu bản nháp: gửi sau 1,2 giây ngừng gõ, kèm số phiên bản đang dựa vào. Người khác vừa lưu → 409, không ghi đè */
+function queueSave(){editSeq++;setStatus('Đang lưu…');clearTimeout(saveT);saveT=setTimeout(flush,1200)}
+async function flush(){
+  clearTimeout(saveT);
+  if(saving)await saving;
+  if(!cur||!dirty()||conflict||!cur.v.draft)return !conflict;
+  const seq=editSeq, id=cur.id;
+  saving=(async()=>{
+    const r=await api('PUT',`/api/techpack/${id}/nhap`,{data:D()},{'X-Base-Rev':String(cur.rev)});
+    if(!cur||cur.id!==id)return;
+    if(r.ok){cur.rev=r.j.rev;savedSeq=seq;lastErr='';setStatus(dirty()?'Đang lưu…':'Đã lưu '+when(r.j.savedAt).slice(-5));return}
+    if(r.status===409){
+      conflict={at:Date.now()};
+      try{localStorage.setItem('techpack.cuu.'+id,JSON.stringify({at:Date.now(),by:ME.id,data:D()}))}catch(e){}
+      let other={};try{other=JSON.parse(r.t)}catch(e){}
+      conflict.by=other.by;conflict.savedAt=other.savedAt;
+      setStatus('Chưa lưu được');render();return;
+    }
+    lastErr=r.j.error||('Lỗi lưu ('+r.status+')');setStatus('Chưa lưu được');render();
+  })();
+  await saving;saving=null;
+  if(dirty()&&!conflict&&!lastErr)queueSave();
+  return !conflict&&!lastErr;
+}
+window.addEventListener('beforeunload',e=>{if(dirty()&&!conflict){e.preventDefault();e.returnValue=''}});
+
+/* ===== Danh sách ===== */
+function chipOf(x){
+  if(x.draft==='cho-duyet')return '<span class="chip miss">Chờ duyệt</span>';
+  if(x.draft==='nhap')return x.offVer?`<span class="chip miss">Đang sửa · v${x.offVer}</span>`:'<span class="chip" style="background:var(--hover);color:var(--ink2)">Nháp</span>';
+  return x.offVer?`<span class="chip done">Chính thức v${x.offVer}</span>`:'';
+}
+function renderList(){
+  $('#list').innerHTML=LIST.map(x=>`<button class="item" data-pick="${x.id}" aria-current="${!!cur&&x.id===cur.id}"><span class="code">${esc(x.code||'Chưa có mã')}</span>${chipOf(x)}<span class="nm">${esc(LINES[x.line]||'')} · ${esc(x.name||'Chưa đặt tên')}</span></button>`).join('')||'<p class="hint">Chưa có mã hàng nào. Chọn dòng sản phẩm rồi bấm “+ Thêm”.</p>';
+}
+function syncSummary(){
+  if(!cur)return;const v=cur.v,d=v.draft,o=v.official,src=d?d.data:o?o.data:{};
+  const s={id:cur.id,rev:cur.rev,code:src.code,name:src.name,line:src.line,offVer:o?o.ver:0,offAt:o?o.at:null,draft:d?d.status:'',draftAt:d?d.at:null,draftBy:d?d.by:''};
+  const i=LIST.findIndex(x=>x.id===cur.id);if(i>=0)LIST[i]=s;else LIST.push(s);
+}
+
+function missing(s){
+  let n=0;['brand','name','code','designer'].forEach(k=>{if(!String(s[k]||'').trim())n++});
+  s.pom.forEach(p=>{if(!String(p.name||'').trim())n++;s.sizes.forEach(z=>{if(!String(p.vals[z]??'').trim())n++})});
+  s.bom.forEach(b=>{if(!String(b.mat||'').trim())n++;if(!String(b.sup||'').trim())n++});
+  return n;
+}
+
+/* ===== Thanh trạng thái + thao tác ===== */
+function stateBar(){
+  const v=cur.v,d=v.draft,o=v.official,vs=v.versions||[];
+  const pills=[];
+  if(o)pills.push(`<span class="pill ok">Chính thức v${o.ver}</span><span class="muted">duyệt ${when(o.at)} · ${esc(who(o.by))}</span>`);
+  if(d&&d.status==='nhap')pills.push(`<span class="pill draft">${d.fromVer?'Bản nháp sửa từ v'+d.fromVer:'Bản nháp'}</span><span class="muted">sửa ${when(d.at)} · ${esc(who(d.by))}</span>`);
+  if(d&&d.status==='cho-duyet')pills.push(`<span class="pill wait">Chờ Admin duyệt</span><span class="muted">gửi ${when(d.submit.at)} · ${esc(who(d.submit.by))}${d.submit.note?' · “'+esc(d.submit.note)+'”':''}</span>`);
+  if(!o&&!d)pills.push('<span class="pill bad">Không có dữ liệu</span>');
+  const A=[];
+  if(EDITOR&&d&&d.status==='nhap')A.push('<button class="btn sm" data-op="gui">Gửi đề xuất duyệt</button>');
+  if(ADMIN&&d)A.push('<button class="btn sm primary" data-op="duyet">Duyệt thành bản chính thức</button>');
+  if(ADMIN&&d&&d.status==='cho-duyet')A.push('<button class="btn sm" data-op="tra-lai">Trả lại</button>');
+  if(d&&d.status==='cho-duyet'&&(ADMIN||(d.submit&&d.submit.by===ME.id)))A.push('<button class="btn sm" data-op="rut">Rút đề xuất</button>');
+  if(EDITOR&&!d&&o)A.push('<button class="btn sm primary" data-op="de-xuat-sua">Đề xuất chỉnh sửa</button>');
+  if(EDITOR)A.push('<button class="btn sm" data-act="dup">Nhân bản mã</button>');
+  if(ADMIN)A.push(`<button class="btn sm danger" data-op="xoa">Xoá mã</button>`);
+  let ban='';
+  if(conflict)ban+=`<div class="banner r"><span><b>Chưa lưu được:</b> ${esc(who(conflict.by)||'người khác')} vừa lưu mã này lúc ${when(conflict.savedAt)}. Hệ thống không ghi đè. Thay đổi của anh/chị được giữ tạm trên trình duyệt này.</span><button class="btn sm" data-act="reload">Tải bản mới nhất</button></div>`;
+  else if(lastErr)ban+=`<div class="banner r"><span><b>Chưa lưu được:</b> ${esc(lastErr)}</span><button class="btn sm" data-act="reload">Tải lại</button></div>`;
+  if(d&&d.status==='nhap'&&d.ret)ban+=`<div class="banner w"><span><b>Admin trả lại</b> ${when(d.ret.at)} · ${esc(who(d.ret.by))}: “${esc(d.ret.reason)}”</span></div>`;
+  if(d&&d.status==='cho-duyet')ban+=`<div class="banner i"><span>Bản nháp đang chờ Admin duyệt nên đã khoá sửa.${o?' Bản chính thức v'+o.ver+' vẫn đang được dùng.':''}</span></div>`;
+  if(!EDITOR)ban+=`<div class="banner i"><span>Chỉ xem.</span></div>`;
+  const vl=vs.length?`<div class="vers">Lịch sử duyệt: ${vs.slice().reverse().map(x=>`<button data-ver="${x.ver}">v${x.ver}</button> ${when(x.at)} · ${esc(who(x.by))}${x.note?' · '+esc(x.note):''}`).join(' &nbsp;|&nbsp; ')}</div>`:'';
+  return `<section class="panel" style="display:grid;gap:10px"><div class="statebar"><div class="sx">${pills.join(' ')}</div><div class="acts">${A.join('')}</div></div>${ban}${vl}</section>`;
+}
+
+/* ===== Phiếu nhập ===== */
+function fld(label,key,s,ph){const v=s[key]||'';return `<label class="fld${String(v).trim()?'':' empty'}"><span>${label}</span><input id="f-${key}" data-f="${key}" value="${esc(v)}" placeholder="${esc(ph||'')}"></label>`}
+function cell(t,i,c,v,cls,ph){return `<textarea rows="1" class="cell ${cls||''}${cls&&cls.includes('num')&&!String(v??'').trim()?' blank':''}" id="${t}-${i}-${c}" data-t="${t}" data-i="${i}" data-c="${c}" placeholder="${esc(ph||'')}">${esc(v??'')}</textarea>`}
+const del=(t,i)=>`<button class="del" data-del="${t}" data-i="${i}" aria-label="Xóa dòng">✕</button>`;
+function renderForm(s){
+  return `
+<section class="panel">
+  <div class="headrow"><span class="line-tag">${esc(LINES[s.line])}</span><span class="muted">${missing(s)?`Còn <b>${missing(s)}</b> ô trống`:'Đã đủ thông tin chữ'}</span></div>
+</section>
+<section class="panel">
+  <div class="sec-h"><span class="pg">Trang 1</span><h2>Tổng quan sản phẩm</h2><p>Style summary · ô viền cam là ô còn trống.</p></div>
+  <div class="grid2">
+    <div class="fields">
+      ${fld('Tên thương hiệu (Brand)','brand',s,'Điền tên brand')}
+      ${fld('Tên sản phẩm (Style name)','name',s,'VD: Áo Polo cá sấu basic')}
+      ${fld('Mã hàng (Style No.)','code',s,'VD: PL-2026-01')}
+      <label class="fld"><span>Nhóm size (cách nhau bằng dấu phẩy)</span><input id="f-sizes" data-sizes value="${esc(s.sizes.join(', '))}"></label>
+      ${fld('Người thiết kế (Designer)','designer',s,'Tên designer')}
+      ${fld('Ngày tạo','created',s,'DD/MM/YYYY')}
+      ${fld('Ngày cập nhật','revised',s,'DD/MM/YYYY')}
+    </div>
+    <div class="sketches">
+      ${['Mặt trước','Mặt sau'].map(l=>`<div class="sk"><span class="lbl">${l}</span><div class="nopic">Ảnh ${l.toLowerCase()} sẽ lưu lên server ở giai đoạn 2.<br>Ảnh cũ (nếu có) vẫn còn trong trình duyệt của máy đã nhập.</div></div>`).join('')}
+    </div>
+  </div>
+</section>
+<section class="panel">
+  <div class="sec-h"><span class="pg">Trang 2</span><h2>Bảng kê nguyên phụ liệu</h2><p>Bill of materials · sửa theo mã thực tế.</p></div>
+  <div class="tw"><table class="ed"><thead><tr><th>STT</th><th>Phân loại</th><th>Tên chi tiết / Chất liệu</th><th>Mã màu (Pantone/Card)</th><th>Nhà cung cấp</th><th>Vị trí sử dụng</th><th>Ghi chú</th><th></th></tr></thead><tbody>
+  ${s.bom.map((b,i)=>`<tr><td class="n">${i+1}</td><td>${cell('bom',i,'cat',b.cat)}</td><td>${cell('bom',i,'mat',b.mat)}</td><td>${cell('bom',i,'color',b.color)}</td><td>${cell('bom',i,'sup',b.sup,'','Tên NCC')}</td><td>${cell('bom',i,'pos',b.pos)}</td><td>${cell('bom',i,'note',b.note)}</td><td class="x">${del('bom',i)}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="row-actions"><button class="btn sm" data-add="bom">+ Thêm dòng</button></div>
+</section>
+<section class="panel">
+  <div class="sec-h"><span class="pg">Trang 3</span><h2>Bảng thông số &amp; dung sai</h2><p>Measurement spec · điểm đo theo đúng mã này. Thêm/bớt size ở mục “Nhóm size” Trang 1.</p></div>
+  <div class="inline"><label class="fld" style="max-width:180px"><span>Đơn vị</span><input id="f-unit" data-f="unit" value="${esc(s.unit)}"></label></div>
+  <div class="tw"><table class="ed" style="min-width:${520+s.sizes.length*70}px"><thead><tr><th>STT</th><th>Điểm đo (POM)</th>${s.sizes.map(z=>`<th class="c">Size ${esc(z)}</th>`).join('')}<th>Dung sai (±)</th><th>Cách đo / Ghi chú</th><th></th></tr></thead><tbody>
+  ${s.pom.map((p,i)=>`<tr><td class="n">${i+1}</td><td style="min-width:150px">${cell('pom',i,'name',p.name,'','Tên điểm đo')}</td>${s.sizes.map(z=>`<td>${cell('pom',i,'v:'+z,p.vals[z],'num')}</td>`).join('')}<td>${cell('pom',i,'tol',p.tol,'num')}</td><td style="min-width:200px">${cell('pom',i,'method',p.method)}</td><td class="x">${del('pom',i)}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="row-actions"><button class="btn sm" data-add="pom">+ Thêm điểm đo</button></div>
+</section>
+<section class="panel">
+  <div class="sec-h"><span class="pg">Trang 4</span><h2>Quy cách may &amp; đóng gói</h2><p>Construction &amp; packaging.</p></div>
+  <label class="fld"><span>Mật độ mũi chỉ (SPI)</span><input id="f-spi" data-f="spi" value="${esc(s.spi)}"></label>
+  <div class="sub">Quy cách đường may</div>
+  <div class="lst">${s.seams.map((r,i)=>`<div class="r">${cell('seams',i,'label',r.label,'','Hạng mục')}${cell('seams',i,'text',r.text,'','Yêu cầu kỹ thuật')}${del('seams',i)}</div>`).join('')}</div>
+  <div class="row-actions"><button class="btn sm" data-add="seams">+ Thêm hạng mục</button></div>
+  <div class="sub">Quy cách đóng gói</div>
+  <div class="lst">${s.pack.map((r,i)=>`<div class="r one">${cell('pack',i,'t',r.t)}${del('pack',i)}</div>`).join('')}</div>
+  <div class="row-actions"><button class="btn sm" data-add="pack">+ Thêm dòng</button></div>
+</section>
+<section class="panel">
+  <div class="sec-h"><span class="pg">Trang 5</span><h2>Tiêu chuẩn kiểm hàng QC</h2><p>Mức AQL và checklist Đạt/Không đạt.</p></div>
+  <div class="aql">
+    <label class="fld"><span>Critical (Ac)</span><input id="aql-crit" data-aql="crit" value="${esc(s.aql.crit)}"></label>
+    <label class="fld"><span>Major – AQL</span><input id="aql-maj" data-aql="maj" value="${esc(s.aql.maj)}"></label>
+    <label class="fld"><span>Minor – AQL</span><input id="aql-min" data-aql="min" value="${esc(s.aql.min)}"></label>
+  </div>
+  <div class="sub">Checklist</div>
+  <div class="lst">${s.qc.map((r,i)=>`<div class="r one">${cell('qc',i,'t',r.t)}${del('qc',i)}</div>`).join('')}</div>
+  <div class="row-actions"><button class="btn sm" data-add="qc">+ Thêm tiêu chí</button><button class="btn sm primary" data-view="res">Xem Bản Sản xuất →</button></div>
+</section>`;
+}
+
+/* ===== Bản Sản xuất (cấu trúc như cũ, bỏ Mùa) ===== */
+const val=x=>String(x??'').trim()?esc(x):'<span class="gap">—</span>';
+function renderSheet(s,label){
+  const band=(n)=>`<div class="band"><b>${esc(s.brand||'Brand')} · Tech Pack</b><span>${esc(s.code||'—')}</span><span>${esc(label)}</span><span>Trang ${n}/5</span><span>Cập nhật ${esc(s.revised||'—')}</span></div>`;
+  const T='border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%"';
+  const info=[['Tên thương hiệu (Brand)',s.brand],['Tên sản phẩm (Style name)',s.name],['Mã hàng (Style No.)',s.code],['Dòng sản phẩm',LINES[s.line]],['Nhóm size (Size range)',s.sizes.join(', ')],['Người thiết kế (Designer)',s.designer],['Ngày tạo (Date)',s.created],['Ngày cập nhật (Revised)',s.revised]];
+  const pic=l=>`<div><div class="pic">Chưa có ảnh ${l.toLowerCase()}</div><div class="cap">${l}</div></div>`;
+  return `
+<article class="sheet">${band(1)}<div class="bd"><h3>Trang 1: Tổng quan sản phẩm (Style summary)</h3>
+ <div class="grid2"><div class="tw"><table ${T}><tbody>${info.map(r=>`<tr><th style="width:44%">${r[0]}</th><td>${val(r[1])}</td></tr>`).join('')}</tbody></table></div>
+ <div class="pics">${pic('Mặt trước')}${pic('Mặt sau')}</div></div></div></article>
+<article class="sheet">${band(2)}<div class="bd"><h3>Trang 2: Bảng kê nguyên phụ liệu (BOM)</h3>
+ <div class="tw"><table ${T} style="min-width:680px"><thead><tr><th class="c">STT</th><th>Phân loại</th><th>Tên chi tiết / Chất liệu</th><th>Mã màu (Pantone/Card)</th><th>Nhà cung cấp</th><th>Vị trí sử dụng</th><th>Ghi chú</th></tr></thead><tbody>
+ ${s.bom.map((b,i)=>`<tr><td class="c">${i+1}</td><td>${val(b.cat)}</td><td>${val(b.mat)}</td><td>${val(b.color)}</td><td>${val(b.sup)}</td><td>${val(b.pos)}</td><td>${esc(b.note)}</td></tr>`).join('')}</tbody></table></div></div></article>
+<article class="sheet">${band(3)}<div class="bd"><h3>Trang 3: Bảng thông số &amp; dung sai (Measurement spec)</h3>
+ <div class="tw"><table ${T} style="min-width:${460+s.sizes.length*60}px"><thead><tr><th class="c">STT</th><th>Điểm đo (POM)</th>${s.sizes.map(z=>`<th class="c">Size ${esc(z)}</th>`).join('')}<th class="c">Dung sai (±)</th><th>Cách đo / Ghi chú</th></tr></thead><tbody>
+ ${s.pom.map((p,i)=>`<tr><td class="c">${i+1}</td><td><b>${val(p.name)}</b></td>${s.sizes.map(z=>`<td class="c">${val(p.vals[z])}</td>`).join('')}<td class="c">${val(p.tol)}</td><td>${esc(p.method)}</td></tr>`).join('')}</tbody></table></div>
+ <p class="note">Đơn vị tính: ${esc(s.unit||'cm')}. Đo khi sản phẩm trải phẳng, cài hết khuy/khóa, không kéo căng. Điểm đo chính vượt dung sai tính lỗi Major; vượt quá 2 lần dung sai ở bất kỳ điểm nào tính Major.</p></div></article>
+<article class="sheet">${band(4)}<div class="bd"><h3>Trang 4: Quy cách may &amp; đóng gói</h3>
+ <ul><li><b>Mật độ mũi chỉ (SPI):</b> ${val(s.spi)}</li>${s.seams.filter(r=>r.label||r.text).map(r=>`<li><b>${esc(r.label)}:</b> ${esc(r.text)}</li>`).join('')}
+ <li><b>Quy cách đóng gói:</b><ul style="margin-top:6px">${s.pack.filter(x=>String(x.t||'').trim()).map(x=>`<li>${esc(x.t)}</li>`).join('')}</ul></li></ul></div></article>
+<article class="sheet">${band(5)}<div class="bd"><h3>Trang 5: Tiêu chuẩn kiểm hàng (QC)</h3>
+ <div class="tw" style="margin-bottom:14px"><table ${T}><thead><tr><th>Mức lỗi</th><th>Mức chấp nhận</th><th>Ví dụ</th></tr></thead><tbody>
+ <tr><td><b>Critical</b></td><td class="c">Ac = ${esc(s.aql.crit)}</td><td>Kim gãy, vật sắc, nấm mốc, mùi hóa chất, sai/thiếu nhãn thành phần, sai nhãn size</td></tr>
+ <tr><td><b>Major</b></td><td class="c">AQL ${esc(s.aql.maj)}</td><td>Lủng, rách, bung đường may, sai màu, bẩn rõ vùng A–B, vượt dung sai điểm đo chính, phụ liệu hỏng</td></tr>
+ <tr><td><b>Minor</b></td><td class="c">AQL ${esc(s.aql.min)}</td><td>Chỉ thừa &gt; 1 cm, bẩn nhẹ làm sạch được, đường may hơi cong, lỗi nhỏ vùng khuất</td></tr></tbody></table></div>
+ <div class="tw"><table ${T}><thead><tr><th class="c">#</th><th>Tiêu chí</th><th class="c">Đạt</th><th class="c">Không đạt</th><th>Ghi chú lỗi</th></tr></thead><tbody>
+ ${s.qc.filter(x=>String(x.t||'').trim()).map((x,i)=>`<tr><td class="c">${i+1}</td><td>${esc(x.t)}</td><td class="c"><span class="box"></span></td><td class="c"><span class="box"></span></td><td></td></tr>`).join('')}</tbody></table></div>
+ <p class="note">Lấy mẫu theo ISO 2859-1, mức kiểm tra II. Lô Đạt khi không có lỗi Critical và số lỗi Major, Minor đều ≤ Ac.</p>
+ <div class="sign"><div>Người kiểm</div><div>Trưởng kho</div><div>Người duyệt</div></div></div></article>`;
+}
+function resView(){
+  const v=cur.v,o=v.official,d=v.draft;
+  let s,label,pick='';
+  if(showVer&&showVer.data){s=showVer.data;label='Bản chính thức v'+showVer.ver+' (bản cũ)'}
+  else if(showVer==='draft'&&d){s=d.data;label='Bản nháp, chưa duyệt'}
+  else if(o){s=o.data;label='Bản chính thức v'+o.ver}
+  else{s=d.data;label='Bản nháp, chưa duyệt'}
+  const opts=[];
+  if(o)opts.push(`<button class="btn sm" data-show="off" ${!showVer?'disabled':''}>Bản chính thức v${o.ver}</button>`);
+  if(d)opts.push(`<button class="btn sm" data-show="draft" ${showVer==='draft'||(!o&&!showVer)?'disabled':''}>Bản nháp</button>`);
+  const miss=missing(s);
+  return `<div class="panel res-head"><p>Đang xem: <b>${esc(label)}</b>. ${miss?`Còn <b>${miss}</b> ô trống (màu cam).`:'Đã đủ thông tin chữ.'} Chưa có ảnh mẫu (ảnh có ở giai đoạn 2). Bấm sao chép rồi dán vào Word hoặc Google Docs để in/xuất PDF.</p><div style="display:flex;gap:6px;flex-wrap:wrap">${opts.join('')}<button class="btn primary" id="copyBtn">Sao chép</button></div></div>${(!o&&d)||(showVer==='draft')?'<div class="banner w"><span>Bản nháp chưa được Admin duyệt, không dùng làm chuẩn.</span></div>':''}<div id="sheet" style="display:grid;gap:18px">${renderSheet(s,label)}</div>`;
+}
+
+/* ===== Vẽ trang ===== */
+function render(){
+  renderList();
+  $('#vForm').setAttribute('aria-pressed',view==='form');$('#vRes').setAttribute('aria-pressed',view==='res');
+  const m=$('#main');
+  if(!cur){m.innerHTML='<div class="panel empty-main">Chọn một mã ở khung “Mã hàng”, hoặc chọn dòng sản phẩm rồi bấm “+ Thêm”.</div>';return}
+  const s=shown();
+  if(!s){m.innerHTML=stateBar();return}
+  if(view==='form'){m.innerHTML=stateBar()+`<div id="formBox" class="${editable()?'':'ro'}" style="display:grid;gap:14px">${renderForm(s)}</div>`;fitAll();if(!editable())m.querySelectorAll('#formBox input,#formBox textarea').forEach(x=>x.readOnly=true)}
+  else m.innerHTML=stateBar()+resView();
+}
+function fit(t){if(t.classList.contains('cell')){t.style.height='auto';t.style.height=t.scrollHeight+2+'px'}}
+function fitAll(){document.querySelectorAll('.cell').forEach(fit)}
+
+/* ===== Sửa bản nháp ===== */
+$('#main').addEventListener('input',e=>{
+  const t=e.target;if(!editable()||!t.closest('#formBox'))return;const s=D();
+  if(t.dataset.f!==undefined){s[t.dataset.f]=t.value;t.closest('.fld')?.classList.toggle('empty',!t.value.trim()&&['brand','name','code','designer','created','revised'].includes(t.dataset.f))}
+  else if(t.dataset.aql){s.aql[t.dataset.aql]=t.value}
+  else if(t.dataset.t){const arr=s[t.dataset.t],i=+t.dataset.i,c=t.dataset.c;
+    if(c.startsWith('v:'))arr[i].vals[c.slice(2)]=t.value;else arr[i][c]=t.value;
+    if(t.classList.contains('num'))t.classList.toggle('blank',!t.value.trim());fit(t)}
+  else return;
+  queueSave();
+  if(['code','name'].includes(t.dataset.f)){syncSummary();renderList()}
+});
+$('#main').addEventListener('change',e=>{
+  const t=e.target;if(!editable())return;const s=D();
+  if(t.dataset.sizes!==undefined){const z=t.value.split(',').map(x=>x.trim()).filter(Boolean);if(z.length){s.sizes=[...new Set(z)];queueSave();render()}else toast('Cần ít nhất 1 size.')}
+});
+
+/* ===== Hộp thoại ===== */
+function ask({title,html,ok,need,check}){
+  return new Promise(res=>{
+    $('#dlg').innerHTML=`<div class="dlgwrap"><div class="dlg" role="dialog" aria-modal="true"><h3>${title}</h3>${html||''}
+      ${need!==undefined?`<label style="display:grid;gap:4px;font-size:12.5px">${need.label}<textarea id="dNote" placeholder="${esc(need.ph||'')}"></textarea></label>`:''}
+      ${check?`<label class="ck"><input type="checkbox" id="dChk"> <span>${check}</span></label>`:''}
+      <div class="err" id="dErr"></div><div class="row"><button class="btn" id="dNo">Huỷ</button><button class="btn primary" id="dOk">${ok}</button></div></div></div>`;
+    const done=v=>{$('#dlg').innerHTML='';res(v)};
+    $('#dNo').onclick=()=>done(null);
+    $('#dOk').onclick=()=>{const note=$('#dNote')?$('#dNote').value.trim():'';
+      if(need&&need.req&&!note){$('#dErr').textContent='Cần ghi '+need.req+'.';return}
+      if(check&&!$('#dChk').checked){$('#dErr').textContent='Cần tích xác nhận trước khi duyệt.';return}
+      done({note})};
+    ($('#dNote')||$('#dOk')).focus();
+  });
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#dNo'))$('#dNo').click()});
+
+async function doOp(op){
+  if(!(await flush())){toast('Thay đổi chưa lưu được nên chưa làm thao tác này.');return}
+  const v=cur.v,d=v.draft,o=v.official,code=(d?d.data.code:o?o.data.code:'')||'(chưa có mã)';
+  let a=null;
+  if(op==='gui')a=await ask({title:'Gửi đề xuất duyệt · '+esc(code),html:'<p class="muted" style="margin:0">Sau khi gửi, bản nháp bị khoá sửa cho tới khi Admin duyệt hoặc trả lại.</p>',need:{label:'Tóm tắt đã thay đổi gì (không bắt buộc)',ph:'VD: sửa thông số size M, thêm dòng nhãn'},ok:'Gửi đề xuất'});
+  else if(op==='duyet'){
+    const miss=missing(d.data);
+    a=await ask({title:'Duyệt bản chính thức · '+esc(code),ok:o?'Duyệt thành v'+(o.ver+1):'Duyệt thành v1',
+      html:`<div class="banner w" style="display:block"><b>Hồ sơ chưa có ảnh mẫu.</b> Tính năng ảnh có ở giai đoạn 2, danh sách ảnh bắt buộc chưa được xác định. Bản này sẽ mang nhãn “chưa có ảnh mẫu”, không được coi là hồ sơ đầy đủ.${miss?`<br>Còn <b>${miss}</b> ô chữ trống.`:''}</div>${o?`<p class="muted" style="margin:0">Bản chính thức v${o.ver} được giữ lại trong lịch sử, không bị xoá.</p>`:''}`,
+      need:{label:'Ghi chú duyệt (không bắt buộc)'},check:'Tôi biết hồ sơ chưa có ảnh mẫu và vẫn duyệt.'});
+  }
+  else if(op==='tra-lai')a=await ask({title:'Trả lại đề xuất · '+esc(code),need:{label:'Lý do trả lại (bắt buộc)',req:'lý do'},ok:'Trả lại'});
+  else if(op==='rut')a=await ask({title:'Rút đề xuất · '+esc(code),html:'<p class="muted" style="margin:0">Bản nháp mở lại để sửa tiếp.</p>',ok:'Rút đề xuất'});
+  else if(op==='de-xuat-sua')a=await ask({title:'Đề xuất chỉnh sửa · '+esc(code),html:`<p class="muted" style="margin:0">Tạo bản nháp từ bản chính thức v${o.ver}. Bản chính thức vẫn được dùng cho tới khi Admin duyệt bản mới.</p>`,ok:'Tạo bản nháp'});
+  else if(op==='xoa')a=await ask({title:'Xoá mã · '+esc(code),html:'<p class="muted" style="margin:0">Mã và mọi phiên bản được chuyển vào thùng rác trên máy chủ (du-lieu\\techpack\\thung-rac), không xoá hẳn.</p>',need:{label:'Lý do xoá (bắt buộc)',req:'lý do'},ok:'Xoá mã'});
+  if(!a)return;
+  const body={rev:cur.rev,note:a.note};if(op==='duyet')body.ackPhoto=true;
+  const r=await api('POST',`/api/techpack/${cur.id}/${op}`,body);
+  if(!r.ok){toast(r.j.error||'Không làm được ('+r.status+')');if(r.status===409){await openRec(cur.id,true);render()}return}
+  if(op==='xoa'){LIST=LIST.filter(x=>x.id!==cur.id);cur=null;render();toast('Đã chuyển mã vào thùng rác.');return}
+  cur.rev=r.j.rev;cur.v=r.j.value;if(cur.v.draft)cur.v.draft.data=norm(cur.v.draft.data);if(cur.v.official)cur.v.official.data=norm(cur.v.official.data);
+  editSeq=savedSeq=0;showVer=null;syncSummary();render();
+  toast({gui:'Đã gửi đề xuất cho Admin.',duyet:'Đã duyệt thành bản chính thức v'+(cur.v.official?cur.v.official.ver:''),'tra-lai':'Đã trả lại đề xuất.',rut:'Đã rút đề xuất.','de-xuat-sua':'Đã tạo bản nháp để sửa.'}[op]);
+}
+
+async function createRec(data,src){
+  const r=await api('POST','/api/techpack',{data,src});
+  if(!r.ok){toast(r.j.error||'Không tạo được mã');return null}
+  return r.j;
+}
+
+$('#main').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b||!cur)return;
+  if(b.dataset.op){doOp(b.dataset.op);return}
+  if(b.dataset.ver){const r=await api('GET',`/api/techpack/${cur.id}/v/${b.dataset.ver}`);if(!r.ok){toast(r.j.error||'Không mở được phiên bản');return}
+    showVer={ver:r.j.ver,data:norm(r.j.data)};view='res';render();scrollTo(0,0);return}
+  if(b.dataset.show){showVer=b.dataset.show==='draft'?'draft':null;render();return}
+  if(b.dataset.view){view=b.dataset.view;render();scrollTo(0,0);return}
+  if(b.dataset.act==='reload'){await openRec(cur.id);render();toast('Đã tải bản mới nhất.');return}
+  if(b.dataset.act==='dup'){
+    if(!(await flush()))return;
+    const src=shown();const c=JSON.parse(JSON.stringify(src));c.code=(src.code||'')+'-COPY';c.created=today();c.revised=today();
+    ['bom','pom','seams','pack','qc'].forEach(k=>c[k].forEach(r=>r.id=uid()));
+    const j=await createRec(c,'');if(!j)return;
+    await loadList();await openRec(j.id);view='form';render();scrollTo(0,0);toast('Đã nhân bản thành bản nháp mới. Nhớ đổi mã hàng.');return}
+  if(b.id==='copyBtn'){copySheet();return}
+  if(!editable())return;
+  const s=D();
+  if(b.dataset.add){const t=b.dataset.add;
+    if(t==='bom')s.bom.push({id:uid(),cat:'',mat:'',color:'',sup:'',pos:'',note:''});
+    else if(t==='pom')s.pom.push({id:uid(),name:'',method:'',tol:'',vals:{}});
+    else if(t==='seams')s.seams.push({id:uid(),label:'',text:''});
+    else s[t].push({id:uid(),t:''});
+    queueSave();render();[...document.querySelectorAll(`[data-t="${t}"]`)].filter(x=>+x.dataset.i===s[t].length-1)[0]?.focus();return}
+  if(b.dataset.del){s[b.dataset.del].splice(+b.dataset.i,1);queueSave();render();return}
+});
+async function copySheet(){
+  const el=$('#sheet');
+  try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([el.innerHTML],{type:'text/html'}),'text/plain':new Blob([el.innerText],{type:'text/plain'})})]);toast('Đã sao chép. Dán vào Word hoặc Google Docs.')}
+  catch(e){const r=document.createRange();r.selectNodeContents(el);const g=getSelection();g.removeAllRanges();g.addRange(r);let ok=false;try{ok=document.execCommand('copy')}catch(_){}
+    toast(ok?'Đã sao chép. Dán vào Word hoặc Google Docs.':'Đã bôi đen bản Tech Pack. Nhấn Ctrl+C (⌘C) để sao chép.')}
+}
+$('#list').addEventListener('click',async e=>{const b=e.target.closest('[data-pick]');if(!b)return;
+  if(!(await flush())&&!confirm('Thay đổi ở mã đang mở chưa lưu được. Vẫn chuyển sang mã khác?'))return;
+  if(await openRec(b.dataset.pick)){render();scrollTo(0,0)}});
+$('#addBtn').addEventListener('click',async()=>{
+  if(!EDITOR)return;if(!(await flush()))return;
+  const j=await createRec(newData($('#newLine').value),'');if(!j)return;
+  await loadList();await openRec(j.id);view='form';render();scrollTo(0,0);toast('Đã tạo bản nháp mới, điền thông tin bên phải.');
+});
+$('#vForm').addEventListener('click',()=>{view='form';render()});
+$('#vRes').addEventListener('click',()=>{view='res';render()});
+
+/* Quay lại trang / sau 30 giây: nếu không đang sửa thì lấy bản mới nhất (người khác có thể vừa đổi) */
+async function refresh(){
+  if(!cur||dirty()||saving||conflict||$('#dlg').innerHTML)return;
+  const a=document.activeElement;if(a&&a.closest&&a.closest('#formBox')&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
+  const r=await api('GET','/api/techpack/'+cur.id);
+  if(r.ok&&+r.j.rev!==cur.rev&&!dirty()){await openRec(cur.id,true);await loadList();render();toast('Mã này vừa được cập nhật, đã tải bản mới.')}
+}
+window.addEventListener('focus',refresh);setInterval(refresh,30000);
+
+/* ===== Chuyển Tech Pack cũ trong trình duyệt lên server (1 lần, tạo bản nháp, không xoá bản trong trình duyệt) ===== */
+function oldStyles(){try{const d=JSON.parse(localStorage.getItem(OLD_LS)||'null');return d&&Array.isArray(d.styles)?d.styles:[]}catch(e){return[]}}
+function migMap(){try{return JSON.parse(localStorage.getItem(MIG_LS)||'{}')||{}}catch(e){return{}}}
+function renderMig(){
+  const box=$('#migBox');const m=migMap();const left=oldStyles().filter(s=>!m[s.id]);
+  if(!EDITOR||!left.length){box.hidden=true;return}
+  box.hidden=false;
+  box.innerHTML=`<section class="panel mig"><div><b>Máy này còn ${left.length} mã Tech Pack lưu trong trình duyệt (bản cũ trước khi lưu chung trên server).</b><br><span class="muted">Chọn mã cần đưa lên server. Mỗi mã thành một <b>bản nháp</b>, chưa phải bản chính thức. Ảnh mặt trước/sau chưa chuyển (giai đoạn 2); dữ liệu trong trình duyệt được giữ nguyên.</span></div>
+    ${left.map(s=>`<label><input type="checkbox" data-mig="${esc(s.id)}" ${/^\[VÍ DỤ\]/.test(s.name||'')?'':'checked'}> <b>${esc(s.code||'Chưa có mã')}</b> · ${esc(LINES[s.line]||'')} · ${esc(s.name||'Chưa đặt tên')}${s.front||s.back?' <span class="muted">(có ảnh, chưa chuyển)</span>':''}${/^\[VÍ DỤ\]/.test(s.name||'')?' <span class="muted">(mã ví dụ)</span>':''}</label>`).join('')}
+    <div><button class="btn primary" id="migGo">Đưa các mã đã chọn lên server</button></div></section>`;
+}
+document.addEventListener('click',async e=>{
+  if(e.target.id!=='migGo')return;
+  const ids=[...document.querySelectorAll('[data-mig]:checked')].map(x=>x.dataset.mig);if(!ids.length){toast('Chưa chọn mã nào.');return}
+  e.target.disabled=true;const m=migMap();let ok=0,dup=0,bad=0;
+  for(const s of oldStyles().filter(x=>ids.includes(x.id))){
+    const j=await createRec(norm(s),'local:'+s.id);
+    if(j){m[s.id]=j.id;if(j.dup)dup++;else ok++}else bad++;
+  }
+  try{localStorage.setItem(MIG_LS,JSON.stringify(m))}catch(err){}
+  await loadList();renderMig();render();
+  toast(`Đã đưa ${ok} mã lên server${dup?`, ${dup} mã đã có sẵn`:''}${bad?`, ${bad} mã lỗi`:''}.`);
+});
+
+/* ===== Khởi động ===== */
+(async()=>{
+  if(!Khung.canTechPack()){
+    $('#layout').hidden=true;$('#vForm').disabled=$('#vRes').disabled=true;
+    $('#noAccess').hidden=false;
+    $('#noAccess').innerHTML=`<div class="panel empty-main">${ME.role==='kho'?'Tài khoản Kho sẽ xem và in <b>Bản Kho</b> khi tính năng này có (giai đoạn 2).':'Tài khoản này chưa được bật <b>Quyền Tech Pack</b>. Liên hệ Admin để được cấp quyền.'}</div>`;
+    return;
+  }
+  renderMig();
+  if(await loadList()){
+    let last=null;try{last=localStorage.getItem('techpack.dang-xem')}catch(e){}
+    const pick=LIST.find(x=>x.id===last)||LIST[0];
+    if(pick)await openRec(pick.id);
+  }
+  render();
+})();
+</script>
+</body>
+</html>

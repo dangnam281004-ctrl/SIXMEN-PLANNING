@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Đăng nhập · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<style>
+body{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.box{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:grid;gap:14px;box-shadow:0 10px 40px rgba(15,20,25,.06)}
+.box h1{font-size:18px;font-weight:800}
+.box p{margin:0;color:var(--muted);font-size:12.5px}
+label{display:grid;gap:4px;font-size:12px;color:var(--ink2);font-weight:500}
+.field{padding:8px 10px;font-size:13.5px}
+.btn.primary{justify-content:center;padding:9px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<form class="box" id="f" autocomplete="on">
+  <div class="brand" style="padding:0"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div>
+  <div><h1 id="title">Đăng nhập</h1><p id="sub">Dùng tài khoản Admin hoặc tài khoản nhân viên được cấp.</p></div>
+  <label id="nameRow" hidden>Tên hiển thị<input class="field" id="name" value="Admin" autocomplete="name"></label>
+  <label>Tên đăng nhập<input class="field" id="un" autocomplete="username" required autofocus></label>
+  <label>Mật khẩu<input class="field" id="pw" type="password" autocomplete="current-password" required></label>
+  <label id="pw2Row" hidden>Nhập lại mật khẩu<input class="field" id="pw2" type="password" autocomplete="new-password"></label>
+  <div class="err" id="err" role="alert"></div>
+  <button class="btn primary" id="go">Đăng nhập</button>
+</form>
+<script>
+const $=s=>document.querySelector(s);
+const next=new URLSearchParams(location.search).get("next");
+const goNext=()=>location.replace(next && /^[a-z0-9-]+\.html(\?.*)?$/.test(next) ? next : "./");
+let setup=false;
+fetch("/api/setup-needed",{cache:"no-store"}).then(r=>r.json()).then(j=>{
+  setup=!!j.needed;
+  if(setup){
+    $("#title").textContent="Tạo tài khoản Admin";
+    $("#sub").textContent="Lần đầu dùng hệ thống có tài khoản: đặt tên đăng nhập và mật khẩu cho Admin (quản lý tổng). Tài khoản nhân viên tạo sau ở trang Tài khoản.";
+    $("#nameRow").hidden=false; $("#pw2Row").hidden=false; $("#pw").autocomplete="new-password"; $("#go").textContent="Tạo tài khoản và vào hệ thống";
+  } else fetch("/api/me",{cache:"no-store"}).then(r=>{ if(r.ok) goNext(); });   // đã đăng nhập rồi thì vào luôn
+});
+$("#f").addEventListener("submit",async e=>{
+  e.preventDefault(); $("#err").textContent="";
+  const body={username:$("#un").value.trim(), password:$("#pw").value};
+  if(setup){ if(body.password!==$("#pw2").value){ $("#err").textContent="Hai lần nhập mật khẩu không giống nhau."; return; } body.name=$("#name").value.trim(); }
+  $("#go").disabled=true;
+  try{
+    const r=await fetch(setup?"/api/setup":"/api/login",{method:"POST",body:JSON.stringify(body)}), j=await r.json().catch(()=>({}));
+    if(r.ok) goNext(); else $("#err").textContent=j.error||"Không đăng nhập được.";
+  }catch(err){ $("#err").textContent="Không kết nối được server. Hãy mở bằng Mo-Planning.bat."; }
+  $("#go").disabled=false;
+});
+</script>
+</body>
+</html>

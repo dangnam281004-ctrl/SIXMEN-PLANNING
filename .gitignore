@@ -1,0 +1,6 @@
+# Dữ liệu thật (tài khoản, tồn kho, nhật ký) — KHÔNG đưa lên GitHub
+du-lieu/
+nhat-ky-tu-chay/
+*.zip
+*.tmp
+tam-dung-tu-chay.flag

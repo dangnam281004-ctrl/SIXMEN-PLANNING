@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KPI sản xuất · SIXMEN Planning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<style>
+.bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.tabs{display:flex;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--surface);color:var(--ink2);margin-left:-1px;padding:6px 14px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.tab:first-child{margin-left:0;border-radius:7px 0 0 7px} .tab:last-child{border-radius:0 7px 7px 0}
+.tab[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff;position:relative}
+.sub{font-size:11.5px;color:var(--muted)}
+td.r,th.r{text-align:right}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 14px 0}
+.ph h2{margin:0;font-size:15px}
+.note{font-size:12px;color:var(--muted);padding:8px 14px 12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>KPI sản xuất</b><small>Tính từ dữ liệu đơn thực tế · theo SKU, xưởng và nhân viên thực thi · chỉ xem</small></div></header>
+    <div class="content">
+      <div class="bar"><div class="tabs" id="months"></div><span class="sub" id="cnt"></span></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="panel" id="pSku"><div class="ph"><h2>Theo SKU (mã)</h2><span class="sub">mỗi mã sản phẩm · cùng tổng với 2 bảng dưới</span></div><div class="scroll" id="byS"></div></div>
+      <div class="panel" id="pX"><div class="ph"><h2>Theo xưởng</h2><span class="sub">ưu tiên: tiến độ xưởng · giao đúng hạn · hoàn thiện chứng từ</span></div><div class="scroll" id="byX"></div></div>
+      <div class="panel" id="pU"><div class="ph"><h2>Theo nhân viên thực thi</h2><span class="sub">người thực thi của đơn (người được bàn giao); đơn chưa bàn giao ghi riêng</span></div><div class="scroll" id="byU"></div></div>
+      <div class="panel"><div class="ph"><h2>Thời gian trung bình từng bước (ngày)</h2><span class="sub">chỉ tính đơn có đủ 2 mốc của bước đó</span></div><div class="scroll" id="steps"></div>
+        <div class="note">Cách tính: lấy đúng ngày đã ghi trong Planning (chốt, QLVH đã duyệt, gửi xưởng, xưởng xác nhận, bắt đầu, chốt giao nhận, hoàn tất). Đơn thiếu mốc nào thì không tính bước đó, không đoán. Ô “—” = chưa có dữ liệu; n = số đơn được tính.</div></div>
+    </div>
+  </div>
+</div>
+<script>
+/* KPI (V3 GĐ6, anh duyệt 30/10): 5 nhóm — số đơn / số áo; giao đúng hạn + trễ trung bình; tỉ lệ áo giao thiếu; thời gian từng bước; đơn đang trễ.
+   Thêm tỉ lệ hoàn thiện chứng từ. Chỉ đọc dữ liệu, không ghi gì, không dùng số giả định */
+const $=s=>document.querySelector(s), esc=Khung.esc, fmt=Don.fmt;
+let month=(()=>{ try { return localStorage.getItem("_ui_kpi_month")||"all"; } catch(e){ return "all"; } })();
+const isoMs=t=>{ const d=new Date(t); return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const pct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
+const avg=L=>L.length?(Math.round(L.reduce((x,y)=>x+y,0)/L.length*10)/10).toLocaleString("vi-VN"):"—";
+const cell=(v,n)=>`${v}${n!=null?`<div class="sub">n=${n}</div>`:""}`;
+/* Các mốc của 1 đơn (chuỗi ngày yyyy-mm-dd), chỉ lấy mốc đã ghi */
+function marks(o){
+  return {chot:o.closed||null, qlvh:o.qlvh&&o.qlvh.at?isoMs(o.qlvh.at):null, gui:o.sentAt||null, xn:o.ackAt||null, bd:o.startedAt||null,
+    giao:o.arrived||null, xong:o.doneAt||null};
+}
+const STEPS=[["chot","qlvh","Chốt → QLVH đã duyệt"],["qlvh","gui","QLVH duyệt → gửi xưởng"],["gui","xn","Gửi xưởng → xưởng xác nhận"],["gui","bd","Gửi xưởng → xưởng bắt đầu"],["bd","giao","Bắt đầu → chốt giao nhận"],["chot","giao","Chốt → chốt giao nhận (cả đơn)"],["giao","xong","Chốt giao nhận → hoàn tất Planning"]];
+function stats(L,S){
+  const t=Don.today(), r={n:L.length, qty:0, dueN:0, onTime:0, late:[], lateNow:0, ordQ:0, shortQ:0, closeN:0, docN:0, docOk:0, done:0, steps:{}};
+  STEPS.forEach(([a,b])=>r.steps[a+b]=[]);
+  L.forEach(({o})=>{
+    const q=Don.orderQty(o,S); r.qty+=q; const M=marks(o);
+    if(o.arrived){ r.closeN++;
+      if(o.dueDate){ r.dueN++; const d=Don.diff(o.dueDate,o.arrived); if(d<=0) r.onTime++; else r.late.push(d); }
+      const rc=o.recvClose; if(rc&&rc.total){ r.ordQ+=rc.total; r.shortQ+=rc.short||0; }
+      r.docN++; if(Don.docsComplete?Don.docsComplete(o):Don.docState(o).all) r.docOk++; if(o.doneAt) r.done++;
+    } else if(o.dueDate&&o.dueDate<t) r.lateNow++;
+    STEPS.forEach(([a,b])=>{ if(M[a]&&M[b]&&M[b]>=M[a]) r.steps[a+b].push(Don.diff(M[a],M[b])); });
+  });
+  return r;
+}
+function render(){
+  const S=Don.readS(); SoLuong.mark(S);
+  /* V5.4 Đợt 1 (Q10): nhân viên chỉ thấy số của các đơn mình thực thi; Admin / quản lý thấy theo bộ lọc mã như V5.3 */
+  const staff=!!(Khung.me&&Khung.me.role==="staff");
+  const all=Don.all(S).filter(x=>x.o.closed&&!x.o.cancelled&&!Don.isPlan(x.o)&&(!staff||Don.isMyExec(x.o)));
+  const months=[...new Set(all.map(x=>(x.o.closed||"").slice(0,7)).filter(Boolean))].sort().reverse();
+  if(month!=="all"&&!months.includes(month)) month="all";
+  $("#months").innerHTML=[["all","Tất cả"],...months.map(m=>[m,"Tháng "+m.slice(5)+"/"+m.slice(0,4)])].map(([k,l])=>`<button class="tab" data-m="${k}" aria-pressed="${month===k}">${l}</button>`).join("");
+  const L=all.filter(x=>month==="all"||(x.o.closed||"").startsWith(month));
+  $("#cnt").textContent=`${L.length} đơn đã chốt (theo ngày chốt) · ${staff?"chỉ đơn anh/chị thực thi":"theo bộ lọc mã đang chọn"}`;
+  const T=stats(L,S);
+  $("#tiles").innerHTML=[
+    {l:"Giao đúng hạn", v:pct(T.onTime,T.dueN), d:`${T.onTime}/${T.dueN} đơn đã chốt giao nhận có ngày hẹn`, c:"var(--ok)"},
+    {l:"Trễ trung bình", v:T.late.length?avg(T.late)+" ngày":"—", d:`${T.late.length} đơn giao trễ`},
+    {l:"Đang trễ hẹn", v:T.lateNow, d:"chưa chốt giao nhận, đã quá ngày hẹn", c:T.lateNow?"var(--crit)":"var(--ink)"},
+    {l:"Áo giao thiếu", v:pct(T.shortQ,T.ordQ), d:`${fmt(T.shortQ)}/${fmt(T.ordQ)} áo (đơn đã chốt giao nhận)`},
+    {l:"Hoàn thiện chứng từ", v:pct(T.docOk,T.docN), d:`${T.docOk}/${T.docN} đơn đã chốt giao nhận · hoàn tất ${T.done}`, c:"var(--info,#1f5fae)"},
+    {l:"Số đơn · số áo", v:T.n, d:`${fmt(T.qty)} áo`}
+  ].map(x=>`<div class="tile" style="--c:${x.c||"var(--ink)"}"><span class="l">${x.l}</span><span class="v">${x.v}</span><span class="d">${x.d}</span></div>`).join("");
+  const table=(key,label)=>{ const G={}; L.forEach(x=>{ const k=key(x); (G[k]=G[k]||[]).push(x); });
+    const line=(k,r,tot)=>{ const lead=r.steps["bdgiao"], whole=r.steps["chotgiao"];
+      return `<tr${tot?` class="tot" data-tot="1" style="background:var(--head);font-weight:700"`:` data-k="${esc(k)}"`}><td><b>${esc(k)}</b></td><td class="r" data-n="${r.n}" data-q="${r.qty}">${r.n}<div class="sub">${fmt(r.qty)} áo</div></td>
+        <td class="r">${cell(avg(lead),lead.length)}</td><td class="r">${cell(avg(whole),whole.length)}</td>
+        <td class="r">${cell(pct(r.onTime,r.dueN),r.dueN)}</td><td class="r">${r.late.length?avg(r.late):"—"}</td><td class="r"${r.lateNow?` style="color:var(--crit);font-weight:700"`:""}>${r.lateNow}</td>
+        <td class="r">${cell(pct(r.shortQ,r.ordQ),r.closeN)}</td><td class="r">${cell(pct(r.docOk,r.docN),r.docN)}</td><td class="r">${r.done}</td></tr>`; };
+    const rows=Object.keys(G).sort().map(k=>line(k,stats(G[k],S),false)).join("")+(Object.keys(G).length?line("Tổng",T,true):"");
+    return rows?`<table class="t"><thead><tr><th>${label}</th><th class="r">Số đơn</th><th class="r">Bắt đầu → giao (ngày)</th><th class="r">Chốt → giao (ngày)</th><th class="r">Giao đúng hạn</th><th class="r">Trễ TB (ngày)</th><th class="r">Đang trễ</th><th class="r">Áo giao thiếu</th><th class="r">Hoàn thiện chứng từ</th><th class="r">Hoàn tất</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty">Chưa có đơn đã chốt.</div>`; };
+  $("#byX").innerHTML=table(x=>Don.xOf(x.o).name,"Xưởng");
+  $("#byS").innerHTML=table(x=>x.m.name,"SKU (mã)");
+  $("#byU").innerHTML=table(x=>Don.execOf(x.o)?Khung.userName(Don.execOf(x.o)):"Chưa bàn giao người thực thi","Nhân viên thực thi");
+  const X=[...new Set(L.map(x=>Don.xOf(x.o).name))].sort(), SX={}; X.forEach(k=>SX[k]=stats(L.filter(x=>Don.xOf(x.o).name===k),S));
+  $("#steps").innerHTML=L.length?`<table class="t"><thead><tr><th>Bước</th><th class="r">Tất cả</th>${X.map(k=>`<th class="r">${esc(k)}</th>`).join("")}</tr></thead><tbody>
+    ${STEPS.map(([a,b,l])=>`<tr><td>${l}</td><td class="r">${cell(avg(T.steps[a+b]),T.steps[a+b].length)}</td>${X.map(k=>`<td class="r">${cell(avg(SX[k].steps[a+b]),SX[k].steps[a+b].length)}</td>`).join("")}</tr>`).join("")}</tbody></table>`:`<div class="empty">Chưa có đơn đã chốt.</div>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-m]"); if(!b) return; month=b.dataset.m; try { localStorage.setItem("_ui_kpi_month",month); } catch(err){} render(); });
+Don.onChange(render); Khung.onFilter(render);
+window.addEventListener("storage",e=>{ if(["kehoach-sx-v3","danhmuc-v1"].includes(e.key)) render(); });
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+render();
+</script>
+</body>
+</html>

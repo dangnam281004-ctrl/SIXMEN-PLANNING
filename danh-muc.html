@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="canh-bao.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Danh mục mã & phân công</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="khung.css">
+<style>
+.code{font-weight:700;font-variant-numeric:tabular-nums}
+.chk{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.preview{background:var(--ok-bg);color:var(--ok);border-radius:7px;padding:8px 10px;font-size:12px}
+.log{display:grid;grid-template-columns:118px 110px 1fr;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.log:last-child{border-bottom:0}
+tr.zg td{background:var(--head);font-size:11.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.02em;padding:6px 10px}
+.ng-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px}
+.ng-grid label{display:grid;gap:4px;font-size:12.5px;color:var(--ink2);font-weight:600}
+.ng-grid .u{display:flex;gap:6px;align-items:center}.ng-grid input{width:90px}.ng-grid small{font-weight:400;color:var(--muted)}
+.ng-acts{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side"><div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div><nav class="nav" aria-label="Điều hướng"></nav><div class="side-foot"></div></aside>
+  <div class="col">
+    <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button><div class="tt"><b>Danh mục mã &amp; phân công</b><small>Mỗi mã có một người phụ trách chính · Admin thêm mã, chuyển giao, thu hồi</small></div><span id="acts"></span></header>
+    <div class="content">
+      <div class="tiles" id="tiles"></div>
+      <div class="panel"><div class="ph"><h2>Mã sản phẩm</h2><span class="muted small" id="note"></span></div><div class="scroll" id="list"></div></div>
+      <div class="panel"><div class="ph"><h2>Lịch sử phân công</h2><span class="muted small">Không sửa, không xoá được</span></div><div id="log"></div></div>
+      <div class="panel" id="nguong"><div class="ph"><h2>Ngưỡng cảnh báo</h2><span class="muted small" id="ngNote"></span></div><div id="ngBox" style="padding:12px 14px"></div><div id="ngLog"></div></div>
+    </div>
+  </div>
+</div>
+<div id="dlg"></div>
+<script>
+const $=s=>document.querySelector(s), esc=Khung.esc, KEY="danhmuc-v1";
+const today=()=>{ const d=new Date(); return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const dmy=s=>s?s.split("-").reverse().join("/"):"—";
+const hm=t=>new Date(t).toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",year:"numeric"});
+const readCat=()=>Khung.catalog();
+function saveCat(c){ localStorage.setItem(KEY, JSON.stringify(c)); }
+const readS=()=>{ try { return JSON.parse(localStorage.getItem("kehoach-sx-v3"))||{models:{}}; } catch(e){ return {models:{}}; } };
+/* Đơn đang chạy / việc còn mở của 1 mã (đơn chưa về kho, chưa huỷ) */
+function openWork(key){
+  const p=(readS().models||{})[key]||{}, all=[...(p.orders||[]),...(p.gapOrders||[])].filter(o=>!o.cancelled&&!o.arrived);
+  return {running:all.filter(o=>o.closed).length, pending:all.filter(o=>!o.closed).length};
+}
+const ADMIN=Khung.isAdmin();
+/* 09/11/2026 (anh duyệt): Ngành hàng (tab ở thanh lọc) · Bán chạy / Bán bình thường · Mã · Người phụ trách. Liên kết dữ liệu theo key cố định của mã, không theo tên / vị trí */
+const NG=Object.fromEntries(Khung.NGANH), NH=Object.fromEntries(Khung.NHOM);
+const hasOrders=key=>{ const p=(readS().models||{})[key]||{}; return [...(p.orders||[]),...(p.gapOrders||[])].length>0; };
+function kindLine(m){
+  const n=Khung.nganhOf(m); if(n==="polo") return "";
+  if(!Khung.ready(m)) return `<div class="small"><span class="pill p-warn">chưa khai size / màu</span></div>`;
+  const cn=Object.assign({},Don.COLOR_NAME||{},Khung.colorNames(),m.colorNames||{});   // 13/11: tên màu riêng của mã đứng trước
+  const how=Khung.orderMode(m)==="quan"?"FOB Anh Hùng, nhập thẳng số":"chưa có xưởng";
+  return `<div class="small muted">Size ${esc(m.sizes.join(" · "))} · ${esc(m.colors.map(c=>cn[c]||c).join(", "))} · ${how}</div>`;
+}
+function render(){
+  const c=readCat(), ms=c.models.filter(m=>Khung.visible(m.key)&&Khung.match(m.name,m.code,Khung.aliasOf(m))), SEC=Khung.sections(ms);
+  const all=c.models, act=all.filter(m=>m.status!=="stopped");
+  $("#acts").innerHTML=ADMIN?`<button class="btn primary" data-add>+ Thêm mã</button>`:`<span class="pill p-mute">Chỉ Admin thêm mã, phân công</span>`;
+  $("#tiles").innerHTML=[
+    {v:act.length, l:"Mã đang dùng", d:Khung.NGANH.map(([k,t])=>`${t} ${act.filter(m=>Khung.nganhOf(m)===k).length}`).join(" · ")},
+    {v:act.filter(m=>Khung.me&&m.owner===Khung.me.id).length, l:"Mã của tôi", d:Khung.me?esc(Khung.me.name):""},
+    {v:act.filter(m=>!m.owner).length, l:"Chưa phân công", d:"cần giao người phụ trách", c:act.some(m=>!m.owner)?"var(--warn)":""},
+    {v:act.filter(m=>!Khung.ready(m)).length, l:"Chưa khai size / màu", d:"khai rồi mới nhập SIXMEN, lên đơn", c:act.some(m=>!Khung.ready(m))?"var(--warn)":""}
+  ].map(x=>`<div class="tile" style="--c:${x.c||"var(--ink)"}"><span class="l">${x.l}</span><span class="v">${x.v}</span><span class="d">${x.d}</span></div>`).join("");
+  $("#note").textContent=`${ms.length}/${all.length} mã theo bộ lọc${(c.exec||{}).user?" · người thực thi mặc định: "+Khung.userName(c.exec.user):""}`;   // V5
+  $("#list").innerHTML=ms.length?`<table class="t"><thead><tr><th>Mã SP</th><th>Tên mẫu</th><th>Ngành</th><th>Nhóm</th><th>Thêu / phôi</th><th>Người phụ trách</th><th>Từ ngày</th><th>Trạng thái</th><th class="r">Đơn đang chạy</th><th class="r">Đơn chưa chốt</th><th></th></tr></thead><tbody>
+    ${SEC.map(sc=>`<tr class="zg"><td colspan="11">${esc(sc.label)} <span class="muted">${sc.list.length}</span></td></tr>`+sc.list.map(m=>{ const w=openWork(m.key);
+      return `<tr><td class="code">${m.code?esc(m.code):`<span class="muted">chưa có</span>`}</td><td><b>${esc(m.name)}</b>${(m.alias||[]).length?`<div class="small muted">tên khác: ${esc(m.alias.join(", "))}</div>`:""}${kindLine(m)}</td>
+        <td>${NG[Khung.nganhOf(m)]}</td><td>${Khung.nhomOf(m)==="chay"?`<span class="pill p-ok">Bán chạy</span>`:`<span class="pill p-mute">Bình thường</span>`}</td><td>${[m.theu?"Thêu TP":"",m.phoi?"Áo phôi":""].filter(Boolean).join(" · ")||"—"}</td>
+        <td>${m.owner?esc(Khung.userName(m.owner)):`<span class="pill p-warn">Chưa phân công</span>`}</td><td>${dmy(m.ownerSince)}</td>
+        <td>${m.status==="stopped"?`<span class="pill p-mute">Ngừng</span>`:`<span class="pill p-ok">Đang dùng</span>`}</td>
+        <td class="r num">${w.running}</td><td class="r num">${w.pending}</td>
+        <td style="white-space:nowrap">${ADMIN?`<button class="btn ghost" data-edit="${m.key}">Sửa</button> <button class="btn${m.owner?"":" primary"}" data-move="${m.key}">${m.owner?"Chuyển giao":"Phân công"}</button>`:""}</td></tr>`; }).join("")).join("")}
+    </tbody></table>`:`<div class="empty">${Khung.emptyText()}</div>`;
+  const L=(c.log||[]).slice().reverse().filter(e=>!e.model||Khung.visible(e.model));
+  $("#log").innerHTML=L.length?L.map(e=>`<div class="log"><span class="muted">${hm(e.at)}</span><b>${esc(Khung.userName(e.by))}</b><span>${logText(e,c)}</span></div>`).join(""):`<div class="empty">Chưa có lịch sử.</div>`;
+  renderNguong(c);
+}
+/* ===== V5.4 Đợt 2 (Q12, X1): Ngưỡng cảnh báo — chỉ Admin sửa (server chỉ cho Admin ghi danh mục), mỗi lần đổi ghi lịch sử trước → sau, người, thời điểm.
+   Tính theo giờ đồng hồ. Chỉ đổi lúc nào báo Sắp hạn / Quá hạn để hiển thị; không đổi trạng thái đơn, không đổi số liệu ===== */
+const NG_F=[["sxDays","Đơn sản xuất · báo Sắp hạn giao trước","ngày","Quá hạn khi qua ngày hẹn giao mà chưa chốt giao nhận"],
+  ["nvlDays","Đơn mua NVL · báo Sắp hạn về trước","ngày","Quá hạn (NCC trễ) khi qua ngày về mà còn hàng chưa nhận đạt"],
+  ["nhanHours","Chờ tiếp nhận · quá hạn sau khi bàn giao","giờ","VD bàn giao 17:00, ngưỡng 4 giờ → quá hạn từ 21:00"],
+  ["poHours","Chưa đủ PO 1 + PO 2 · quá hạn sau khi tiếp nhận","giờ","24 giờ = 1 ngày"]];
+const ngCur=c=>{ const D=Don.CFG54_DEF||{}, a=(c||readCat()).alertCfg||{}, L=Don.CFG54_LIM||{}; const o={}; NG_F.forEach(([k])=>{ const v=+a[k]; o[k]=isFinite(v)&&L[k]&&v>=L[k][0]&&v<=L[k][1]&&Math.round(v)===v?v:D[k]; }); return o; };
+const ngTxt=(k,v)=>`${v} ${(NG_F.find(x=>x[0]===k)||[])[2]||""}`;
+function renderNguong(c){
+  if(!Don.CFG54_DEF){ $("#nguong").hidden=true; return; }
+  const cur=ngCur(c), D=Don.CFG54_DEF, L=Don.CFG54_LIM, custom=!!c.alertCfg;
+  $("#ngNote").textContent=(ADMIN?"Chỉ Admin sửa · ":"Chỉ xem · ")+(custom?"đang dùng ngưỡng Admin đặt":"đang dùng ngưỡng mặc định");
+  $("#ngBox").innerHTML=`<div class="ng-grid">${NG_F.map(([k,l,u,h])=>`<label>${l}<span class="u"><input class="field" type="number" min="${L[k][0]}" max="${L[k][1]}" step="1" data-ng="${k}" value="${cur[k]}"${ADMIN?"":" disabled"}> ${u}</span><small>${esc(h)} · mặc định ${D[k]} ${u}</small></label>`).join("")}</div>
+    ${ADMIN?`<div class="ng-acts"><button class="btn primary" data-ngsave>Lưu ngưỡng</button><button class="btn ghost" data-ngdef>Về mặc định</button><span class="err" id="ngErr"></span></div>`:""}
+    <div class="muted small" style="margin-top:8px">Tính theo giờ đồng hồ thực tế (giờ server). Đơn chưa có ngày hẹn thật luôn hiện "Chưa có hạn giao", không báo quá hạn. Đổi ngưỡng chỉ đổi cảnh báo hiển thị, không đổi trạng thái đơn.</div>`;
+  const LG=(c.alertLog||[]).slice().reverse();
+  $("#ngLog").innerHTML=`<div class="ph" style="padding-top:4px"><h2 style="font-size:13px">Lịch sử ngưỡng</h2><span class="muted small">Không sửa, không xoá được</span></div>`+(LG.length?LG.map(e=>`<div class="log" data-nglog><span class="muted">${hm(e.at)}</span><b>${esc(Khung.userName(e.by))}</b><span>${NG_F.filter(([k])=>(e.before||{})[k]!==(e.after||{})[k]).map(([k,l])=>`${esc(l)}: <b>${ngTxt(k,(e.before||{})[k])} → ${ngTxt(k,(e.after||{})[k])}</b>`).join(" · ")||"—"}</span></div>`).join(""):`<div class="empty">Chưa đổi ngưỡng lần nào (đang dùng mặc định).</div>`);
+}
+function saveNguong(toDefault){
+  if(!ADMIN) return;
+  const c=readCat(), before=ngCur(c), L=Don.CFG54_LIM, after={};
+  for(const [k,l,u] of NG_F){
+    const v=toDefault?Don.CFG54_DEF[k]:Number(($(`[data-ng="${k}"]`)||{}).value);
+    if(!isFinite(v)||Math.round(v)!==v||v<L[k][0]||v>L[k][1]){ $("#ngErr").textContent=`${l}: nhập số nguyên từ ${L[k][0]} đến ${L[k][1]} ${u}.`; return; }
+    after[k]=v;
+  }
+  if(NG_F.every(([k])=>before[k]===after[k])){ $("#ngErr").textContent="Ngưỡng không đổi."; return; }
+  c.alertCfg=after; (c.alertLog=c.alertLog||[]).push({at:Date.now(), by:Khung.me.id, before, after});
+  saveCat(c); render();
+}
+const nameOf=(c,k)=>(c.models.find(m=>m.key===k)||{}).name||k;
+function logText(e,c){
+  if(e.action==="chuyen-giao") return `<b>${esc(nameOf(c,e.model))}</b>: ${esc(Khung.userName(e.from))} → ${esc(Khung.userName(e.to))} từ ${dmy(e.since)} · lý do: ${esc(e.reason)}`;
+  if(e.action==="them-ma") return `Thêm mã <b>${esc(nameOf(c,e.model))}</b> · phụ trách ${esc(Khung.userName(e.to))}`;
+  if(e.action==="sua-ma") return `Sửa mã <b>${esc(nameOf(c,e.model))}</b>: ${esc(e.change)}`;
+  if(e.action==="thuc-thi-mac-dinh") return `Người thực thi mặc định: <b>${esc(Khung.userName(e.to))}</b> (nhận mọi đơn khi chốt)`;
+  return esc(e.note||e.action);
+}
+/* ===== Hộp thoại ===== */
+const userOpts=(sel,none)=>(none?`<option value="">— Chưa phân công (thu hồi) —</option>`:"")+Khung.users.filter(u=>u.active).map(u=>`<option value="${u.id}"${u.id===sel?" selected":""}>${esc(u.name||u.username)} · ${u.role==="admin"?"Admin":"Nhân viên"}</option>`).join("");
+function dlg(html){ $("#dlg").innerHTML=`<div class="dlg" role="dialog" aria-modal="true"><div>${html}</div></div>`; const f=$("#dlg input,#dlg select"); if(f) f.focus(); }
+const close=()=>$("#dlg").innerHTML="";
+const SZ_POLO="M, L, XL, 2XL, 3XL";
+function formModel(m){
+  const isNew=!m; m=m||{nhom:"chay", status:"active", kind:Khung.filter().nganh!=="all"&&Khung.filter().nganh!=="polo"?Khung.filter().nganh:undefined};
+  const lock=!isNew&&hasOrders(m.key), ng=Khung.nganhOf(m), cn=Object.assign({},Don.COLOR_NAME||{},Khung.colorNames(),m.colorNames||{});
+  dlg(`<h2>${isNew?"Thêm mã sản phẩm":"Sửa mã "+esc(m.name)}</h2>
+    <label>Mã sản phẩm (SKU)<input class="field" id="fCode" value="${esc(m.code||"")}" placeholder="VD: SXPL020"></label>
+    <label>Tên hiển thị<input class="field" id="fName" value="${esc(m.name||"")}" placeholder="VD: Polo Kẻ Sọc"></label>
+    <label>Tên khác để tìm (cách nhau dấu phẩy)<input class="field" id="fAlias" value="${esc((m.alias||[]).join(", "))}" placeholder="VD: Italy Horse"></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <label>Ngành hàng<select class="field" id="fNganh"${lock?" disabled":""}>${Khung.NGANH.map(([k,t])=>`<option value="${k}"${k===ng?" selected":""}>${t}</option>`).join("")}</select></label>
+      <label>Nhóm<select class="field" id="fNhom">${Khung.NHOM.map(([k,t])=>`<option value="${k}"${k===Khung.nhomOf(m)?" selected":""}>${t}</option>`).join("")}</select></label>
+    </div>
+    ${lock?`<div class="muted small">Mã đã có đơn: không đổi ngành, size, màu (tránh lệch số đã đặt).</div>`:""}
+    <div id="fKindBox" style="display:grid;gap:10px">
+      <label>Size (1–5 size, cách nhau dấu phẩy)<input class="field" id="fSizes" value="${esc((m.sizes||[]).join(", "))}" placeholder="VD: 29, 30, 31, 32, 34"${lock?" disabled":""}></label>
+      <label>Màu (tên màu, cách nhau dấu phẩy; ghi mã SKU trong ngoặc nếu có, VD: Xanh đậm (XDA))<input class="field" id="fColors" value="${esc((m.colors||[]).map(c=>(m.colorNames||{})[c]?`${m.colorNames[c]} (${c})`:(cn[c]||c)).join(", "))}" placeholder="VD: Đen, Xanh đậm (XDA), Xanh nhạt"${lock?" disabled":""}></label>
+    </div>
+    <div class="chk" id="fSpecial"><label><input type="checkbox" id="fTheu"${m.theu?" checked":""}> Có thể đặt Thêu thành phẩm (Thêu TP)</label><label><input type="checkbox" id="fPhoi"${m.phoi?" checked":""}> Có thể đặt Áo phôi</label></div>
+    ${isNew?`<label>Người phụ trách<select class="field" id="fOwner">${userOpts(Khung.me&&Khung.me.id,true)}</select></label>`:`<label>Trạng thái<select class="field" id="fStatus"><option value="active">Đang dùng</option><option value="stopped"${m.status==="stopped"?" selected":""}>Ngừng sử dụng (ẩn khỏi Phân tích nhu cầu, Kế hoạch; đơn cũ, lịch sử vẫn giữ)</option></select></label>`}
+    <div class="err" id="fErr"></div>
+    <div class="acts"><button class="btn" data-close>Huỷ</button><button class="btn primary" data-savemodel="${isNew?"":m.key}">${isNew?"Thêm mã":"Lưu"}</button></div>`);
+  kindUI();
+}
+function kindUI(){ const n=$("#fNganh"); if(!n) return; const polo=n.value==="polo"; $("#fKindBox").hidden=polo; $("#fSpecial").hidden=!polo; }
+document.addEventListener("change",e=>{ if(e.target.id==="fNganh") kindUI(); });
+const splitList=v=>String(v||"").split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
+/* Tên màu → mã màu: trùng tên màu đã có thì dùng mã cũ; màu mới tạo mã 3 chữ, không trùng */
+function colorCodes(names, keep){
+  const cn=Object.assign({},Don.COLOR_NAME||{},Khung.colorNames()), byName={}; Object.entries(cn).forEach(([k,v])=>byName[Khung.norm(v)]=k);
+  const used=new Set([...Object.keys(cn),...Khung.COLORS_ALL]), out=[], add={};
+  for(const nm0 of names){
+    /* 13/11: "Tên (MÃ)" = mã SKU anh chỉ định, tên riêng của mã hàng này (VD Quần Jeans "Xanh đậm (XDA)") */
+    const ex=/^(.*\S)\s*\(\s*([A-Za-z0-9]{2,4})\s*\)$/.exec(nm0);
+    if(ex){ const code=ex[2].toUpperCase(), nm=ex[1].trim(); if(out.includes(code)) return {err:`Màu "${nm0}" bị lặp mã.`}; out.push(code); add[code]=nm.charAt(0).toUpperCase()+nm.slice(1); used.add(code); continue; }
+    const nm=nm0, k0=Khung.norm(nm), hit=byName[k0]||(/^[A-Z0-9]{2,4}$/.test(nm)&&cn[nm]?nm:null);
+    if(hit){ if(out.includes(hit)) return {err:`Màu "${nm}" bị lặp.`}; out.push(hit); continue; }
+    const w=k0.toUpperCase().replace(/[^A-Z0-9 ]/g,"").split(/\s+/).filter(Boolean); if(!w.length) return {err:`Tên màu "${nm}" không hợp lệ.`};
+    let base=(w.length>1?w.map(x=>x[0]).join("")+w[w.length-1].slice(1):w[0]).slice(0,3).padEnd(3,"X"), code=base, i=2;
+    while(used.has(code)||out.includes(code)) code=base.slice(0,2)+(i++);
+    out.push(code); add[code]=nm.charAt(0).toUpperCase()+nm.slice(1); used.add(code);
+  }
+  return {codes:out, names:Object.assign({},keep||{},add)};
+}
+function slug(name,c){ let b=Khung.norm(name).replace(/^(polo|quan|so mi|thun)\s+/,"").replace(/[^a-z0-9]+/g,"").slice(0,16)||"ma", k=b, i=2; while(c.models.some(m=>m.key===k)) k=b+i++; return k; }
+function saveModel(key){
+  const c=readCat(), name=$("#fName").value.trim(), code=$("#fCode").value.trim().toUpperCase(), alias=splitList($("#fAlias").value);
+  const nganh=$("#fNganh").value, nhom=$("#fNhom").value, polo=nganh==="polo", cur=key?c.models.find(x=>x.key===key):null, lock=!!cur&&hasOrders(key);
+  const err=t=>{ $("#fErr").textContent=t; };
+  if(!name) return err("Chưa nhập tên mẫu.");
+  /* So tên đã bỏ dấu, bỏ chữ ngành ở đầu (Polo / Quần / Sơ mi / Áo thun): "Polo Davin Eagle" trùng tên khác "Davin Eagle" */
+  const same=x=>Khung.norm(x).replace(/\s+/g," ").trim().replace(/^(polo|quan|so mi|ao thun|thun) /,""), names=[name,...alias].map(same);
+  const dup=c.models.find(m=>m.key!==key && [m.name,...(m.alias||[])].map(same).some(x=>names.includes(x)));
+  if(dup) return err(`Trùng tên với mã "${dup.name}" (kể cả tên khác). Sửa mã đó thay vì tạo mới.`);
+  if(code && c.models.some(m=>m.key!==key && (m.code||"").toUpperCase()===code)) return err("Mã sản phẩm này đã dùng cho mẫu khác.");
+  let sizes=null, colors=null, colorNames=null;
+  if(!polo && !lock){
+    sizes=splitList($("#fSizes").value); const cl=splitList($("#fColors").value);
+    if(sizes.length>5) return err("Tối đa 5 size.");
+    if(new Set(sizes.map(x=>x.toUpperCase())).size!==sizes.length) return err("Size bị lặp.");
+    if(cl.length){ const r=colorCodes(cl,cur&&cur.colorNames); if(r.err) return err(r.err); colors=r.codes; colorNames=r.names; }
+    if(!sizes.length) sizes=null;
+  }
+  c.log=c.log||[];
+  const kindOf=n=>n==="polo"?undefined:n;
+  if(!key){
+    const k=slug(name,c), owner=$("#fOwner").value||null;
+    const m={key:k, code, name, kind:kindOf(nganh), nhom, group:nhom==="chay"?"hero":"khac", theu:polo&&$("#fTheu").checked, phoi:polo&&$("#fPhoi").checked, owner, ownerSince:owner?today():null, status:"active", created:Date.now(), createdBy:Khung.me.id};
+    if(alias.length) m.alias=alias; if(sizes) m.sizes=sizes; if(colors){ m.colors=colors; m.colorNames=colorNames; }
+    if(!m.kind) delete m.kind;
+    c.models.push(m); c.log.push({at:Date.now(), by:Khung.me.id, model:k, action:"them-ma", to:owner});
+  } else {
+    const m=cur, show=v=>v===true?"có":v===false?"không":v===""||v==null?"(trống)":Array.isArray(v)?v.join(", "):v;
+    const before={code:m.code||"", name:m.name, alias:(m.alias||[]).join(", "), nganh:Khung.nganhOf(m), nhom:Khung.nhomOf(m), theu:!!m.theu, phoi:!!m.phoi, status:m.status||"active", sizes:(m.sizes||[]).join(", "), colors:(m.colors||[]).join(", ")};
+    const after={code, name, alias:alias.join(", "), nganh:lock?before.nganh:nganh, nhom, theu:polo&&$("#fTheu").checked, phoi:polo&&$("#fPhoi").checked, status:$("#fStatus").value, sizes:lock||polo?before.sizes:(sizes||[]).join(", "), colors:lock||polo?before.colors:(colors||[]).join(", ")};
+    const LB={code:"mã SP", name:"tên", alias:"tên khác", nganh:"ngành", nhom:"nhóm", theu:"thêu", phoi:"phôi", status:"trạng thái", sizes:"size", colors:"màu"};
+    const NGT=Object.fromEntries(Khung.NGANH), NHT=Object.fromEntries(Khung.NHOM), txt=(k,v)=>k==="nganh"?NGT[v]:k==="nhom"?NHT[v]:show(v);
+    const ch=Object.keys(after).filter(k=>before[k]!==after[k]).map(k=>`${LB[k]} ${txt(k,before[k])} → ${txt(k,after[k])}`);
+    if(!ch.length){ close(); return; }
+    Object.assign(m,{code, name, nhom, group:nhom==="chay"?"hero":"khac", theu:after.theu, phoi:after.phoi, status:after.status});
+    if(alias.length) m.alias=alias; else delete m.alias;
+    if(!lock){ if(kindOf(nganh)) m.kind=kindOf(nganh); else delete m.kind;
+      if(!polo){ if(sizes) m.sizes=sizes; else delete m.sizes; if(colors){ m.colors=colors; m.colorNames=colorNames; } else { delete m.colors; delete m.colorNames; } } }
+    c.log.push({at:Date.now(), by:Khung.me.id, model:key, action:"sua-ma", change:ch.join(", ")});
+  }
+  saveCat(c); close(); render();
+}
+function formMove(key){
+  const c=readCat(), m=c.models.find(x=>x.key===key), w=openWork(key);
+  dlg(`<h2>${m.owner?"Chuyển giao":"Phân công"} · ${esc(m.name)}</h2>
+    <div class="muted small">Đang phụ trách: <b>${esc(Khung.userName(m.owner))}</b>${m.ownerSince?" từ "+dmy(m.ownerSince):""}</div>
+    <label>Người phụ trách mới<select class="field" id="mTo">${userOpts(null,!!m.owner)}</select></label>
+    <label>Ngày bắt đầu phụ trách<input class="field" type="date" id="mSince" value="${today()}"></label>
+    <label>Lý do (bắt buộc)<input class="field" id="mReason" placeholder="VD: giao nhân viên phụ trách từ tuần sau"></label>
+    <div class="preview">Sẽ chuyển ${w.running} đơn đang chạy và ${w.pending} đơn chưa chốt sang danh sách việc của người nhận.<br>Không đổi: số lượng, tồn NVL, lịch sử, người tạo đơn.</div>
+    <div class="err" id="mErr"></div>
+    <div class="acts"><button class="btn" data-close>Huỷ</button><button class="btn primary" data-domove="${key}">Xác nhận</button></div>`);
+}
+function doMove(key){
+  const to=$("#mTo").value||null, reason=$("#mReason").value.trim(), since=$("#mSince").value||today();
+  const c=readCat(), m=c.models.find(x=>x.key===key);
+  if(to===m.owner){ $("#mErr").textContent="Người nhận đang là người phụ trách mã này."; return; }
+  if(!reason){ $("#mErr").textContent="Ghi lý do chuyển giao."; return; }
+  (c.log=c.log||[]).push({at:Date.now(), by:Khung.me.id, model:key, action:"chuyen-giao", from:m.owner||null, to, since, reason});
+  m.owner=to; m.ownerSince=to?since:null;
+  saveCat(c); close(); render();
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  if(t.hasAttribute("data-close")) close();
+  else if(t.hasAttribute("data-add")) formModel(null);
+  else if(t.dataset.edit) formModel(readCat().models.find(m=>m.key===t.dataset.edit));
+  else if(t.dataset.move) formMove(t.dataset.move);
+  else if(t.hasAttribute("data-savemodel")) saveModel(t.dataset.savemodel);
+  else if(t.dataset.domove) doMove(t.dataset.domove);
+  else if(t.hasAttribute("data-ngsave")) saveNguong(false);
+  else if(t.hasAttribute("data-ngdef")) saveNguong(true);
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") close(); });
+window.addEventListener("storage",e=>{ if(e.key===KEY||e.key==="kehoach-sx-v3") render(); });
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+Khung.onFilter(render);
+render();
+</script>
+</body>
+</html>
