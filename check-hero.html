@@ -451,7 +451,7 @@ function flowAgg(rows){ const a={A:0,hasA:false,B:0,hasB:false,C:0,cert:0,unc:0,
 /* UX-1: lý do giống nhau ở mọi dòng của nhóm → ghi 1 lần ở đầu nhóm, từng dòng chỉ ghi phần riêng (nội dung lý do giữ nguyên) */
 const whyParts=r=>(r.why||[]).flatMap(w=>String(w).replace(/^Cần kiểm tra:\s*/,"").split(/;\s*/)).map(s=>s.trim()).filter(Boolean);
 function commonWhy(L){ if(L.length<2) return []; const P=L.map(whyParts); return P[0].filter(p=>P.every(q=>q.includes(p))); }
-const dTxt=r=>(r.D!=null?`<b>${PT.fmt(r.D)}</b>`:"—")+(r.after>0?`<div><span class="pill p-info" title="${esc((r.afterO||[]).map(o=>Don.label(o)).join(", "))} · số Cần đặt giữ nguyên">ⓘ đã đặt ${PT.fmt(r.after)} sau cập nhật</span></div>`:"");
+const dTxt=r=>(r.D!=null?`<b>${PT.fmt(r.D)}</b>`:"—")+(r.after>0?`<div><span class="pill p-info" title="${esc((r.afterO||[]).map(o=>Don.label(o)).join(", "))} · ${PT.fmt(r.after)} áo · chỉ để thông tin, số Cần đặt giữ nguyên">ⓘ Đã có đơn chốt sau lần cập nhật Cần đặt</span></div>`:"");
 function grpBlock(g,title,L,open,sub){
   const tag=g==="A"?"p-bad":g==="B"?"p-warn":g==="C"?"p-ok":"p-mute", sel=g!=="C"&&Khung.canEdit(H.active);
   const tot=L.reduce((a,r)=>a+(r.D||0),0), cw=commonWhy(L);

@@ -850,8 +850,7 @@ async function chotOrder(o){
 function nextSku54(){
   if(!Don.skuList) return null;
   const L=Don.skuList(shownModels(),S,{pt:ptOf, agg});
-  /* CR-01: bỏ qua SKU đã có đơn chốt sau lần cập nhật Cần đặt gần nhất (tránh đặt trùng; số Cần đặt không đổi) */
-  return L.find(x=>x.c&&x.key!==S.active&&!(x.after>0)&&(n(x.con)>0||x.unc)&&Khung.orderMode(x.m)!=="none")||null;
+  return L.find(x=>x.c&&x.key!==S.active&&(n(x.con)>0||x.unc)&&Khung.orderMode(x.m)!=="none")||null;
 }
 function chotToast54(o){
   const el=$("#chotToast"); if(!el||GUI_ID) return;
@@ -1564,7 +1563,7 @@ const sure = r => !!r && r.D!==null && r.D!==undefined;
 /* size chưa có số Cần đặt (chưa dán bảng / ô trống) */
 const uncRow = r => !!r && !sure(r);
 /* đơn chốt sau lần cập nhật Cần đặt gần nhất: chỉ cảnh báo, không đổi số */
-const afterTxt = x => x&&x.after>0?`<span class="aft" title="${esc((x.afterO||[]).map(o=>OL(o)).join(", "))} · số Cần đặt giữ nguyên theo bảng quản lý cung cấp">ⓘ đã đặt ${fmt(x.after)} sau cập nhật Cần đặt</span>`:"";
+const afterTxt = x => x&&x.after>0?`<span class="aft" title="${esc((x.afterO||[]).map(o=>OL(o)).join(", "))} · ${fmt(x.after)} áo · chỉ để thông tin, số Cần đặt giữ nguyên theo bảng quản lý cung cấp">ⓘ Đã có đơn chốt sau lần cập nhật Cần đặt</span>`:"";
 /* {màu: [5 size]} số còn phải đặt (= Cần đặt); null = chưa có số Cần đặt */
 function ptRem(key){
   const g={}; COLORS.forEach(c=>g[c]=[0,0,0,0,0]);
@@ -1612,7 +1611,7 @@ function popHtml(rows){
   if(!L.length) return `<span class="muted">Chưa có đơn nào đang về.</span>`;
   return `<table class="t2" style="width:100%;min-width:760px"><thead><tr><th>Mã đơn</th><th>Loại / xưởng</th><th>Trạng thái</th><th>Mã ERP</th><th>Chốt</th><th class="r">Xưởng chưa giao</th><th class="r">Đã giao, chưa đối chiếu tồn</th><th class="r">Tính vào Đã đặt</th></tr></thead><tbody>
     ${L.map(e=>`<tr><td><a href="don-hang.html?id=${encodeURIComponent(e.o.id)}">${esc(OL(e.o))}</a></td><td>${esc(ordKind(e.o))}</td><td>${(()=>{ const ct=Don.uxCat(e.o,S,S.active); return `<span class="ux-b ${ct.tone}">${ct.t}</span> <span class="small">${ordStage(e.o)}</span>`; })()}</td><td>${esc(Don.poTxt(e.o)||"—")}</td>
-      <td>${e.o.closed?esc(typeof e.o.closed==="string"?dmy(e.o.closed):""):"—"}${e.after?` <span class="aft" title="Chốt sau lần cập nhật Cần đặt gần nhất · số Cần đặt giữ nguyên">ⓘ sau cập nhật Cần đặt</span>`:""}</td><td class="r num">${fmt(e.q-e.qDel)}</td><td class="r num">${e.qDel?`<a href="don-hang.html?id=${encodeURIComponent(e.o.id)}#san-xuat" title="Đối chiếu ở Chi tiết đơn">${fmt(e.qDel)}</a>`:"0"}</td><td class="r num"><b>${fmt(e.q)}</b></td></tr>`).join("")}
+      <td>${e.o.closed?esc(typeof e.o.closed==="string"?dmy(e.o.closed):""):"—"}${e.after?` <span class="aft" title="Chỉ để thông tin · số Cần đặt giữ nguyên">ⓘ Đã có đơn chốt sau lần cập nhật Cần đặt</span>`:""}</td><td class="r num">${fmt(e.q-e.qDel)}</td><td class="r num">${e.qDel?`<a href="don-hang.html?id=${encodeURIComponent(e.o.id)}#san-xuat" title="Đối chiếu ở Chi tiết đơn">${fmt(e.qDel)}</a>`:"0"}</td><td class="r num"><b>${fmt(e.q)}</b></td></tr>`).join("")}
     </tbody></table>`;
 }
 const zOpen={m:new Set(), c:new Set(), pop:null};
