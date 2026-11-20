@@ -18,5 +18,10 @@ Ghi nhận riêng (không sửa trong CR-01): bài hồi quy NVL-03 (nhãn cột
 Không đổi: `server.ps1`, PO / 2 PO ERP, QLVH, NVL, bàn giao / tiếp nhận, tiến độ xưởng, giao nhận, quyền. `doi-chieu.js` vẫn để trong thư mục (không nạp).
 Dữ liệu cũ giữ nguyên: `o.sxRefl`, `o.sxReflLog`, `ptCfg.sixmenPO`, lịch sử chuyển Kế hoạch. Không xoá, không ghi đè.
 
-## Kiểm thử
-Xem báo cáo nghiệm thu CR-01 (dữ liệu mẫu, cổng tạm 8096, không đụng bản chính).
+## Kiểm thử (20/11/2026, dữ liệu mẫu, cổng tạm, không đụng bản chính) — PASS
+| Bộ | Kết quả |
+|---|---|
+| CR-01 (Còn phải đặt = Cần đặt 85 size · nhãn ⓘ chỉ cho đơn chốt sau cập nhật · chốt không bị chặn, số trước = sau · trạng thái mã không đổi theo nhãn · bảng Cần đặt + dữ liệu đối chiếu cũ giữ nguyên) | 12/12 · quét JS 87 lượt (29 trang × 3 vai trò) 0 lỗi · chỉ mở trang dữ liệu không đổi |
+| Hồi quy bản hoàn thiện (4 loại đơn, bàn giao → tiếp nhận, 2 PO ERP + QLVH, NVL, gửi xưởng) | 25/25 |
+| Hồi quy Đợt 3 | 29/29 · JS 78 lượt 0 lỗi |
+| Hồi quy Đợt 2 (KH-01 cập nhật theo CR-01) | 37/38 · JS 72 lượt 0 lỗi · NVL-03 sai từ trước CR-01 (đối chiếu trên commit d82cb84: cùng kết quả) |
