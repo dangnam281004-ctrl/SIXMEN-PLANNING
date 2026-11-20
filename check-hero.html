@@ -9,7 +9,7 @@
 <script src="don.js"></script>
 <script src="phan-tich.js"></script>
 <script src="canh-bao.js"></script>
-<script src="doi-chieu.js"></script>
+<!-- CR-01 (20/11/2026): bỏ Đối chiếu đơn đã đặt (doi-chieu.js không còn nạp; file và dữ liệu đối chiếu cũ giữ nguyên) -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Phân tích nhu cầu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,7 +106,7 @@ section{display:grid;gap:10px;scroll-margin-top:68px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
 .scroll{overflow-x:auto}
 .dc-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px}
-.dc-warn{color:var(--warn)} .dc-warn b{color:var(--crit)} .dc-ok{color:var(--ok);font-weight:600}
+.dc-warn{color:var(--warn)} .dc-warn b{color:var(--crit)} .dc-ok{color:var(--ok);font-weight:600} .dc-info{color:var(--accent)} .dc-info b{color:var(--ink)}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:12px}
 .empty{padding:36px 20px;text-align:center;color:var(--muted)}
 
@@ -264,7 +264,7 @@ body.ro .ro-note{display:block}
     <div class="content">
       <div class="page-head">
         <h1>Phân tích nhu cầu</h1>
-        <p>Mỗi sáng dán bảng Tồn kho và Cần đặt từ SIXMEN. Hệ thống tự đối chiếu với các đơn đang có trong Planning, cho biết size nào cần đặt gấp, size nào gom đơn được, size nào chưa cần đặt và dữ liệu nào cần kiểm tra. Quyết định số lượng và chốt đơn làm ở <b>Kế hoạch sản xuất</b>.</p>
+        <p>Mỗi sáng dán bảng Tồn kho và Cần đặt từ SIXMEN. Số Cần đặt do người quản lý cung cấp, Planning giữ nguyên (không đối trừ PO); hệ thống cho biết size nào cần đặt gấp, size nào gom đơn được, size nào chưa cần đặt và dữ liệu nào cần kiểm tra. Quyết định số lượng và chốt đơn làm ở <b>Kế hoạch sản xuất</b>.</p>
       </div>
 
       <nav class="tabs" id="tabs" role="tablist" aria-label="Mã sản phẩm"></nav>
@@ -291,8 +291,8 @@ body.ro .ro-note{display:block}
         <div class="panel" id="p-days"></div>
       </section>
 
-      <!-- Bước ngay sau cập nhật Tồn kho + Cần đặt: đối chiếu đơn đã đặt (doi-chieu.js), rồi mới phân tích / chuyển Kế hoạch -->
-      <section class="zone" id="doi-chieu" aria-label="Đối chiếu đơn đã đặt"><div class="dc-bar" id="dcBar"></div></section>
+      <!-- CR-01: khu "Đối chiếu đơn đã đặt" thay bằng cảnh báo thông tin: size có đơn chốt sau lần cập nhật Cần đặt gần nhất (không chặn, không đổi số) -->
+      <section class="zone" id="doi-chieu" aria-label="Đơn chốt sau cập nhật Cần đặt"><div class="dc-bar" id="dcBar"></div></section>
 
       <section class="zone" id="kv2" aria-label="Tổng quan tình trạng"><div class="zl">2 · Tổng quan tình trạng</div><div id="overview"></div></section>
       <section class="zone" id="kv3" aria-label="Nhận định"><div class="zl">3 · Nhận định</div><div class="say" id="say"></div></section>
@@ -394,23 +394,17 @@ function tablePill(k,x,res){
   const bad=res.issues.some(i=>(k==="need"&&/^need|^gap/.test(i.k))||(k==="ton"&&/^ton/.test(i.k)));
   return `<span class="pill ${bad?"p-bad":"p-ok"}" title="${x.legacy?"Giờ cập nhật chung (trước khi có giờ riêng từng bảng)":""}">${nm}: ${PT.hmd(x.at)}${x.by?" · "+esc(userN(x.by)):""}${x.legacy?" *":""}</span>`;
 }
-/* Đối chiếu đơn đã đặt với bảng Cần đặt đang dùng: tình trạng + nút mở danh sách (không có bảng thường trực) */
+/* CR-01 (20/11/2026): bỏ bước bắt buộc "Đối chiếu đơn đã đặt" (SIXMEN đã trừ / chưa trừ). Chỉ còn cảnh báo thông tin:
+   size có đơn chốt SAU lần cập nhật Cần đặt gần nhất. Không chặn chuyển Kế hoạch / chốt, không đổi số Cần đặt. */
 function renderDC(h){
-  const s=DC.summary(h.key,{H}), el=$("#dcBar"); if(!el) return;
-  if(!s.orders){ el.innerHTML=`<span class="dc-ok">Không có đơn đã chốt nào đang tính vào Đã đặt của ${esc(h.name)} · không cần đối chiếu.</span>`; return; }
-  if(!s.hasNeed){ el.innerHTML=`<span class="dc-warn">Chưa có bảng Cần đặt · dán bảng ở trên rồi đối chiếu ${s.orders} đơn đã đặt.</span>`; return; }
-  const when=s.needAt?PT.hmd(s.needAt):"—";
-  el.innerHTML=s.need
-    ?`<span class="dc-warn">⚠ <b>${s.skus} SKU chưa có số Còn phải đặt chính thức</b>: ${s.need} đơn chưa xác nhận SIXMEN đã trừ trong bảng Cần đặt lúc ${when}${s.stale?` (${s.stale} đơn cần xác nhận lại vì bảng Cần đặt / số còn hiệu lực đã đổi)`:""}. Đối chiếu trước khi xem đề xuất và chuyển Kế hoạch.</span>
-      <button class="btn primary" data-dc="need">Đối chiếu đơn đã đặt (${s.need})</button>`
-    :`<span class="dc-ok">✓ Đã đối chiếu ${s.done} đơn — bảng Cần đặt cập nhật lúc ${when}${s.orders>s.done?` · ${s.orders-s.done} đơn còn ô chưa xác định nhưng không ảnh hưởng số đặt`:""}.</span>
-      <button class="btn" data-dc="all">Xem / sửa đối chiếu (${s.orders})</button>`;
+  const el=$("#dcBar"); if(!el) return; const r=lastRes; if(!r){ el.innerHTML=""; return; }
+  const L=(r.rows||[]).filter(x=>x.after>0), os=new Set(); L.forEach(x=>(x.afterO||[]).forEach(o=>os.add(o)));
+  const when=r.times&&r.times.need&&r.times.need.at?PT.hmd(r.times.need.at):"";
+  el.innerHTML=L.length
+    ?`<span class="dc-info">ⓘ ${L.length} size của ${esc(h.name)} đã chốt đặt sau lần cập nhật Cần đặt ${when} (${[...os].map(o=>esc(Don.label(o))).join(", ")}): ${L.map(x=>`<b>${esc(x.sku)}</b> ${PT.fmt(x.after)}`).join(" · ")}. Số Cần đặt giữ nguyên theo bảng quản lý cung cấp, kiểm tra trước khi đặt thêm.</span>`
+    :"";
+  el.parentElement.hidden=!L.length;
 }
-const openDC = filter => DC.open({key:H.active, filter, H:()=>H, onSaved:()=>renderHero()});
-document.addEventListener("click",e=>{ const b=e.target.closest("[data-dc]"); if(!b) return;
-  const v=b.dataset.dc; openDC(v==="need"?{aff:true}:v==="all"?null:{c:v.split("|")[0], i:+v.split("|")[1]}); });
-/* Mở thẳng từ trang Kế hoạch: ?m=mado&dc=need | dc=all | dc=XDE|2 */
-{ const q=new URLSearchParams(location.search).get("dc"); if(q!==null) setTimeout(()=>{ openDC(q==="all"?null:/\|/.test(q)?{c:q.split("|")[0], i:+q.split("|")[1]}:{aff:true}); $("#doi-chieu").scrollIntoView(); },300); }
 function renderHero(){
   const h=hero(); const res=lastRes=PT.analyze(h.key,{H});   // dùng số đang hiện trên trang (bản trong trình duyệt lưu chậm 250ms → trước đây phân tích trễ 1 bước)
   setTimeout(markRisk,0);   // tô màu rủi ro ở bảng Tồn kho / Ngày còn bán theo kết quả mới
@@ -427,9 +421,9 @@ function renderHero(){
   const chip=(n,l,c,names)=>`<span class="pill ${n?c:"p-mute"}"${names?` title="${esc(names)}"`:""}>${l} ${n}</span>`;
   $("#overview").innerHTML=res.hasData?`<div class="flow4" id="flow4">
       <div><span class="l">Tồn kho</span><span class="v">${T.hasA?PT.fmt(T.A):"—"}</span><span class="d">áo · bảng tồn ${res.times&&res.times.ton&&res.times.ton.at?PT.hmd(res.times.ton.at):"—"}</span></div>
-      <div><span class="l">Cần đặt (SIXMEN)</span><span class="v">${T.hasB?PT.fmt(T.B):"—"}</span><span class="d">số gốc, chưa trừ gì</span></div>
+      <div><span class="l">Cần đặt (quản lý cung cấp)</span><span class="v">${T.hasB?PT.fmt(T.B):"—"}</span><span class="d">số nhập vào, Planning không sửa</span></div>
       <div><span class="l">Đã đặt (còn hiệu lực)</span><span class="v">${PT.fmt(T.C)}</span><span class="d">đơn đã chốt · bấm số ở bảng để xem</span></div>
-      <div class="f-end"><span class="l">Còn phải đặt</span><span class="v">${PT.fmt(T.cert)}</span><span class="d">${T.unc?`chính thức · <span class="pill p-warn">+ ${T.unc} size cần đối chiếu</span>`:"đã xác định chắc chắn"}</span></div></div>
+      <div class="f-end"><span class="l">Còn phải đặt</span><span class="v">${PT.fmt(T.cert)}</span><span class="d">${T.unc?`theo Cần đặt · <span class="pill p-warn">${T.unc} size chưa có Cần đặt</span>`:"= Cần đặt, không đối trừ PO"}${T.after?` · <span class="pill p-info">ⓘ ${PT.fmt(T.after)} áo chốt sau cập nhật Cần đặt</span>`:""}</span></div></div>
     <div class="muted small" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${esc(h.name)} theo size: ${chip(res.A.length,"Đặt gấp","p-bad")} ${chip(res.B.length,"Gom đơn","p-warn")} ${chip(res.D.length,"Cần kiểm tra","p-warn")} ${chip(res.C.length,"Chưa cần đặt","p-ok")}
       ${all.length>1?`<span style="margin-left:8px">· ${all.length} mã theo bộ lọc:</span> ${chip(cnt("A"),"mã đặt gấp","p-bad",nm("A"))} ${chip(cnt("B"),"mã gom đơn","p-warn",nm("B"))} ${chip(cnt("D"),"mã cần kiểm tra","p-warn",nm("D"))}`:""}</div>`
     :`<div class="muted small">Chưa có dữ liệu ${esc(h.name)}.</div>`;
@@ -447,16 +441,17 @@ function renderHero(){
   renderDetail(res);
 }
 /* Cộng dồn giống hệt agg() của Kế hoạch (sure / uncRow) để hai trang ra cùng số */
-const flowSure=r=>!!r&&r.grp!=="D"&&r.firm&&r.D!==null&&r.D!==undefined;
-const flowUnc=r=>!!r&&!flowSure(r)&&(r.dMax===null||r.dMax===undefined||r.dMax>0);
-function flowAgg(rows){ const a={A:0,hasA:false,B:0,hasB:false,C:0,cert:0,unc:0};
-  rows.forEach(r=>{ if(r.A!==null&&r.A!==undefined){ a.A+=r.A; a.hasA=true; } if(r.B!==null&&r.B!==undefined){ a.B+=r.B; a.hasB=true; } a.C+=(r.C||0);
+/* CR-01: Còn phải đặt = Cần đặt (D = B); unc = size chưa có số Cần đặt; after = áo chốt sau cập nhật Cần đặt (chỉ cảnh báo) */
+const flowSure=r=>!!r&&r.D!==null&&r.D!==undefined;
+const flowUnc=r=>!!r&&!flowSure(r);
+function flowAgg(rows){ const a={A:0,hasA:false,B:0,hasB:false,C:0,cert:0,unc:0,after:0};
+  rows.forEach(r=>{ a.after+=r.after||0; if(r.A!==null&&r.A!==undefined){ a.A+=r.A; a.hasA=true; } if(r.B!==null&&r.B!==undefined){ a.B+=r.B; a.hasB=true; } a.C+=(r.C||0);
     if(flowSure(r)) a.cert+=Math.max(0,r.D); else if(flowUnc(r)) a.unc++; });
   return a; }
 /* UX-1: lý do giống nhau ở mọi dòng của nhóm → ghi 1 lần ở đầu nhóm, từng dòng chỉ ghi phần riêng (nội dung lý do giữ nguyên) */
 const whyParts=r=>(r.why||[]).flatMap(w=>String(w).replace(/^Cần kiểm tra:\s*/,"").split(/;\s*/)).map(s=>s.trim()).filter(Boolean);
 function commonWhy(L){ if(L.length<2) return []; const P=L.map(whyParts); return P[0].filter(p=>P.every(q=>q.includes(p))); }
-const dTxt=r=>r.D!=null?`<b>${PT.fmt(r.D)}</b>`:r.dMax!=null?`<span title="Cần đối chiếu, chưa có số chính thức. Tham khảo: nếu SIXMEN chưa trừ các đơn chưa xác định ${PT.fmt(r.dMin)}, nếu đã trừ ${PT.fmt(r.dMax)}${r.dTmp!=null?`, theo đối chiếu trước ${PT.fmt(r.dTmp)}`:""} · bấm Đối chiếu đơn đã đặt ở trên">${PT.fmt(r.dMin)}–${PT.fmt(r.dMax)} ?</span>`:"—";
+const dTxt=r=>(r.D!=null?`<b>${PT.fmt(r.D)}</b>`:"—")+(r.after>0?`<div><span class="pill p-info" title="${esc((r.afterO||[]).map(o=>Don.label(o)).join(", "))} · số Cần đặt giữ nguyên">ⓘ đã đặt ${PT.fmt(r.after)} sau cập nhật</span></div>`:"");
 function grpBlock(g,title,L,open,sub){
   const tag=g==="A"?"p-bad":g==="B"?"p-warn":g==="C"?"p-ok":"p-mute", sel=g!=="C"&&Khung.canEdit(H.active);
   const tot=L.reduce((a,r)=>a+(r.D||0),0), cw=commonWhy(L);
@@ -477,14 +472,14 @@ function renderDetail(res){
   const R={}; res.rows.forEach(r=>R[r.c+"|"+r.i]=r);
   $("#detail").innerHTML=`
     <details class="panel det"><summary>Ma trận 4 chỉ tiêu theo màu × size</summary>
-      <p class="muted small">A Tồn kho (SIXMEN) · B Cần đặt theo SIXMEN · C Đã đặt trong Planning (đơn đã chốt) · D Đề xuất đặt thêm (khoảng số = chưa xác định SIXMEN đã tính đơn đang may chưa)</p>
+      <p class="muted small">A Tồn kho (SIXMEN) · B Cần đặt theo SIXMEN · C Đã đặt trong Planning (đơn đã chốt) · D Còn phải đặt (= B, không đối trừ PO)</p>
       <div class="scroll"><table class="pt mxt"><thead><tr><th>Màu \\ Size</th>${SZL.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${PT.colorsOf(H.active,{H}).map(c=>`<tr><td><b>${c}</b></td>${SZL.map((_s,i)=>i).map(i=>`<td>${cell(R[c+"|"+i])}</td>`).join("")}</tr>`).join("")}
       <tr><td><b>Tổng</b></td><td colspan="${SZL.length}">A ${PT.fmt(res.totals.A)} · B ${PT.fmt(res.totals.B)} · C ${PT.fmt(res.totals.C)} · D chắc chắn ${PT.fmt(res.totals.Dfirm)}${res.totals.Dmax!==res.totals.Dmin?` · D cả mã trong khoảng ${PT.fmt(res.totals.Dmin)}–${PT.fmt(res.totals.Dmax)}`:""}${res.totals.over?` · đã đặt dư so với SIXMEN ${PT.fmt(res.totals.over)}`:""}</td></tr></tbody></table></div></details>
     <details class="panel det"><summary>Cách tính</summary><div class="small" style="display:grid;gap:4px;padding-top:6px">
-      <div><b>D = MAX(0, B − phần đơn còn hiệu lực mà SIXMEN chưa tính vào Cần đặt)</b>, theo từng đơn × màu × size. SIXMEN đã trừ hay chưa <b>chỉ</b> theo xác nhận của người lập kế hoạch ở <a href="#doi-chieu">Đối chiếu đơn đã đặt</a> (ngay sau khu cập nhật dữ liệu), chắc chắn với đúng bảng Cần đặt đang dùng; không suy từ mã ERP. Đơn chưa đối chiếu mà kết quả đổi tuỳ SIXMEN đã trừ hay chưa → SKU vào nhóm Cần kiểm tra, <b>không có số D chính thức</b>; khoảng “nếu chưa trừ – nếu đã trừ” chỉ để tham khảo, không dùng để tự điền đơn.</div>
+      <div><b>D = B</b>: Còn phải đặt là đúng số Cần đặt người quản lý cung cấp (đã xử lý ở hệ thống SIXMEN). Planning <b>không đối trừ PO / đơn đã đặt</b> và không tự sửa số này. Size có đơn chốt sau lần cập nhật Cần đặt gần nhất chỉ hiện nhãn <span class="pill p-info">ⓘ</span> để lưu ý, không chặn chốt.</div>
       <div><b>C</b> = phần chưa về của đơn đã chốt / đang lên + phần đã về sau giờ dán bảng tồn; không tính đơn huỷ, đơn đã nhận đủ, phần thiếu của lần giao cuối.</div>
       <div><b>Đủ bán</b> = (tồn + hàng đang về) ÷ tốc độ bán, tốc độ bán = tồn ÷ ngày còn bán. <b>Đặt gấp</b>: đứt hàng trước khi lô gần nhất về, hoặc đủ bán &lt; lead time ${res.lead} ngày. <b>Gom đơn</b>: còn thiếu nhưng đủ bán ≥ lead time.</div>
-      <div><b>Cần kiểm tra</b>: thiếu bảng, bảng cũ hơn ${C.staleHours} giờ, 2 bảng dán cách nhau &gt; ${C.gapHours} giờ, thiếu ngày còn bán, có hàng nhập sau giờ xuất bảng cần đặt, chưa rõ SIXMEN đã tính đơn đang may.</div></div></details>
+      <div><b>Cần kiểm tra</b>: thiếu bảng, bảng cũ hơn ${C.staleHours} giờ, 2 bảng dán cách nhau &gt; ${C.gapHours} giờ, thiếu ngày còn bán, tồn âm.</div></div></details>
     <details class="panel det" id="verBox"${verList?" open":""}><summary>Lịch sử dữ liệu (phiên bản từng lần dán)</summary><div id="verList" class="small" style="padding-top:6px">${verList?verHTML():"Đang tải…"}</div></details>
     <details class="panel det"><summary>Cài đặt phân tích${isA?"":" (chỉ Admin sửa)"}</summary>
       <div class="cfg small">

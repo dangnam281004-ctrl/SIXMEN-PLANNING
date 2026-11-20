@@ -391,7 +391,7 @@
      Dữ liệu (theo kỳ bắt buộc T2–T4–T6, xác định theo kỳ gần nhất, không đếm số ngày):
        chua  = Chưa cập nhật (chưa từng có bảng) · ok = Đã cập nhật (đã dán từ ngày kỳ gần nhất) · den-ky = Đến kỳ cập nhật (hôm nay là ngày kỳ, chưa dán)
        qua-han = Quá hạn cập nhật (đã qua ngày kỳ mà chưa dán) · loi = Dữ liệu lỗi (thiếu size / màu bắt buộc, số âm, không đọc được). Tồn 0 hợp lệ.
-     Nghiệp vụ: doi-chieu = Cần đối chiếu · can-dat = Cần đặt · da-xu-ly = Đã xử lý (đã lên đơn từ kỳ này, hết thiếu) · dang-don = Đang có đơn xử lý · binh-thuong ===== */
+     Nghiệp vụ: (doi-chieu = Cần đối chiếu: bỏ từ CR-01, giữ nhãn cho dữ liệu cũ) · can-dat = Cần đặt · da-xu-ly = Đã xử lý (đã lên đơn từ kỳ này, hết thiếu) · dang-don = Đang có đơn xử lý · binh-thuong ===== */
   var DSTATE = {chua:["Chưa cập nhật","g"], ok:["Đã cập nhật","k"], "den-ky":["Đến kỳ cập nhật","o"], "qua-han":["Quá hạn cập nhật","r"], loi:["Dữ liệu lỗi","r"]};
   var BSTATE = {"doi-chieu":["Cần đối chiếu","o"], "can-dat":["Cần đặt","r"], "da-xu-ly":["Đã xử lý","k"], "dang-don":["Đang có đơn xử lý","b"], "binh-thuong":["Bình thường","g"], "chua-du-lieu":["Chưa có dữ liệu","g"]};
   function mState(m, S, Hh){
@@ -403,7 +403,10 @@
     var R = null; try { R = window.PT && Khung.ready(m) && at ? PT.analyze(key) : null; } catch(e){ R = null; }
     var p = (S.models || {})[key] || {}, os = (p.orders || []).concat(p.gapOrders || []).filter(function(o){ return !o.cancelled && !o.doneAt && !(o.khtl && !o.closed); });
     var since = new Date(due + "T00:00:00").getTime(), newO = os.some(function(o){ return (o.closedAt || o.createdAt || 0) >= since || (o.date && o.date >= due); });
-    var bk = !R ? "chua-du-lieu" : R.rows.some(function(r){ return r.affected; }) ? "doi-chieu" : (R.A.length || R.B.length) ? "can-dat" : newO ? "da-xu-ly" : os.length ? "dang-don" : "binh-thuong";
+    /* CR-01 (20/11/2026): không còn "Cần đối chiếu". Size cần đặt (A/B) mà đã có đơn chốt sau lần cập nhật Cần đặt gần nhất → không tính là
+       "Cần đặt" nữa (đã xử lý kỳ này, chỉ là trạng thái; số Cần đặt không đổi) */
+    var pend = R ? R.A.concat(R.B).filter(function(r){ return !(r.after > 0); }) : [], handled = R ? R.A.concat(R.B).some(function(r){ return r.after > 0; }) : false;
+    var bk = !R ? "chua-du-lieu" : pend.length ? "can-dat" : (newO || handled) ? "da-xu-ly" : os.length ? "dang-don" : "binh-thuong";
     var age = at ? Math.max(0, Math.floor((Date.now() - at) / 36e5)) : null;
     return {key:key, data:dk, dataT:DSTATE[dk][0], dataTone:DSTATE[dk][1], err:err, at:at, by:by, age:age, ageT:age == null ? "" : age < 1 ? "vừa cập nhật" : age < 24 ? age + " giờ trước" : Math.floor(age / 24) + " ngày trước",
       biz:bk, bizT:BSTATE[bk][0], bizTone:BSTATE[bk][1], A:R ? R.A.length : 0, B:R ? R.B.length : 0, orders:os.length, due:due, next:updNext(S),

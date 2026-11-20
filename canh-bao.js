@@ -102,12 +102,13 @@
   }
 
   /* ===== Danh sách SKU mã·màu (Q1, SKU-01/02). Số lấy nguyên từ PT.analyze (Phân tích nhu cầu) như màn Kế hoạch V5.3:
-     Còn phải đặt chắc chắn = D khi size đã xác định (grp ≠ D, firm); size chưa xác định → "Cần đối chiếu"; Trụ = số ngày còn bán nhỏ nhất của màu (size hết hàng mà còn cần đặt = 0).
+     CR-01 (20/11/2026): Còn phải đặt = đúng số Cần đặt quản lý cung cấp (D = B, không đối trừ PO); size chưa có Cần đặt → unc; Trụ = số ngày còn bán nhỏ nhất của màu (size hết hàng mà còn cần đặt = 0).
+     after = số áo đã chốt sau lần cập nhật Cần đặt gần nhất (chỉ cảnh báo, không đổi số).
      Thứ tự: Nguy hiểm (Trụ < 7, mọi mã kể cả bán chậm) → Bán chạy → Bán bình thường, trong nhóm Trụ tăng dần. Mã Chưa cập nhật kỳ: nhóm riêng, không ẩn.
      opt.pt(key) / opt.agg(rows): trang Kế hoạch truyền hàm của chính trang để dùng đúng một phép tính ===== */
   var DANGER = 7;
-  var sure = function(r){ return !!r && r.grp !== "D" && r.firm && r.D !== null && r.D !== undefined; };
-  var uncRow = function(r){ return !!r && !sure(r) && (r.dMax === null || r.dMax === undefined || r.dMax > 0); };
+  var sure = function(r){ return !!r && r.D !== null && r.D !== undefined; };
+  var uncRow = function(r){ return !!r && !sure(r); };
   function aggLite(rows){ var a = {cert:0, unc:0}; rows.forEach(function(r){ if (sure(r)) a.cert += Math.max(0, r.D); else if (uncRow(r)) a.unc++; }); return a; }
   function skuList(models, S, opt){
     opt = opt || {}; S = S || Don.readS(); var Hh = Don.heroes(), pt = opt.pt || function(k){ return PT.analyze(k, {S:S}); }, ag = opt.agg || aggLite, due = Don.updDue(S), since = new Date(due + "T00:00:00").getTime(), out = [], noData = [];
@@ -120,7 +121,7 @@
         var cr = R.rows.filter(function(r){ return r.c === c; }), a = ag(cr), tru = null, out0 = false;
         cr.forEach(function(r){ if (r.A === 0 && ((+r.B || 0) > 0 || (+r.D || 0) > 0)) out0 = true; if (r.days !== null && r.days !== undefined && (tru === null || r.days < tru)) tru = r.days; });
         if (out0) tru = 0;
-        var con = Math.max(0, a.cert || 0), unc = a.unc || 0, danger = tru !== null && tru < DANGER;
+        var con = Math.max(0, a.cert || 0), unc = a.unc || 0, danger = tru !== null && tru < DANGER, after = cr.reduce(function(s, r){ return s + (r.after || 0); }, 0);
         if (!(con > 0 || unc > 0 || danger)) return;
         any = true;
         var lineHas = function(o){ return (o.lines || []).some(function(l){ return l.color === c; }) || Object.keys(o.sizes || {}).some(function(k){ return k === c && (o.sizes[k] || []).some(function(v){ return +v > 0; }); }); };
@@ -129,7 +130,7 @@
         var st = draft ? ["dang", "Đang lập"] : done ? ["chot", "Đã chốt kỳ này"] : plan ? ["khtl", "Có kế hoạch tương lai"] : ["chua", "Chưa lập"];
         var grp = danger ? "nguy" : ps.k === "chua" ? "chua" : Khung.nhomOf && Khung.nhomOf(m) === "chay" ? "chay" : (function(){ try { return Khung.sections([m])[0].nhom === "chay" ? "chay" : "thuong"; } catch(e){ return "thuong"; } })();
         var sizes = cr.slice().sort(function(x, y){ return x.i - y.i; }).map(function(r){ return {s:r.s, i:r.i, D:sure(r) ? Math.max(0, r.D) : uncRow(r) ? null : 0, days:r.days, A:r.A}; });
-        out.push({key:m.key, m:m, c:c, sku:m.key + "|" + c, name:m.name, colorName:(Khung.colorName && Khung.colorName(c, m.key)) || Don.COLOR_NAME[c] || "", con:con, unc:unc, tru:tru, out:out0, danger:danger, grp:grp, period:ps, plan:st[0], planT:st[1], sizes:sizes});
+        out.push({key:m.key, m:m, c:c, sku:m.key + "|" + c, name:m.name, colorName:(Khung.colorName && Khung.colorName(c, m.key)) || Don.COLOR_NAME[c] || "", con:con, unc:unc, after:after, tru:tru, out:out0, danger:danger, grp:grp, period:ps, plan:st[0], planT:st[1], sizes:sizes});
       });
       if (!any && ps.k === "chua") noData.push({key:m.key, m:m, c:null, sku:m.key + "|", name:m.name, colorName:"", con:0, unc:0, tru:null, out:false, danger:false, grp:"chua", period:ps, plan:"chua", planT:"—", sizes:[], noData:!R || !R.hasData});
     });

@@ -3,10 +3,10 @@
      A · Tồn kho mới nhất (SIXMEN)      B · Cần đặt theo SIXMEN (số gốc)
      C · Đã đặt trong Planning: đơn đã chốt = xưởng còn phải giao + xưởng đã giao mà chưa đối chiếu là tồn SIXMEN đã có (bỏ đơn huỷ)
          Không bao giờ cộng hàng đã giao vào tồn A (bản chốt kiến trúc V1, 27/10)
-     D · Còn phải đặt = MAX(0, B − phần C mà SIXMEN CHƯA tính vào Cần đặt) — theo từng đơn × màu × size (reflCell)
-   SIXMEN đã trừ chưa: CHỈ theo xác nhận ở Phân tích nhu cầu › Đối chiếu đơn đã đặt, chắc chắn với đúng bảng Cần đặt đang dùng (không suy từ mã ERP).
-   Chưa xác định mà kết quả đổi tuỳ giả định → SKU nhóm D "Cần đối chiếu", không có số chính thức; khoảng dMin–dMax và dTmp chỉ để tham khảo,
-   không dùng để tự điền / gợi ý đặt.
+     D · Còn phải đặt = B, ĐÚNG số Cần đặt người quản lý cung cấp (CR-01, 20/11/2026): Planning KHÔNG đối trừ PO / đơn đã đặt,
+         không bắt xác nhận "SIXMEN đã trừ / chưa trừ". Nhu cầu đặt hàng đã được xử lý ở hệ thống SIXMEN bên ngoài.
+     Cảnh báo thông tin (không đổi số, không chặn chốt): size có đơn CHỐT SAU lần cập nhật bảng Cần đặt gần nhất → r.after (số áo) / r.afterO (đơn).
+   reflCell / o.sxRefl (đối chiếu cũ) giữ lại để đọc lịch sử, không còn dùng trong phép tính.
    Nhóm: A1 đứt hàng trước khi lô đang về · A2 thiếu kể cả hàng đang về (đủ bán < lead time) · B gom đơn · C chưa cần · D cần kiểm tra. */
 (function(){
   var SZ = Khung.POLO_SZ, COLORS = Khung.COLORS_ALL;   // 09/11/2026: thêm màu quần; mỗi mã phân tích theo màu / size của mã đó
@@ -71,6 +71,16 @@
     return {v:"unknown", yes:0, no:0, unk:q, prevNo:q - R, prev:lab(R, q - R),
       why:(same ? "số còn hiệu lực đã đổi " + fmt(e) + " → " + fmt(q) : "xác nhận theo bảng Cần đặt trước") + ", cần xác nhận lại"};
   }
+  /* CR-01: đơn chốt SAU lần cập nhật bảng Cần đặt đang dùng? (chỉ để cảnh báo, không đổi số)
+     Giờ chốt chính xác (o.closedTs, ghi từ 20/11) → so thẳng; đơn chốt trước đó: căn cứ lúc chốt (o.basis.needAt) trùng bảng đang dùng
+     = chốt khi bảng này đã có; không có căn cứ → so theo ngày chốt (sau ngày dán bảng). */
+  function closedAfter(o, needAt){
+    if (!needAt || !o.closed || o.cancelled) return false;
+    var t = o.closedTs || (o.khtl && o.khtl.closedAt) || null;
+    if (t) return t > needAt;
+    if (o.basis && "needAt" in o.basis) return o.basis.needAt === needAt;
+    return typeof o.closed === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.closed) && isoMs(o.closed) > dayStart(needAt);
+  }
   /* Ngày dự kiến về của 1 đơn: ngày hẹn; chưa có thì ngày đặt + lead time xưởng */
   function arrival(o, C){
     if (o.dueDate) return {t:isoMs(o.dueDate), guess:false};
@@ -104,7 +114,7 @@
     var inc = {};   // "TRG|2" → [{o, q, arr, refl}]
     /* Mỗi đơn tách: xưởng còn phải giao (open) và xưởng đã giao chưa đối chiếu tồn SIXMEN (del, bản chốt V1 27/10: không giả định đã vào tồn) */
     orders.forEach(function(o){
-      var sp = SoLuong.split(o, S.perRoll || 65, tonAt), a = arrival(o, C), r = reflected(o, needAt, C);
+      var sp = SoLuong.split(o, S.perRoll || 65, tonAt), a = arrival(o, C), r = {v:"none", why:""};
       Object.keys(sp.open).forEach(function(c){ sp.open[c].forEach(function(q, i){ if (q > 0) (inc[c + "|" + i] = inc[c + "|" + i] || []).push({o:o, q:q, arr:a, refl:r}); }); });
       Object.keys(sp.del).forEach(function(c){ sp.del[c].forEach(function(q, i){ if (q > 0) (inc[c + "|" + i] = inc[c + "|" + i] || []).push({o:o, q:q, arr:{t:now, guess:false}, refl:r, del:true}); }); });
     });
@@ -113,20 +123,15 @@
       var A = (ton[c] || [])[i], B = (need[c] || [])[i], dy = (days[c] || [])[i], L = (inc[c + "|" + i] || []).slice().sort(function(x, y){ return x.arr.t - y.arr.t; });
       if (!isNum(A) && !isNum(B) && !L.length) return;
       var hasA = isNum(A), a = n(A), b = T.need.has ? n(B) : null;
-      /* Còn phải đặt = MAX(0, Cần đặt SIXMEN − phần đơn còn hiệu lực mà SIXMEN CHƯA tính vào Cần đặt), theo từng đơn × ô (reflCell).
-         Có phần chưa xác định → "Cần đối chiếu", không có số chính thức; chỉ để tham khảo: dMin (giả định SIXMEN chưa tính) – dMax (giả định đã tính),
-         dTmp (theo xác nhận trước, chỉ khi mọi phần chưa xác định đều từng được xác nhận). Hai giả định cho cùng một số → không ảnh hưởng, số đó chắc chắn. */
-      var cAll = 0, cNo = 0, cYes = 0, cUnk = 0, cPrev = 0, prevAll = true, cDel = 0, cGot = 0, byO = new Map();
+      /* CR-01: Còn phải đặt = Cần đặt người quản lý cung cấp (B), KHÔNG trừ đơn đã đặt. Đã đặt (C) vẫn tính để theo dõi PO / tiến độ / số ngày đủ bán.
+         Đơn chốt sau lần cập nhật Cần đặt gần nhất → chỉ cảnh báo (after / afterO). */
+      var NOREFL = {v:"none", yes:0, no:0, unk:0, prevNo:null, why:""};
+      var cAll = 0, cNo = 0, cYes = 0, cUnk = 0, cDel = 0, cGot = 0, after = 0, afterO = [], byO = new Map();
       L.forEach(function(x){ var e = byO.get(x.o) || {o:x.o, qo:0, qd:0}; if (x.del) e.qd += x.q; else e.qo += x.q; byO.set(x.o, e); });
-      byO.forEach(function(e){ e.refl = reflCell(e.o, c, i, e.qo, e.qd, ver);
-        cAll += e.qo + e.qd; cGot += e.qd; cDel += e.qd; cNo += e.refl.no; cYes += e.refl.yes; cUnk += e.refl.unk;
-        if (e.refl.unk){ if (e.refl.prevNo == null) prevAll = false; else cPrev += e.refl.prevNo; } });
-      L.forEach(function(x){ x.refl = byO.get(x.o).refl; });
-      var dMax = b == null ? null : Math.max(0, b - cNo), dMin = b == null ? null : Math.max(0, b - cNo - cUnk);
-      var dTmp = b == null || !cUnk || !prevAll ? null : Math.max(0, b - cNo - cPrev);
-      var firm = cUnk === 0 || (b != null && dMin === dMax), D = firm ? dMax : null;
-      var affected = !firm && b != null;   // ô thực sự cần đối chiếu: kết quả đổi tuỳ SIXMEN đã tính hay chưa
-      var nUnk = 0; byO.forEach(function(e){ if (e.refl.unk) nUnk++; });
+      byO.forEach(function(e){ e.refl = NOREFL; cAll += e.qo + e.qd; cGot += e.qd; cDel += e.qd;
+        if (closedAfter(e.o, needAt)){ after += e.qo + e.qd; afterO.push(e.o); } });
+      L.forEach(function(x){ x.refl = NOREFL; });
+      var D = b, dMax = b, dMin = b, dTmp = null, firm = true, affected = false;
       var dd = isNum(dy) ? +dy : (hasA && a === 0 ? 0 : null);
       var rate = hasA && a > 0 && dd > 0 ? a / dd : null, cover = rate ? (a + cAll) / rate : null;
       var first = L.filter(function(x){ return !x.del; })[0], arrDays = first ? Math.max(0, Math.round((first.arr.t - dayStart(now)) / DAY)) : null;
@@ -145,7 +150,6 @@
       } else {
         if (b == null) dReasons.push("chưa có bảng cần đặt");
         else if (needBad) dReasons.push("bảng cần đặt chưa tin cậy");
-        if (affected) dReasons.push(fmt(cUnk) + " áo của " + nUnk + " đơn chưa đối chiếu với bảng Cần đặt (Phân tích nhu cầu › Đối chiếu đơn đã đặt): nếu SIXMEN chưa trừ thì còn phải đặt " + fmt(dMin) + ", nếu đã trừ thì " + fmt(dMax) + (dTmp != null ? ", theo đối chiếu trước " + fmt(dTmp) : ""));
         if (hasA && a < 0) dReasons.push("tồn âm");
         if (dReasons.length) grp = "D";
         else if (D > 0 && (cover == null || cover < lead)){ grp = "A2"; why.push("Thiếu " + fmt(D) + " áo; tính cả hàng đang về chỉ đủ bán " + (cover == null ? "?" : Math.round(cover)) + " ngày, ít hơn thời gian may " + lead + " ngày"); }
@@ -153,12 +157,12 @@
         else { grp = "C"; why.push(cAll > b ? "Đã đặt " + fmt(cAll) + ", nhiều hơn Cần đặt SIXMEN " + fmt(cAll - b) + " áo" : b > 0 ? "Đơn đang về đủ cho Cần đặt" : "Không có nhu cầu đặt thêm"); }
       }
       if (grp === "D") why.unshift("Cần kiểm tra: " + dReasons.join("; "));
-      rows.push({c:c, i:i, s:s, sku:c + " " + s, A:hasA ? a : null, B:b, C:cAll, cNo:cNo, cYes:cYes, cUnk:cUnk, cDel:cDel, cGot:cGot, D:D, dMin:dMin, dMax:dMax, dTmp:dTmp, firm:firm, affected:affected, refls:Array.from(byO.values()), days:dd, cover:cover, arrDays:arrDays, first:first, inc:L, grp:grp, why:why, over:b != null && cAll > b ? cAll - b : 0});
+      rows.push({c:c, i:i, s:s, sku:c + " " + s, A:hasA ? a : null, B:b, C:cAll, cNo:cNo, cYes:cYes, cUnk:cUnk, cDel:cDel, cGot:cGot, D:D, after:after, afterO:afterO, dMin:dMin, dMax:dMax, dTmp:dTmp, firm:firm, affected:affected, refls:Array.from(byO.values()), days:dd, cover:cover, arrDays:arrDays, first:first, inc:L, grp:grp, why:why, over:b != null && cAll > b ? cAll - b : 0});
     }); });
     var by = function(g){ return rows.filter(function(r){ return r.grp === g || (g === "A" && /^A/.test(r.grp)); }); };
     var sum = function(L, f){ return L.reduce(function(x, r){ return x + (f(r) || 0); }, 0); };
     var res = {key:key, times:T, cfg:C, lead:lead, issues:issues, rows:rows, A:by("A"), B:by("B"), C:by("C"), D:by("D"),
-      totals:{A:sum(rows, function(r){ return r.A; }), B:sum(rows, function(r){ return r.B; }), C:sum(rows, function(r){ return r.C; }), Dfirm:sum(rows, function(r){ return r.firm ? r.D : 0; }), Dmin:sum(rows, function(r){ return r.dMin; }), Dmax:sum(rows, function(r){ return r.dMax; }), over:sum(rows, function(r){ return r.over; })},
+      totals:{after:sum(rows, function(r){ return r.after; }), A:sum(rows, function(r){ return r.A; }), B:sum(rows, function(r){ return r.B; }), C:sum(rows, function(r){ return r.C; }), Dfirm:sum(rows, function(r){ return r.firm ? r.D : 0; }), Dmin:sum(rows, function(r){ return r.dMin; }), Dmax:sum(rows, function(r){ return r.dMax; }), over:sum(rows, function(r){ return r.over; })},
       hasData:T.ton.has || T.need.has, ver:ver};
     /* Từng đơn đang tính vào Đã đặt: ô màu × size, số còn hiệu lực, SIXMEN đã tính chưa (cho Kế hoạch › Đối chiếu đơn đã đặt) */
     var om = new Map();
@@ -190,11 +194,12 @@
       L.push("<b>" + m.name + " cần xử lý gấp " + r.A.length + " size</b>: " + [outs.length ? outs.join(", ") + " đã hết hàng" : "", low.length ? low.join(", ") : "", a2.length ? a2.map(function(x){ return x.sku; }).join(", ") + " thiếu kể cả khi hàng đang về" : ""].filter(Boolean).join("; ") + ".");
     }
     if (r.B.length){ var top = r.B.slice().sort(function(x, y){ return y.D - x.D; }).slice(0, 3); L.push("<b>" + r.B.length + " size còn thiếu " + fmt(r.B.reduce(function(x, y){ return x + y.D; }, 0)) + " áo</b> nhưng tính cả hàng đang về vẫn đủ bán ≥ " + r.lead + " ngày, có thể gom một đơn lớn, nhiều nhất " + top.map(function(x){ return x.sku + " " + fmt(x.D); }).join(", ") + "."); }
-    if (r.D.length) L.push("<b>" + r.D.length + " size cần kiểm tra</b> trước khi kết luận" + (r.totals.Dmax > r.totals.Dmin ? " (đề xuất đặt thêm nằm trong khoảng " + fmt(r.totals.Dmin) + "–" + fmt(r.totals.Dmax) + " áo tuỳ SIXMEN đã trừ các đơn chưa đối chiếu hay chưa — bấm Đối chiếu đơn đã đặt)" : "") + ".");
+    if (r.D.length) L.push("<b>" + r.D.length + " size cần kiểm tra dữ liệu</b> trước khi kết luận.");
+    if (r.totals.after) L.push("<span class=\"pt-warn\">ⓘ Có " + fmt(r.totals.after) + " áo đã chốt đặt sau lần cập nhật Cần đặt gần nhất (" + hmd(r.times.need.at) + "). Số Cần đặt giữ nguyên theo bảng quản lý cung cấp, kiểm tra trước khi đặt thêm.</span>");
     if (!r.A.length && !r.B.length && !r.D.length) L.push(m.name + " chưa cần đặt thêm theo dữ liệu hiện tại.");
     r.issues.forEach(function(x){ L.push("<span class=\"pt-warn\">⚠ " + x.t + ".</span>"); });
     return L.join(" ");
   }
-  window.PT = {SZ:SZ, COLORS:COLORS, colorsOf:colorsOf, cfg:cfg, times:times, analyze:analyze, reflected:reflected, reflCell:reflCell, needVer:needVer, hmd:hmd, fmt:fmt,
+  window.PT = {SZ:SZ, COLORS:COLORS, colorsOf:colorsOf, cfg:cfg, times:times, analyze:analyze, closedAfter:closedAfter, reflected:reflected, reflCell:reflCell, needVer:needVer, hmd:hmd, fmt:fmt,
     GROUP:{A1:"Đặt gấp", A2:"Đặt gấp", A:"Đặt gấp", B:"Có thể gom đơn", C:"Chưa cần đặt", D:"Cần kiểm tra"}};
 })();
