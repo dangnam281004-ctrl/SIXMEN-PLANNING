@@ -468,6 +468,94 @@ function LogEvent([string]$action, $me, [string]$note, $extra) {
   if ($extra) { foreach ($k in $extra.Keys) { $e[$k] = $extra[$k] } }
   WriteLog @($e)
 }
+# ===== CR-02 (23/11/2026): phiên bản Cần đặt KHOÁ (Tồn kho + Cần đặt + ngày còn bán do SIXMEN tính sẵn) =====
+# Mỗi lần lưu = 1 file du-lieu\can-dat\<mã>\V<n>.json, tạo mới (CreateNew), chỉ đọc; không có API sửa / xoá, không tự dọn.
+# Bản "đang dùng" = phiên bản số lớn nhất; server chép số của bản đó vào checkhero-v3 (heroes.<mã>.ton/need/days) cho các màn khác ĐỌC.
+# Lưu thường (/api/data) không đổi được các phần này (CdProtect). Bảng đang có trước khi khoá → V0 (giữ nguyên, không xoá).
+$CdDir = Join-Path $DataDir "can-dat"
+New-Item -ItemType Directory -Force $CdDir | Out-Null
+$CdProt = @("ton", "need", "days", "at", "by", "ver", "cd", "updated", "updatedAt")
+$PoloCl = @("TRG","XDE","DEN","GLA","DNI","NAU","VOD","DOD","CAC","REU","BEE")
+function CdProtect($curVal, $mine) {
+  if ($mine -isnot [System.Collections.IDictionary] -or $mine["heroes"] -isnot [System.Collections.IDictionary]) { return $false }
+  $mh = $mine["heroes"]; $ch = Dict (Dict $curVal)["heroes"]; $fix = $false
+  foreach ($m in (Uniq (@($mh.Keys) + @($ch.Keys)))) {
+    $c = Dict $ch[$m]
+    if ($mh[$m] -isnot [System.Collections.IDictionary]) {
+      if (-not $mh.ContainsKey($m) -and @($CdProt | Where-Object { $c.ContainsKey($_) }).Count -eq 0) { continue }
+      if ($mh.ContainsKey($m) -and $null -eq $mh[$m] -and $c.Count -eq 0) { continue }
+      $mh[$m] = @{}; $fix = $true
+    }
+    $x = $mh[$m]
+    foreach ($f in $CdProt) {
+      if ((J $x[$f]) -ne (J $c[$f])) { $fix = $true; if ($c.ContainsKey($f)) { $x[$f] = $c[$f] } else { $null = $x.Remove($f) } }
+    }
+  }
+  return $fix
+}
+function CdModel([string]$model) {
+  $f = Join-Path $DataDir "danhmuc-v1.json"; if (-not (Test-Path $f)) { return $null }
+  foreach ($x in @((Val ([System.IO.File]::ReadAllText($f, $utf8)))["models"])) { if ([string]$x["key"] -eq $model) { return $x } }
+  return $null
+}
+function CdColors($m) { $c = @($m["colors"] | Where-Object { $_ }); if ($c.Count) { return ,([string[]]$c) }; return ,([string[]]$PoloCl) }
+function CdNSz($m) { $s = @($m["sizes"] | Where-Object { $_ }); if ($s.Count -ge 1 -and $s.Count -le 5) { return $s.Count }; return 5 }
+function CdFiles([string]$model) { $d = Join-Path $CdDir $model; if (-not (Test-Path $d)) { return ,@() }; return ,@(Get-ChildItem $d -Filter "V*.json" | Where-Object { $_.Name -match '^V(\d+)\.json$' } | Sort-Object { [int]($_.Name -replace '\D', '') }) }
+function CdRead($f) { return $JS.DeserializeObject([System.IO.File]::ReadAllText($f.FullName, $utf8).TrimStart([char]0xFEFF)) }
+function CdHasNum($g) { foreach ($k in @((Dict $g).Keys)) { foreach ($v in @($g[$k])) { if ($null -ne $v -and [string]$v -ne "") { return $true } } }; return $false }
+function CdWrite([string]$model, [int]$n, $rec) {
+  $d = Join-Path $CdDir $model; New-Item -ItemType Directory -Force $d | Out-Null
+  $p = Join-Path $d "V$n.json"; $bytes = $utf8.GetBytes((J $rec))
+  $fs = [System.IO.File]::Open($p, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)   # có file rồi → lỗi, không ghi đè
+  try { $fs.Write($bytes, 0, $bytes.Length) } finally { $fs.Close() }
+  (Get-Item $p).IsReadOnly = $true
+}
+# Bảng đang có (trước khi khoá phiên bản) → V0, chỉ 1 lần, không đổi số
+function CdEnsureV0([string]$model) {
+  if ((CdFiles $model).Count) { return }
+  $hf = Join-Path $DataDir "checkhero-v3.json"; if (-not (Test-Path $hf)) { return }
+  $h = Dict (Dict (Val ([System.IO.File]::ReadAllText($hf, $utf8)))["heroes"])[$model]
+  if (-not ((CdHasNum $h["ton"]) -or (CdHasNum $h["need"]))) { return }
+  $at = Dict $h["at"]; $by = Dict $h["by"]
+  $t = $(if ($at["need"]) { [int64]$at["need"] } elseif ($at["ton"]) { [int64]$at["ton"] } elseif ($h["updatedAt"]) { [int64]$h["updatedAt"] } else { [int64](NowMs) })
+  try { CdWrite $model 0 @{ n = 0; model = $model; legacy = $true; at = $t; by = [string]$(if ($by["need"]) { $by["need"] } else { $by["ton"] }); sixmenAt = $null; note = "Dữ liệu trước khi khoá phiên bản (giữ nguyên số đã có)"; ton = $h["ton"]; need = $h["need"]; days = $h["days"]; changed = $null; tot = $null; raw = $null } } catch {}
+}
+function CdOk($v) { return ($null -eq $v) -or ([string]$v -match '^-?\d+$') }   # trống hoặc số nguyên
+function CdInt($v) { if ($null -eq $v -or [string]$v -notmatch '^-?\d+$') { return $null }; return [int64][string]$v }
+function CdSum($arr) { $s = [int64]0; foreach ($v in @($arr)) { $x = CdInt $v; if ($null -ne $x) { $s += $x } }; return $s }
+# Kiểm tra lại trên server (không tin trang): mã màu / size khớp danh mục, số nguyên hoặc trống, tổng từng dòng / cột / toàn bảng khớp dòng Tổng SIXMEN
+function CdCheck($m, $b) {
+  $err = [System.Collections.ArrayList]::new(); $cols = CdColors $m; $nsz = CdNSz $m
+  foreach ($k in @("ton", "need")) {
+    $nm = @{ ton = "Tồn kho"; need = "Cần đặt" }[$k]; $g = $b[$k]; $tt = Dict (Dict $b["tot"])[$k]
+    if ($g -isnot [System.Collections.IDictionary] -or $g.Count -eq 0) { $null = $err.Add("$nm`: chưa có bảng"); continue }
+    $rows = Dict $tt["rows"]; $colSum = @(0) * 5; $all = [int64]0
+    foreach ($c in @($g.Keys)) {
+      if ($cols -notcontains $c) { $null = $err.Add("$nm`: màu $c không có trong danh mục"); continue }
+      $a = @($g[$c]); if ($a.Count -ne 5) { $null = $err.Add("$nm $c`: cần đúng 5 ô"); continue }
+      for ($i = 0; $i -lt 5; $i++) { if (-not (CdOk $a[$i])) { $null = $err.Add("$nm $c ô $($i + 1): không phải số nguyên"); continue }; $v = CdInt $a[$i]; if ($i -ge $nsz -and $null -ne $v) { $null = $err.Add("$nm $c`: có số ở size không có trong danh mục"); continue }; if ($null -ne $v) { $colSum[$i] += $v; $all += $v } }
+      $rt = $(if ($rows.ContainsKey($c)) { CdInt $rows[$c] } else { $null }); $rs = CdSum $a
+      if ($null -eq $rt) { $null = $err.Add("$nm $c`: thiếu ô Tổng SIXMEN để đối chiếu") }
+      elseif ($rs -ne $rt) { $null = $err.Add("$nm $c`: tổng dòng $rs ≠ Tổng SIXMEN $rt") }
+    }
+    $ga = CdInt $tt["all"]
+    if ($null -eq $ga) { $null = $err.Add("$nm`: thiếu dòng Tổng cuối của SIXMEN để đối chiếu") } elseif ($ga -ne $all) { $null = $err.Add("$nm`: tổng bảng $all ≠ Tổng SIXMEN $ga") }
+    $tc = @($tt["cols"]); if ($tc.Count) { for ($i = 0; $i -lt [Math]::Min($nsz, $tc.Count); $i++) { $v = CdInt $tc[$i]; if ($null -ne $v -and $v -ne $colSum[$i]) { $null = $err.Add("$nm`: tổng cột size $($i + 1) là $($colSum[$i]) ≠ Tổng SIXMEN $v") } } }
+  }
+  $dg = $b["days"]
+  if ($dg -is [System.Collections.IDictionary]) { foreach ($c in @($dg.Keys)) { if ($cols -notcontains $c) { $null = $err.Add("Ngày còn bán: màu $c không có trong danh mục"); continue }; foreach ($v in @($dg[$c])) { if ($null -ne $v) { $d = 0.0; if (-not [double]::TryParse([string]$v, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$d)) { $null = $err.Add("Ngày còn bán $c`: không phải số") } } } } }
+  return ,$err
+}
+function CdDiff($a, $b) {
+  $n = 0
+  foreach ($k in @("ton", "need")) { $x = Dict (Dict $a)[$k]; $y = Dict (Dict $b)[$k]
+    foreach ($c in (Uniq (@($x.Keys) + @($y.Keys)))) { for ($i = 0; $i -lt 5; $i++) { $u = $(if ($x[$c]) { @($x[$c])[$i] } else { $null }); $v = $(if ($y[$c]) { @($y[$c])[$i] } else { $null }); if ((J $u) -ne (J $v)) { $n++ } } } }
+  return $n
+}
+function CdSummary($r, $cur) {
+  $t = { param($g) $s = [int64]0; foreach ($c in @((Dict $g).Keys)) { foreach ($v in @($g[$c])) { if ($null -ne $v -and [string]$v -match '^-?\d+$') { $s += [int64]$v } } }; $s }
+  return @{ n = [int]$r["n"]; at = $r["at"]; by = $r["by"]; sixmenAt = $r["sixmenAt"]; note = $r["note"]; legacy = [bool]$r["legacy"]; changed = $r["changed"]; totTon = (& $t $r["ton"]); totNeed = (& $t $r["need"]); current = $cur }
+}
 # ===== Phiên bản dữ liệu Phân tích nhu cầu: mỗi lần dán bảng tồn / cần đặt / ngày còn bán lưu 1 file =====
 # Giữ tối thiểu 90 ngày; bản đang được đơn sản xuất tham chiếu (id nằm trong dữ liệu kế hoạch) thì không bao giờ xoá.
 $VerDir = Join-Path $DataDir "phien-ban"
@@ -1773,6 +1861,9 @@ while ($listener.IsListening) {
               foreach ($sec in @("alloc", "issues")) { $cv = $null; if ($curVal -is [System.Collections.IDictionary]) { $cv = $curVal[$sec] }; if ($null -ne $cv) { $mine[$sec] = @($cv) } else { $null = $mine.Remove($sec) } }
               $body = J $mine
             }
+            # CR-02: Tồn kho / Cần đặt / ngày còn bán chỉ ghi qua /api/can-dat (phiên bản khoá). Lưu thường luôn giữ đúng bản trên server
+            $cdFix = $false
+            if ($key -eq "checkhero-v3") { $cdFix = CdProtect $curVal $mine; if ($cdFix) { $body = J $mine } }
             $bgErr = @()
             if ($key -eq "nvl-v3" -and $mine -is [System.Collections.IDictionary] -and -not (($me["role"] -eq "admin") -and ($reason -like "Khôi phục*"))) { $bgErr = BuyGuard $curVal $mine $me; $body = J $mine }
             # bản người lưu dựa vào: bản hiện tại (nếu khớp) hoặc bản lịch sử đúng số phiên bản đó
@@ -1827,7 +1918,7 @@ while ($listener.IsListening) {
               $rev = $cur + 1
               $stamp = SaveKey $key $body $rev $pg $me["id"]
               if ($null -ne $curVal) { LogSave $key $curVal $mine $me $pg $rev $reason $false }
-              if ($gd.changed) { Send $res 200 ('{"ok":true,"merged":true,"guard":true,"rev":' + $rev + ',"savedAt":' + $stamp + ',"value":' + $body + '}') }   # server đã sửa theo quy tắc → trang nhận bản server
+              if ($gd.changed -or $cdFix) { Send $res 200 ('{"ok":true,"merged":true,"guard":true,"rev":' + $rev + ',"savedAt":' + $stamp + ',"value":' + $body + '}') }   # server đã sửa theo quy tắc → trang nhận bản server
               else { Send $res 200 ('{"ok":true,"rev":' + $rev + ',"savedAt":' + $stamp + '}') }
               }
             } else {
@@ -1940,7 +2031,59 @@ while ($listener.IsListening) {
         if ($rows.Count -ge $lim) { break }
       }
       Send $res 200 ('[' + ($rows -join ',') + ']')
-    }    # /api/phien-ban/<mã>: POST lưu 1 phiên bản bảng (tồn / cần đặt / ngày còn bán); GET danh sách; /api/phien-ban/<mã>/<id>: đọc 1 bản
+    }    # CR-02: /api/can-dat/<mã>: GET danh sách phiên bản · POST tạo phiên bản mới (khoá ngay) · /api/can-dat/<mã>/<n>: GET 1 phiên bản. Không có đường sửa / xoá
+    elseif ($path -match '^api/can-dat/([a-z0-9]+)(?:/(\d+))?$') {
+      $model = $Matches[1]; $vn = $Matches[2]; $mdl = CdModel $model
+      if (-not $mdl) { Send $res 404 '{"error":"Không có mã này trong danh mục"}' }
+      elseif ($req.HttpMethod -eq "POST" -and -not $vn) {
+        $own = OwnerMap
+        if ($me["role"] -ne "admin" -and $own[$model] -ne $me["id"]) { LogEvent "tu-choi" $me "Không có quyền lưu phiên bản Cần đặt $model" @{ model = $model }; Send $res 403 '{"error":"Tài khoản này không được lưu dữ liệu Cần đặt của mã này"}' }
+        else {
+          $b = Dict (ReadObj $req); $err = CdCheck $mdl $b
+          if (-not $b["confirm"]) { $null = $err.Add("Chưa xác nhận đã đối chiếu số liệu với SIXMEN") }
+          CdEnsureV0 $model
+          $fs = CdFiles $model; $last = $(if ($fs.Count) { $fs[$fs.Count - 1] } else { $null })
+          $curN = $(if ($last) { [int]($last.Name -replace '\D', '') } else { -1 })
+          $baseN = $(if ($null -ne $b["base"] -and [string]$b["base"] -ne "") { [int]$b["base"] } else { -1 })
+          if ($err.Count) { LogEvent "tu-choi" $me ("Không lưu phiên bản Cần đặt $model`: " + ($err -join "; ")) @{ model = $model }; Send $res 422 (J @{ error = "Không lưu được: " + ($err -join "; "); parts = @($err) }) }
+          elseif ($baseN -ne $curN) { Send $res 409 (J @{ error = "Vừa có phiên bản V$curN được lưu sau khi bắt đầu kiểm tra. Tải lại và kiểm tra lại trước khi lưu."; current = $curN }) }
+          else {
+            $now = [int64](NowMs); $n = $curN + 1; if ($n -lt 1) { $n = 1 }
+            $grid = { param($g, $isDay) $o = [ordered]@{}; foreach ($c in @((Dict $g).Keys)) { $a = @($g[$c]); $o[$c] = @(0..4 | ForEach-Object { $v = $(if ($_ -lt $a.Count) { $a[$_] } else { $null }); if ($null -eq $v) { $null } elseif ($isDay) { [double]$v } else { CdInt $v } }) }; $o }
+            $rec = [ordered]@{ n = $n; model = $model; at = $now; by = [string]$me["id"]; sixmenAt = [string]$b["sixmenAt"]; note = [string]$b["note"]; base = $(if ($curN -ge 0) { $curN } else { $null })
+              ton = (& $grid $b["ton"] $false); need = (& $grid $b["need"] $false); days = (& $grid $b["days"] $true); tot = $b["tot"]; sizes = $b["sizes"]; raw = $b["raw"]; changed = $null }
+            if ($last) { $rec["changed"] = CdDiff (CdRead $last) $rec }
+            try { CdWrite $model $n $rec; $okW = $true } catch { $okW = $false }
+            if (-not $okW) { Send $res 409 '{"error":"Phiên bản này vừa được người khác lưu. Tải lại và kiểm tra lại."}' }
+            else {
+              $rec = $JS.DeserializeObject((J $rec))   # về dạng Dictionary / mảng thường như mọi dữ liệu khác (nhật ký so trước → sau đọc được)
+              $hf = Join-Path $DataDir "checkhero-v3.json"; $hrev = CurrentRev $hf
+              $hv = $(if (Test-Path $hf) { Val ([System.IO.File]::ReadAllText($hf, $utf8)) } else { $null }); if ($hv -isnot [System.Collections.IDictionary]) { $hv = @{ active = $model } }
+              $old = $JS.DeserializeObject((J $hv)); if ($hv["heroes"] -isnot [System.Collections.IDictionary]) { $hv["heroes"] = @{} }
+              $hx = Dict $hv["heroes"][$model]; if (-not $hv["heroes"].ContainsKey($model) -or $hv["heroes"][$model] -isnot [System.Collections.IDictionary]) { $hx = @{}; $hv["heroes"][$model] = $hx }
+              $hx["ton"] = $rec["ton"]; $hx["need"] = $rec["need"]; $hx["days"] = $rec["days"]
+              $hx["at"] = @{ ton = $now; need = $now; days = $now }; $hx["by"] = @{ ton = $rec["by"]; need = $rec["by"]; days = $rec["by"] }
+              $hx["ver"] = @{ ton = "V$n"; need = "V$n"; days = "V$n" }; $hx["cd"] = @{ n = $n; at = $now; by = $rec["by"]; sixmenAt = $rec["sixmenAt"] }
+              $hx["updatedAt"] = $now; $hx["updated"] = [string](Get-Date).ToString("HH:mm dd/MM")
+              $hrev = $hrev + 1; $hb = J $hv
+              $null = SaveKey "checkhero-v3" $hb $hrev "can-dat" ([string]$me["id"])
+              LogSave "checkhero-v3" $old $hv $me "can-dat" $hrev ("Lưu và khoá phiên bản Cần đặt V$n") $false
+              LogEvent "can-dat" $me ("Lưu và khoá phiên bản Cần đặt V$n · " + [string]$mdl["name"]) @{ model = $model; n = $n }
+              Send $res 200 ('{"ok":true,"n":' + $n + ',"rev":' + $hrev + ',"value":' + $hb + '}')
+            }
+          }
+        }
+      }
+      elseif ($req.HttpMethod -ne "GET") { Send $res 405 '{"error":"Phiên bản đã lưu không sửa / xoá được. Muốn điều chỉnh, tạo phiên bản mới."}' }
+      elseif ($vn) { CdEnsureV0 $model; $f = Join-Path (Join-Path $CdDir $model) "V$([int]$vn).json"; if (Test-Path $f) { Send $res 200 ([System.IO.File]::ReadAllText($f, $utf8)) } else { Send $res 404 '{"error":"Không có phiên bản này"}' } }
+      else {
+        CdEnsureV0 $model; $fs = CdFiles $model; $rows = [System.Collections.ArrayList]::new(); $k = 0
+        foreach ($f in $fs) { $k++; try { $null = $rows.Add((CdSummary (CdRead $f) ($k -eq $fs.Count))) } catch {} }
+        $rows.Reverse()
+        Send $res 200 (J @{ model = $model; current = $(if ($fs.Count) { [int]($fs[$fs.Count - 1].Name -replace '\D', '') } else { $null }); items = $rows })
+      }
+    }
+    # /api/phien-ban/<mã>: POST lưu 1 phiên bản bảng (tồn / cần đặt / ngày còn bán); GET danh sách; /api/phien-ban/<mã>/<id>: đọc 1 bản
     elseif ($path -match '^api/phien-ban/([a-z0-9]+)(?:/([a-z]+-\d{8}-\d{6}-[a-z0-9]+))?$') {
       $model = $Matches[1]; $vid = $Matches[2]; $dir = Join-Path $VerDir $model
       if ($req.HttpMethod -eq "POST") {

@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<script src="dong-bo.js"></script>
+<script src="so-luong.js"></script>
+<script src="nvl-core.js"></script>
+<script src="khung.js"></script>
+<script src="don.js"></script>
+<script src="phan-tich.js"></script>
+<script src="canh-bao.js"></script>
+<!-- CR-01 (20/11/2026): bỏ Đối chiếu đơn đã đặt (doi-chieu.js không còn nạp; file và dữ liệu đối chiếu cũ giữ nguyên) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phân tích nhu cầu (bản cũ, lưu code)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="ux.css">
+<style>
+/* Khung chung (giống app SIXMEN Planning): sidebar trái, topbar, nội dung dạng thẻ trắng */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#1f2328; --ink2:#3d4450; --muted:#6b7280; --faint:#9aa1ab; --line:#e5e7eb; --hover:#f2f4f6; --head:#fafbfc;
+  --brand:#16794a; --brand-bg:#e7f4ec; --accent:#1f5fae; --accent-bg:#eaf1fb;
+  --crit:#c62828; --crit-bg:#fdecea; --crit2:#ffffff; --crit2-bg:#c62828;
+  --warn:#a85d00; --warn-bg:#fff3df; --ok:#16794a; --ok-bg:#e7f4ec; --violet:#6f42c1;
+  --tot-bg:#fbf6ee; --sum-bg:#f0f7f2;
+  --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 var(--font)}
+[hidden]{display:none!important}
+a{color:var(--accent)}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h2{font-size:15px;font-weight:700}
+h3{font-size:13.5px;font-weight:700}
+
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--line);padding:12px 10px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:9px;padding:2px 6px 12px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+.brand b{display:block;font-size:13px;font-weight:800;letter-spacing:.03em;line-height:1.2}
+.brand small{display:block;font-size:11px;color:var(--brand);font-weight:600}
+.nav{display:grid;gap:1px}
+.nav-label{font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.07em;text-transform:uppercase;padding:14px 8px 5px}
+.nav a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;color:var(--ink2);text-decoration:none}
+.nav a:hover{background:var(--hover)}
+.nav a.active{background:var(--brand);color:#fff;font-weight:600}
+.nav a svg{width:16px;height:16px;flex:none}
+.nav .sub{display:grid;gap:1px;margin:2px 0 4px}
+.nav .sub a{padding:6px 9px 6px 34px;font-size:12.5px;color:var(--muted)}
+.nav .sub a.on{background:var(--brand-bg);color:var(--brand);font-weight:600}
+.side-foot{margin-top:auto;padding:12px 8px 0;font-size:11px;color:var(--faint)}
+.col{min-width:0}
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding:9px 28px;display:flex;align-items:center;gap:12px;min-height:52px}
+.topbar .tt{flex:1;min-width:0}
+.topbar .tt b{display:block;font-size:14.5px;font-weight:700}
+.topbar .tt small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-actions,.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.menu-btn{display:none;border:1px solid var(--line);background:var(--surface);border-radius:7px;width:34px;height:32px;font-size:16px;cursor:pointer}
+.content{padding:26px 32px 56px;display:grid;gap:18px}
+.page-head{display:grid;gap:6px}
+.page-head h1{font-size:26px;font-weight:800;letter-spacing:-.015em;line-height:1.2}
+.page-head p{margin:0;color:var(--muted);font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:6px 12px;font:inherit;font-weight:600;font-size:12.5px;text-decoration:none;cursor:pointer}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{padding:3px 9px;font-size:11.5px;font-weight:500}
+select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:4px 8px;font:inherit;font-size:12.5px}
+.chip{display:inline-block;font-size:11.5px;color:var(--ink2);background:var(--hover);border:1px solid var(--line);border-radius:999px;padding:2px 10px;justify-self:start}
+.btn:focus-visible,.tab:focus-visible,.nav a:focus-visible,.gi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.tabs{display:flex;overflow-x:auto;padding-bottom:2px}
+.tab{position:relative;flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink2);margin-left:-1px;padding:6px 14px;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.tab:first-child{margin-left:0;border-radius:7px 0 0 7px}
+.tab:last-child{border-radius:0 7px 7px 0}
+.tab .c{font-weight:600;display:block}
+.tab .n{font-size:11px;color:var(--muted)}
+/* UX V5: mã đang chọn chỉ viền + vạch trái, không tô kín màu xanh (màu dành cho trạng thái) */
+.tab[aria-selected="true"]{background:var(--surface);border-color:var(--ink);box-shadow:inset 3px 0 0 var(--ink),0 1px 4px rgba(0,0,0,.08);color:var(--ink);z-index:1}
+.tab[aria-selected="true"] .n{color:var(--muted)}
+.tab .ux-st{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0 2px}
+.tab .ux-st .ux-b{font-size:11px}
+.tab{min-width:190px}
+/* 09/11/2026: mã chia 2 nhóm, xuống dòng thay vì kéo ngang */
+#tabs{display:grid;gap:8px;overflow:visible;padding-bottom:0}
+.tgrp{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:start}
+.tgl{font-size:11.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.02em;padding-top:9px}
+.trow{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.trow .tab{margin-left:0;border-radius:7px}
+.mtag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;font-size:10.5px;font-weight:600;line-height:16px;background:#fff1dc;color:#9a5b00;vertical-align:1px;white-space:nowrap}
+@media (max-width:700px){ .tgrp{grid-template-columns:1fr} .tgl{padding-top:0} }
+body.notready .zone, body.notready #nhap, body.notready #sendBar{display:none!important}
+.note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--nc,var(--violet));border-radius:6px;padding:10px 14px;font-size:12.5px;color:var(--ink2)}
+
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.tile .l{order:-1;font-size:12px;color:var(--muted);font-weight:500}
+.tile .v{font-size:24px;font-weight:700;line-height:1.15;color:var(--c,var(--ink))}
+.tile .d{font-size:11.5px;color:var(--muted)}
+@media (max-width:820px){.sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+section{display:grid;gap:10px;scroll-margin-top:68px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
+.scroll{overflow-x:auto}
+.dc-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px}
+.dc-warn{color:var(--warn)} .dc-warn b{color:var(--crit)} .dc-ok{color:var(--ok);font-weight:600} .dc-info{color:var(--accent)} .dc-info b{color:var(--ink)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:12px}
+.empty{padding:36px 20px;text-align:center;color:var(--muted)}
+
+table{border-collapse:collapse;width:100%}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-size:12px;font-weight:600;color:var(--ink2);white-space:nowrap;background:var(--head)}
+thead tr:first-child th:first-child{border-top-left-radius:8px}
+thead tr:first-child th:last-child{border-top-right-radius:8px}
+tr:last-child td{border-bottom:none}
+td.r,th.r{text-align:right}
+.sku{font-weight:600;white-space:nowrap}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600;white-space:nowrap;margin-top:3px}
+.lv-crit2 .pill{background:var(--crit2-bg);color:var(--crit2)}
+.lv-crit .pill{background:var(--crit-bg);color:var(--crit)}
+.lv-warn .pill{background:var(--warn-bg);color:var(--warn)}
+tr.lv-crit2 td:first-child{box-shadow:inset 3px 0 0 var(--crit2-bg)}
+tr.lv-crit td:first-child{box-shadow:inset 3px 0 0 var(--crit)}
+tr.lv-warn td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+
+.matrix{min-width:560px}
+.matrix th,.matrix td{text-align:center}
+.matrix th:first-child,.matrix td:first-child{text-align:left}
+.mcell{display:grid;gap:1px;border-radius:6px;padding:5px 4px;min-width:66px}
+.mcell .t{font-weight:600;font-size:14px}
+.mcell .dd{font-size:11px}
+.b-out{background:var(--crit2-bg);color:var(--crit2)}
+.b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-ok{color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:13px;height:13px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+
+/* Nhập dữ liệu sáng nay: bảng nhập tay + đọc ảnh */
+.gp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 14px 8px}
+.gp-head .t{display:grid;gap:4px}
+/* Cột cố định: bảng Tồn kho và Cần đặt đặt cạnh nhau thẳng hàng từng cột */
+table.g{border-collapse:collapse;width:100%;min-width:480px;table-layout:fixed}
+table.g th:first-child{width:76px} table.g th.tot{width:64px}
+.g th,.g td{padding:3px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.g th{text-align:right;padding:7px 8px;border-top:1px solid var(--line);border-radius:0!important}
+.g th:first-child{text-align:left}
+.g td.lbl{font-weight:600;white-space:nowrap}
+.g td.r{text-align:right}
+.g .tot{background:var(--tot-bg);font-weight:600}
+.g tr.sumrow td{background:var(--sum-bg);font-weight:700;border-bottom:none;padding:7px 8px}
+.gi,.oi{width:100%;min-width:52px;border:1px solid transparent;background:transparent;color:var(--ink);font:500 13px var(--font);font-variant-numeric:tabular-nums;text-align:right;padding:4px 6px;border-radius:5px}
+.gi:hover,.oi:hover{border-color:var(--line)}
+.gi:focus,.oi:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(31,95,174,.12)}
+.oi.low{background:var(--warn-bg);color:var(--warn)}
+/* Tô màu rủi ro ở bảng Tồn kho / Ngày còn bán: đỏ = hết hoặc đứt hàng trước khi hàng về · vàng = tính cả hàng đang về chỉ đủ bán dưới thời gian may */
+.gi.rk-red{color:var(--crit);font-weight:700;background:var(--crit-bg)}
+.gi.rk-amber{color:var(--warn);font-weight:700;background:var(--warn-bg)}
+.rk-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--muted);padding:0 14px 8px}
+.rk-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.upload{padding:14px 16px;border-style:dashed;border-width:1.5px;display:grid;gap:12px}
+.upload.drag{border-color:var(--accent);background:var(--accent-bg)}
+.up-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.up-row p{margin:3px 0 0}
+.ocr-item{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;padding-top:12px;border-top:1px solid var(--line)}
+.ocr-item img{width:100%;border:1px solid var(--line);border-radius:6px;display:block}
+.ocr-item.noimg{grid-template-columns:1fr}
+.ocr-body{display:grid;gap:10px;align-content:start;min-width:0}
+.ocr-g{border:1px solid var(--line);border-radius:8px;min-width:0}
+.ocr-gh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:9px 12px}
+.ocr-gh label{margin-left:auto;display:flex;gap:6px;align-items:center}
+footer{font-size:11.5px;color:var(--muted)}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;left:0;top:0;z-index:40;width:260px;transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.15)}
+  body.nav-open .side{transform:none}
+  body.nav-open::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:30}
+  .menu-btn{display:inline-block}
+  .topbar{padding:9px 16px}
+  .top-actions .chip{display:none}
+  .content{padding:18px 16px 40px}
+  .ocr-item{grid-template-columns:1fr}
+}
+/* ===== Phân tích nhu cầu · 5 khu vực ===== */
+.status .pill,.grp .pill,table.pt .pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.p-ok{background:var(--ok-bg,#e7f4ec);color:var(--ok,#16794a)} .p-warn{background:var(--warn-bg,#fff3df);color:var(--warn,#a85d00)} .p-bad{background:var(--crit-bg,#fdecea);color:var(--crit,#c62828)} .p-mute{background:var(--line);color:var(--ink2)}
+.p-run,.p-info{background:#e8f0fb;color:var(--accent,#1f5fae)}
+/* UX-1 · dải Tồn kho → Cần đặt → Đã đặt → Còn phải đặt (cùng kiểu với Kế hoạch) */
+.flow4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.flow4>div{position:relative;padding:12px 16px 12px 22px;border-left:1px solid var(--line);min-width:0;background:#fff}
+.flow4>div:first-child{border-left:0;padding-left:16px}
+.flow4>div:not(:last-child)::after{content:"";position:absolute;right:-8px;top:50%;width:14px;height:14px;background:inherit;border-top:1px solid var(--line);border-right:1px solid var(--line);transform:translateY(-50%) rotate(45deg);z-index:1}
+.flow4 .f-end{background:var(--ok-bg,#e7f4ec)}
+.flow4 .l{display:block;font-size:12px;color:var(--muted);font-weight:600}.flow4 .v{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.25}.flow4 .d{display:block;font-size:11.5px;color:var(--muted)}
+.grpnote{font-size:12px;color:var(--ink2);background:#fafbfc;border-top:1px solid var(--line);padding:7px 12px}
+@media (max-width:800px){.flow4{grid-template-columns:1fr 1fr}.flow4>div::after{display:none}}
+.zone{display:grid;gap:8px}
+.zone>.zl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px}
+.say{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:8px;padding:12px 16px;font-size:13.5px;line-height:1.65}
+.pt-warn{color:var(--crit)}
+details.grp>summary,details.det>summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;list-style:none}
+details.grp>summary::-webkit-details-marker,details.det>summary::-webkit-details-marker{display:none}
+details.grp>summary::before,details.det>summary::before{content:"▸";color:var(--faint)} details[open]>summary::before{content:"▾"}
+details.det>summary{font-weight:600} details.det>div,details.det>p{padding:0 14px 12px}
+table.pt{border-collapse:collapse;width:100%;font-size:12.5px}
+table.pt th,table.pt td{padding:6px 10px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+table.pt th{font-size:11.5px;color:var(--muted);font-weight:600;background:var(--head);white-space:nowrap}
+table.pt td.r,table.pt th.r{text-align:right}
+table.pt td.why{font-size:12px;color:var(--ink2);min-width:260px}
+tr.inc td{background:var(--head);font-size:12px} tr.inc .ok{color:var(--ok);font-weight:600} tr.inc .bad{color:var(--crit);font-weight:600}
+.lnk{border:0;background:none;color:var(--accent);text-decoration:underline;font:inherit;cursor:pointer;padding:0}
+.mxt td{min-width:120px} .mx{display:grid;grid-template-columns:1fr 1fr;gap:0 8px;font-size:11.5px;font-variant-numeric:tabular-nums}
+.mx .warn{color:var(--warn);font-weight:700} .mx .bad{color:var(--crit);font-weight:700}
+.cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 16px;padding:6px 0}
+.cfg label{display:flex;gap:6px;align-items:center;flex-wrap:wrap} .cfg input.num{width:64px}
+.sendbar{position:sticky;bottom:12px;z-index:30;display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--ink);color:#fff;border-radius:10px;padding:10px 16px;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.sendbar .btn:not(.primary){background:#fff}
+.sendbar .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}   /* nút chính trên thanh tối: không bị nền trắng đè (chữ trắng trên nền trắng) */
+#nhap{border:1px solid var(--brand);border-radius:10px;padding:14px;background:var(--brand-bg);display:grid;gap:12px}
+#nhap[hidden]{display:none}/* Mã không phụ trách: chỉ xem (server cũng từ chối nếu cố lưu) */
+body.ro .content input:not(.kb-q),body.ro .content select,body.ro .content textarea,body.ro .content button:not(.tab):not([data-gostep]):not([data-refv]):not([data-copy]){pointer-events:none;opacity:.55}
+.ro-note{display:none;background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:9px 14px;font-size:12.5px}
+body.ro .ro-note{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand"><span class="logo">S</span><div><b>SIXMEN</b><small>Planning sản xuất</small></div></div>
+    <nav class="nav" aria-label="Điều hướng">
+      <div class="nav-label">Hằng ngày</div>
+      <a href="check-hero.html" class="active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>1. Phân tích nhu cầu</a>
+      <div class="sub">
+        <a href="#nhap">Dữ liệu sáng nay</a>
+        <a href="#tom-tat">Tóm tắt</a>
+        <a href="#xu-ly">Cần xử lý</a>
+        <a href="#ton-kho">Tồn kho màu × size</a>
+      </div>
+      <a href="ke-hoach.html" id="navPlan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>2. Kế hoạch sản xuất</a>
+      <a href="nvl.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>3. Tồn kho NVL</a>
+      <a href="theo-doi.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>4. Theo dõi đơn hàng</a>
+      <div class="nav-label">Dữ liệu</div>
+      <a href="thong-tin.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/></svg>Thông tin xưởng &amp; kho</a>
+      <a href="sao-luu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>Sao lưu &amp; khôi phục</a>
+    </nav>
+    <div class="side-foot">Thời gian may 1 lô 22 ngày</div>
+  </aside>
+
+  <div class="col">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Mở menu">☰</button>
+      <div class="tt"><b>Phân tích nhu cầu</b><small>Mỗi sáng: cập nhật dữ liệu → xem nhận định → chọn size chuyển sang Kế hoạch</small></div>
+      <div class="top-actions">
+        <span class="chip num" id="todayChip"></span>
+        <a class="btn" href="ke-hoach.html" id="toPlan">Lên kế hoạch →</a>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="note" style="--nc:var(--warn)"><b>Bản lưu code phân tích cũ (CR-02, 23/11/2026).</b> Phần Đặt gấp / Gom đơn / Nhận định / Đề xuất giữ lại để chuyển sang màn Lập kế hoạch. Không dùng trang này để nhập số: dữ liệu Tồn kho / Cần đặt chỉ cập nhật ở <a href="check-hero.html">Cập nhật dữ liệu Cần đặt</a> (phiên bản khoá); server không nhận số dán ở đây.</div>
+      <div class="page-head">
+        <h1>Phân tích nhu cầu</h1>
+        <p>Mỗi sáng dán bảng Tồn kho và Cần đặt từ SIXMEN. Số Cần đặt do người quản lý cung cấp, Planning giữ nguyên (không đối trừ PO); hệ thống cho biết size nào cần đặt gấp, size nào gom đơn được, size nào chưa cần đặt và dữ liệu nào cần kiểm tra. Quyết định số lượng và chốt đơn làm ở <b>Kế hoạch sản xuất</b>.</p>
+      </div>
+
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Mã sản phẩm"></nav>
+      <div class="ro-note" id="roNote"></div>
+<div class="panel" id="notReady" style="padding:16px 18px" hidden></div>
+
+      <section class="zone" id="kv1" aria-label="Dữ liệu và cập nhật"><div class="zl">1 · Dữ liệu &amp; cập nhật</div><div class="panel status" id="status"></div></section>
+
+      <section id="nhap" aria-label="Cập nhật dữ liệu" hidden>
+        <div class="sec-head"><h2>Cập nhật dữ liệu</h2><span class="muted small" id="updated"></span><button class="btn ghost" id="closeInput">Đóng</button></div>
+        <div class="note" id="note"></div>
+        <div class="panel upload" id="drop">
+          <div class="up-row">
+            <div><h3>Đưa dữ liệu vào</h3>
+              <p class="muted small"><b>Chính xác nhất:</b> trên hệ thống (hoặc Google Sheet), bôi đen cả bảng Đang tồn / Cần đặt từ ô "Màu \ Size" tới ô Tổng cuối, bấm <b>Ctrl+C</b>, quay lại trang này bấm <b>Ctrl+V</b> (đừng bấm vào ô nào). Copy 2 bảng một lúc cũng được. Mỗi bảng được ghi giờ và người dán riêng, lưu thành một phiên bản.<br>
+              <b>Từ ảnh</b> (có thể đọc sai, nhớ xem cột Tổng có ✓ không): kéo thả ảnh vào khung này, Ctrl+V ảnh chụp, hoặc bấm Chọn ảnh.</p></div>
+            <button class="btn" id="imgBtn">Chọn ảnh</button>
+            <input type="file" id="imgFile" accept="image/*" multiple hidden>
+          </div>
+          <div id="ocrOut" style="display:grid;gap:12px"></div>
+        </div>
+        <div class="rk-legend" id="rkLegend" style="padding:0 2px"></div>
+        <div class="two"><div class="panel" id="p-ton"></div><div class="panel" id="p-need"></div></div>
+        <div class="panel" id="p-days"></div>
+      </section>
+
+      <!-- CR-01: khu "Đối chiếu đơn đã đặt" thay bằng cảnh báo thông tin: size có đơn chốt sau lần cập nhật Cần đặt gần nhất (không chặn, không đổi số) -->
+      <section class="zone" id="doi-chieu" aria-label="Đơn chốt sau cập nhật Cần đặt"><div class="dc-bar" id="dcBar"></div></section>
+
+      <section class="zone" id="kv2" aria-label="Tổng quan tình trạng"><div class="zl">2 · Tổng quan tình trạng</div><div id="overview"></div></section>
+      <section class="zone" id="kv3" aria-label="Nhận định"><div class="zl">3 · Nhận định</div><div class="say" id="say"></div></section>
+      <section class="zone" id="kv4" aria-label="Đề xuất hành động"><div class="zl">4 · Đề xuất hành động</div><div id="groups" style="display:grid;gap:12px"></div></section>
+      <div class="sendbar" id="sendBar" hidden><span id="sendTxt"></span><span style="display:flex;gap:8px"><button class="btn ghost" id="clearSel">Bỏ chọn</button><button class="btn primary" id="sendPlan">Chuyển sang Kế hoạch →</button></span></div>
+      <section class="zone" id="kv5" aria-label="Dữ liệu chi tiết"><div class="zl">5 · Dữ liệu chi tiết</div><div id="detail" style="display:grid;gap:10px"></div></section>
+      <main id="main" hidden></main>
+
+      <footer>Dữ liệu được lưu trong trình duyệt của máy này, dùng chung với trang Kế hoạch sản xuất.</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 09/11/2026: size / màu theo mã đang xem (mã quần: 29–34, màu riêng). Mã áo vẫn đúng danh sách cũ */
+let CTXH=null;
+const ctxH = () => { if(CTXH) return CTXH; try { return H&&H.active; } catch(e){ return null; } };
+const SIZES = Khung.live(()=>{ const k=ctxH(), s=Khung.sizesOf(k); return Khung.isQuan(k)||s.length<5?s:["M","L","XL","2X","3X"]; });
+const SZL = Khung.live(()=>Khung.sizesOf(ctxH()));
+const COLORS = Khung.live(()=>Khung.colorsOfModel(ctxH()));
+const QH = () => Khung.isQuan(ctxH());
+const NM = () => Khung.ownColors(ctxH());   // mã có màu riêng trong danh mục (quần, sơ mi): bảng ghi tên màu
+/* Bảng SIXMEN của quần ghi tên màu ("Đen", "Xanh đậm", có thể kèm "Jeans"): đổi về mã màu */
+const CNAME = c => Khung.colorName(c,ctxH())||(Don.COLOR_NAME||{})[c]||c;   // 13/11: tên màu riêng của mã (Jeans XDA = Xanh Đậm)
+function colorCode(s){
+  const t=Khung.norm(s).toUpperCase().replace(/[^A-Z0-9 ]/g," ").replace(/\s+/g," ").trim(); if(!t) return null;
+  const L=COLORS.map(c=>({c, nm:Khung.norm(CNAME(c)).toUpperCase()})).sort((a,b)=>b.nm.length-a.nm.length);
+  for(const x of L){ if(x.c===t.replace(/ /g,"")||x.nm===t) return x.c; }
+  for(const x of L){ if(t.endsWith(" "+x.nm)) return x.c; }
+  for(const x of L){ if((" "+t+" ").includes(" "+x.nm+" ")) return x.c; }   // sơ mi: "Trắng 17", "13 Xám lam 5" (số là mã vải)
+  return null;
+}
+function aliasText(txt){
+  if(!NM()) return txt;
+  let t=Khung.norm(txt).toUpperCase();
+  COLORS.map(c=>({c, nm:Khung.norm(CNAME(c)).toUpperCase()})).sort((a,b)=>b.nm.length-a.nm.length).forEach(x=>{ t=t.replace(new RegExp("(^|\\s)(?:(?:QUAN|JEANS)\\s+)*"+x.nm.replace(/ /g,"\\s+")+"(?=\\s|$)","g"),"$1"+x.c); });
+  return t;
+}
+const $ = s => document.querySelector(s);
+const n = x => x || 0;
+const _ = null;
+const fmt = x => x.toLocaleString("vi-VN");
+
+/* 6 mẫu hero: Tồn kho / Cần đặt nhập mỗi sáng, lưu chung với trang Kế hoạch */
+const HEROES = Khung.models();   // danh mục mã (trang Danh mục mã & phân công)
+const INPUTS = {ton:{title:"Tồn kho"}, need:{title:"Cần đặt"}, days:{title:"Ngày còn bán (tồn trụ được bao nhiêu ngày)"}};
+function blank(){ const o={}; COLORS.forEach(c=>o[c]=[_,_,_,_,_]); return o; }
+
+const HKEY = "checkhero-v3";
+try { localStorage.removeItem("checkhero-v1"); localStorage.removeItem("kehoach-sx-v1"); } catch(e) {}   // dữ liệu mẫu cũ
+let H = null;
+try { H = JSON.parse(localStorage.getItem(HKEY)); } catch(e) {}
+function normH(){
+  if(!H || !H.heroes) H = {active:"mado", heroes:{}};
+  HEROES.forEach(h=>{ CTXH=h.key;
+    const d=H.heroes[h.key]=H.heroes[h.key]||{updated:null};
+    ["ton","need","days"].forEach(k=>{ const g=d[k]=d[k]||blank(); COLORS.forEach(c=>{ if(!Array.isArray(g[c])) g[c]=[_,_,_,_,_]; }); });   // bảng thiếu màu (mã mới) vẫn chạy
+  });
+  CTXH=null; if(!HEROES.some(h=>h.key===H.active)) H.active="mado";
+}
+normH();
+const qm = new URLSearchParams(location.search).get("m");
+const uiHero = (()=>{ try { return localStorage.getItem("_ui_checkhero_active"); } catch(e){ return null; } })();
+if(qm && HEROES.some(h=>h.key===qm)) H.active=qm; else if(uiHero && HEROES.some(h=>h.key===uiHero)) H.active=uiHero;
+/* Mẫu đang xem giữ riêng trong trình duyệt, ghi vào dữ liệu chung giữ nguyên giá trị cũ */
+/* Lưu: mã không có quyền sửa thì gửi lại đúng bản đang lưu (không gửi phần tự bổ sung, VD dòng màu mới) để server không chặn */
+const persistH = () => { let st=null; try { st=JSON.parse(localStorage.getItem(HKEY)); } catch(e){} const out={...H, active:(st||{}).active||H.active};
+  if(st&&st.heroes){ out.heroes={...H.heroes}; Object.keys(H.heroes).forEach(k=>{ if(!Khung.canEdit(k)&&st.heroes[k]) out.heroes[k]=st.heroes[k]; }); }
+  return JSON.stringify(out); };
+/* Màu hiển thị của mã đang xem: chỉ màu mã có (bấm "Hiện đủ màu" để nhập màu mới) */
+let allColors=false;
+const shownColors = () => allColors ? COLORS : PT.colorsOf(H.active,{H});
+let saveTimer;
+function saveH(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ try { localStorage.setItem("_ui_checkhero_active", H.active); localStorage.setItem(HKEY, persistH()); } catch(e) {} }, 250);
+}
+const hero = () => HEROES.find(h=>h.key===H.active);
+const data = () => H.heroes[H.active];
+const stamp = () => new Date().toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"});
+/* updatedAt: mốc chính xác (có năm, giây) để biết hàng nhận trước / sau lần cập nhật Phân tích nhu cầu */
+function touch(kinds){ if(kinds&&kinds.length) stampTables(kinds); else { data().updated=stamp(); data().updatedAt=Date.now(); } $("#updated").textContent="Cập nhật "+data().updated; renderTabs(); saveH(); }
+
+const rowSum = (g,c) => (g[c]||[]).reduce((a,v)=>a+n(v),0);   // 09/11/2026: mã khác loại có thể thiếu dòng màu
+const colSum = (g,i) => COLORS.reduce((a,c)=>a+n((g[c]||[])[i]),0);
+const allSum = g => COLORS.reduce((a,c)=>a+rowSum(g,c),0);
+const hasData = d => Khung.COLORS_ALL.some(c=>(d.ton[c]||[]).some(v=>v!==_)||(d.need[c]||[]).some(v=>v!==_));
+
+/* Tóm tắt từ Tồn kho + Cần đặt: hết hàng, cần đặt, ma trận */
+/* ===== Phân tích nhu cầu: 5 khu vực (phan-tich.js tính, trang này chỉ vẽ) ===== */
+const esc=Khung.esc, GTAG={A1:"p-bad",A2:"p-bad",B:"p-warn",C:"p-ok",D:"p-mute"}, GNAME=PT.GROUP;
+let SEL=new Set(), lastRes=null, verList=null, verCmp=null;
+const userN=id=>id?Khung.userName(id):"—";
+const ago=t=>{ const m=Math.round((Date.now()-t)/6e4); return m<60?m+" phút trước":m<1440?Math.round(m/60)+" giờ trước":Math.round(m/1440)+" ngày trước"; };
+function tablePill(k,x,res){
+  const nm={ton:"Tồn kho",need:"Cần đặt SIXMEN",days:"Ngày còn bán"}[k];
+  if(!x.has) return `<span class="pill p-bad">${nm}: chưa có</span>`;
+  if(!x.at) return `<span class="pill p-bad" title="Dán trước khi có ghi giờ riêng từng bảng">${nm}: chưa rõ giờ dán</span>`;
+  const bad=res.issues.some(i=>(k==="need"&&/^need|^gap/.test(i.k))||(k==="ton"&&/^ton/.test(i.k)));
+  return `<span class="pill ${bad?"p-bad":"p-ok"}" title="${x.legacy?"Giờ cập nhật chung (trước khi có giờ riêng từng bảng)":""}">${nm}: ${PT.hmd(x.at)}${x.by?" · "+esc(userN(x.by)):""}${x.legacy?" *":""}</span>`;
+}
+/* CR-01 (20/11/2026): bỏ bước bắt buộc "Đối chiếu đơn đã đặt" (SIXMEN đã trừ / chưa trừ). Chỉ còn cảnh báo thông tin:
+   size có đơn chốt SAU lần cập nhật Cần đặt gần nhất. Không chặn chuyển Kế hoạch / chốt, không đổi số Cần đặt. */
+function renderDC(h){
+  const el=$("#dcBar"); if(!el) return; const r=lastRes; if(!r){ el.innerHTML=""; return; }
+  const L=(r.rows||[]).filter(x=>x.after>0), os=new Set(); L.forEach(x=>(x.afterO||[]).forEach(o=>os.add(o)));
+  const when=r.times&&r.times.need&&r.times.need.at?PT.hmd(r.times.need.at):"";
+  el.innerHTML=L.length
+    ?`<span class="dc-info">ⓘ ${L.length} size của ${esc(h.name)} đã chốt đặt sau lần cập nhật Cần đặt ${when} (${[...os].map(o=>esc(Don.label(o))).join(", ")}): ${L.map(x=>`<b>${esc(x.sku)}</b> ${PT.fmt(x.after)}`).join(" · ")}. Số Cần đặt giữ nguyên theo bảng quản lý cung cấp, kiểm tra trước khi đặt thêm.</span>`
+    :"";
+  el.parentElement.hidden=!L.length;
+}
+function renderHero(){
+  const h=hero(); const res=lastRes=PT.analyze(h.key,{H});   // dùng số đang hiện trên trang (bản trong trình duyệt lưu chậm 250ms → trước đây phân tích trễ 1 bước)
+  setTimeout(markRisk,0);   // tô màu rủi ro ở bảng Tồn kho / Ngày còn bán theo kết quả mới
+  /* Khu 1 · trạng thái 2 bảng + nút cập nhật */
+  $("#status").innerHTML=`${tablePill("ton",res.times.ton,res)}${tablePill("need",res.times.need,res)}${tablePill("days",res.times.days,res)}
+    <span class="muted small">Lead time ${res.lead} ngày</span>
+    <span style="margin-left:auto;display:flex;gap:8px"><button class="btn primary" id="refresh"${Khung.canEdit(h.key)?"":" disabled"}>Cập nhật &amp; Phân tích lại</button><button class="btn" data-open="ver">Lịch sử dữ liệu</button></span>`;
+  renderDC(h);
+  /* Khu 2 · tổng quan các mã theo bộ lọc */
+  const all=shownHeroes().map(m=>({m,r:m.key===h.key?res:PT.analyze(m.key,{H})}));
+  const cnt=g=>all.filter(x=>x.r.group===g).length, nm=g=>all.filter(x=>x.r.group===g).map(x=>x.m.name.replace(/^Polo\s+/,"")).join(", ");
+  /* UX-1: dải 4 con số của mã đang xem, cộng y hệt Kế hoạch (agg): Còn phải đặt = phần chắc chắn + số size cần đối chiếu. Số liệu lấy nguyên từ PT.analyze */
+  const T=flowAgg(res.rows||[]);
+  const chip=(n,l,c,names)=>`<span class="pill ${n?c:"p-mute"}"${names?` title="${esc(names)}"`:""}>${l} ${n}</span>`;
+  $("#overview").innerHTML=res.hasData?`<div class="flow4" id="flow4">
+      <div><span class="l">Tồn kho</span><span class="v">${T.hasA?PT.fmt(T.A):"—"}</span><span class="d">áo · bảng tồn ${res.times&&res.times.ton&&res.times.ton.at?PT.hmd(res.times.ton.at):"—"}</span></div>
+      <div><span class="l">Cần đặt (quản lý cung cấp)</span><span class="v">${T.hasB?PT.fmt(T.B):"—"}</span><span class="d">số nhập vào, Planning không sửa</span></div>
+      <div><span class="l">Đã đặt (còn hiệu lực)</span><span class="v">${PT.fmt(T.C)}</span><span class="d">đơn đã chốt · bấm số ở bảng để xem</span></div>
+      <div class="f-end"><span class="l">Còn phải đặt</span><span class="v">${PT.fmt(T.cert)}</span><span class="d">${T.unc?`theo Cần đặt · <span class="pill p-warn">${T.unc} size chưa có Cần đặt</span>`:"= Cần đặt, không đối trừ PO"}${T.after?` · <span class="pill p-info">ⓘ ${PT.fmt(T.after)} áo chốt sau cập nhật Cần đặt</span>`:""}</span></div></div>
+    <div class="muted small" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${esc(h.name)} theo size: ${chip(res.A.length,"Đặt gấp","p-bad")} ${chip(res.B.length,"Gom đơn","p-warn")} ${chip(res.D.length,"Cần kiểm tra","p-warn")} ${chip(res.C.length,"Chưa cần đặt","p-ok")}
+      ${all.length>1?`<span style="margin-left:8px">· ${all.length} mã theo bộ lọc:</span> ${chip(cnt("A"),"mã đặt gấp","p-bad",nm("A"))} ${chip(cnt("B"),"mã gom đơn","p-warn",nm("B"))} ${chip(cnt("D"),"mã cần kiểm tra","p-warn",nm("D"))}`:""}</div>`
+    :`<div class="muted small">Chưa có dữ liệu ${esc(h.name)}.</div>`;
+  /* Khu 3 · nhận định */
+  $("#say").innerHTML=res.say;
+  /* Khu 4 · đề xuất hành động */
+  $("#groups").innerHTML=res.hasData?[
+    grpBlock("A","Đặt gấp",res.A,true,"Đứt hàng trước khi lô đang may về, hoặc thiếu kể cả khi hàng đang về"),
+    grpBlock("B","Có thể gom đơn",res.B,true,`Còn thiếu nhưng tính cả hàng đang về vẫn đủ bán ≥ ${res.lead} ngày`),
+    grpBlock("D","Cần kiểm tra dữ liệu",res.D,true,"Thiếu hoặc chưa chắc dữ liệu: không kết luận chắc chắn"),
+    grpBlock("C","Chưa cần đặt",res.C,false,"Đơn đang về đủ cho nhu cầu, hoặc không có nhu cầu")
+  ].join(""):`<div class="panel empty">Chưa có dữ liệu ${esc(h.name)}. Bấm <b>Cập nhật &amp; Phân tích lại</b> để dán bảng tồn kho và cần đặt.</div>`;
+  if(SEL.size) $("#sendBar").hidden=false;
+  /* Khu 5 · dữ liệu chi tiết */
+  renderDetail(res);
+}
+/* Cộng dồn giống hệt agg() của Kế hoạch (sure / uncRow) để hai trang ra cùng số */
+/* CR-01: Còn phải đặt = Cần đặt (D = B); unc = size chưa có số Cần đặt; after = áo chốt sau cập nhật Cần đặt (chỉ cảnh báo) */
+const flowSure=r=>!!r&&r.D!==null&&r.D!==undefined;
+const flowUnc=r=>!!r&&!flowSure(r);
+function flowAgg(rows){ const a={A:0,hasA:false,B:0,hasB:false,C:0,cert:0,unc:0,after:0};
+  rows.forEach(r=>{ a.after+=r.after||0; if(r.A!==null&&r.A!==undefined){ a.A+=r.A; a.hasA=true; } if(r.B!==null&&r.B!==undefined){ a.B+=r.B; a.hasB=true; } a.C+=(r.C||0);
+    if(flowSure(r)) a.cert+=Math.max(0,r.D); else if(flowUnc(r)) a.unc++; });
+  return a; }
+/* UX-1: lý do giống nhau ở mọi dòng của nhóm → ghi 1 lần ở đầu nhóm, từng dòng chỉ ghi phần riêng (nội dung lý do giữ nguyên) */
+const whyParts=r=>(r.why||[]).flatMap(w=>String(w).replace(/^Cần kiểm tra:\s*/,"").split(/;\s*/)).map(s=>s.trim()).filter(Boolean);
+function commonWhy(L){ if(L.length<2) return []; const P=L.map(whyParts); return P[0].filter(p=>P.every(q=>q.includes(p))); }
+const dTxt=r=>(r.D!=null?`<b>${PT.fmt(r.D)}</b>`:"—")+(r.after>0?`<div><span class="pill p-info" title="${esc((r.afterO||[]).map(o=>Don.label(o)).join(", "))} · ${PT.fmt(r.after)} áo · chỉ để thông tin, số Cần đặt giữ nguyên">ⓘ Đã có đơn chốt sau lần cập nhật Cần đặt</span></div>`:"");
+function grpBlock(g,title,L,open,sub){
+  const tag=g==="A"?"p-bad":g==="B"?"p-warn":g==="C"?"p-ok":"p-mute", sel=g!=="C"&&Khung.canEdit(H.active);
+  const tot=L.reduce((a,r)=>a+(r.D||0),0), cw=commonWhy(L);
+  return `<details class="panel grp" ${open&&L.length?"open":""}><summary><span class="pill ${tag}">${title}</span> <b>${L.length} size</b>${tot&&g!=="D"?` · còn phải đặt ${PT.fmt(tot)} áo`:""} <span class="muted small">${sub}</span>
+      ${sel&&L.length?`<button class="btn ghost" data-selall="${g}" style="margin-left:auto">Chọn cả nhóm</button>`:""}</summary>
+    ${cw.length?`<div class="grpnote" data-grpwhy="${g}"><b>Lý do chung của ${L.length} size:</b> ${cw.map(esc).join(" · ")}. Cột bên dưới chỉ ghi phần riêng của từng size.</div>`:""}
+    ${L.length?`<div class="scroll"><table class="pt"><thead><tr>${sel?"<th></th>":""}<th>SKU</th><th class="r">Tồn</th><th class="r">Ngày còn bán</th><th class="r">Cần đặt SIXMEN</th><th class="r">Đã đặt Planning</th><th class="r">Đủ bán (kể cả hàng về)</th><th class="r">Còn phải đặt</th><th>${cw.length?"Riêng size này":"Nguyên nhân · hành động"}</th></tr></thead><tbody>
+      ${L.slice().sort((a,b)=>(a.grp>b.grp?1:a.grp<b.grp?-1:0)||((b.D??b.dMax??0)-(a.D??a.dMax??0))).map(r=>{ const id=r.c+"-"+r.i;
+        return `<tr>${sel?`<td><input type="checkbox" data-pick="${id}"${SEL.has(id)?" checked":""} aria-label="Chọn ${r.sku}"></td>`:""}<td><b>${r.sku}</b>${r.grp==="A1"?` <span class="pill p-bad">đứt hàng</span>`:""}</td>
+          <td class="r num">${r.A??"—"}</td><td class="r num">${r.days??"—"}</td><td class="r num">${r.B??"—"}</td>
+          <td class="r num">${r.C?`<button class="lnk" data-inc="${id}">${PT.fmt(r.C)}</button>`:"0"}</td><td class="r num">${r.cover!=null?Math.round(r.cover)+" ngày":"—"}</td><td class="r num">${dTxt(r)}</td>
+          <td class="why">${cw.length?(whyParts(r).filter(p=>!cw.includes(p)).map(esc).join("<br>")||`<span class="muted">—</span>`):r.why.map(esc).join("<br>")}</td></tr>
+          <tr class="inc" data-incrow="${id}" hidden><td colspan="${sel?9:8}">${r.inc.map(x=>`<div>${esc(Don.label(x.o))} · <b>${PT.fmt(x.q)}</b> áo ${x.del?"xưởng đã giao, chưa đối chiếu tồn SIXMEN":"xưởng chưa giao · hẹn "+new Date(x.arr.t).toLocaleDateString("vi-VN")+(x.arr.guess?" (ước tính)":"")} · <span class="${x.refl.v==="yes"?"muted":x.refl.v==="no"&&!x.del?"ok":"bad"}">${x.refl.v==="yes"?"không trừ (SIXMEN đã tính)":x.refl.v==="no"&&!x.del?"trừ vào đề xuất":"cần đối chiếu"}</span> <span class="muted">(${esc(x.refl.why)})</span></div>`).join("")||"Không có đơn đang về."}</td></tr>`; }).join("")}
+    </tbody></table></div>`:`<div class="muted small" style="padding:8px 2px">Không có size nào.</div>`}</details>`;
+}
+function renderDetail(res){
+  const isA=Khung.isAdmin(), C=res.cfg, cell=r=>r?`<div class="mx"><span>A ${r.A??"—"}</span><span>B ${r.B??"—"}</span><span>C ${r.C}</span><span class="${r.D==null?"bad":r.D>0?"warn":""}">D ${r.D!=null?r.D:r.dMax!=null?r.dMin+"–"+r.dMax:"—"}</span></div>`:"";
+  const R={}; res.rows.forEach(r=>R[r.c+"|"+r.i]=r);
+  $("#detail").innerHTML=`
+    <details class="panel det"><summary>Ma trận 4 chỉ tiêu theo màu × size</summary>
+      <p class="muted small">A Tồn kho (SIXMEN) · B Cần đặt theo SIXMEN · C Đã đặt trong Planning (đơn đã chốt) · D Còn phải đặt (= B, không đối trừ PO)</p>
+      <div class="scroll"><table class="pt mxt"><thead><tr><th>Màu \\ Size</th>${SZL.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${PT.colorsOf(H.active,{H}).map(c=>`<tr><td><b>${c}</b></td>${SZL.map((_s,i)=>i).map(i=>`<td>${cell(R[c+"|"+i])}</td>`).join("")}</tr>`).join("")}
+      <tr><td><b>Tổng</b></td><td colspan="${SZL.length}">A ${PT.fmt(res.totals.A)} · B ${PT.fmt(res.totals.B)} · C ${PT.fmt(res.totals.C)} · D chắc chắn ${PT.fmt(res.totals.Dfirm)}${res.totals.Dmax!==res.totals.Dmin?` · D cả mã trong khoảng ${PT.fmt(res.totals.Dmin)}–${PT.fmt(res.totals.Dmax)}`:""}${res.totals.over?` · đã đặt dư so với SIXMEN ${PT.fmt(res.totals.over)}`:""}</td></tr></tbody></table></div></details>
+    <details class="panel det"><summary>Cách tính</summary><div class="small" style="display:grid;gap:4px;padding-top:6px">
+      <div><b>D = B</b>: Còn phải đặt là đúng số Cần đặt người quản lý cung cấp (đã xử lý ở hệ thống SIXMEN). Planning <b>không đối trừ PO / đơn đã đặt</b> và không tự sửa số này. Size có đơn chốt sau lần cập nhật Cần đặt gần nhất chỉ hiện nhãn <span class="pill p-info">ⓘ</span> để lưu ý, không chặn chốt.</div>
+      <div><b>C</b> = phần chưa về của đơn đã chốt / đang lên + phần đã về sau giờ dán bảng tồn; không tính đơn huỷ, đơn đã nhận đủ, phần thiếu của lần giao cuối.</div>
+      <div><b>Đủ bán</b> = (tồn + hàng đang về) ÷ tốc độ bán, tốc độ bán = tồn ÷ ngày còn bán. <b>Đặt gấp</b>: đứt hàng trước khi lô gần nhất về, hoặc đủ bán &lt; lead time ${res.lead} ngày. <b>Gom đơn</b>: còn thiếu nhưng đủ bán ≥ lead time.</div>
+      <div><b>Cần kiểm tra</b>: thiếu bảng, bảng cũ hơn ${C.staleHours} giờ, 2 bảng dán cách nhau &gt; ${C.gapHours} giờ, thiếu ngày còn bán, tồn âm.</div></div></details>
+    <details class="panel det" id="verBox"${verList?" open":""}><summary>Lịch sử dữ liệu (phiên bản từng lần dán)</summary><div id="verList" class="small" style="padding-top:6px">${verList?verHTML():"Đang tải…"}</div></details>
+    <details class="panel det"><summary>Cài đặt phân tích${isA?"":" (chỉ Admin sửa)"}</summary>
+      <div class="cfg small">
+        <label>Lead time mặc định <input class="field num" data-cfg="lead" value="${C.lead}"${isA?"":" disabled"}> ngày</label>
+        <label>Lead time riêng ${esc(hero().name)} <input class="field num" data-cfg="leadModel" value="${C.leadModel[H.active]||""}" placeholder="mặc định"${isA?"":" disabled"}> ngày</label>
+        ${["hoa","mien","hoang","hung"].map(x=>`<label>Lead time ${Don.XUONG[x].name} <input class="field num" data-cfg="leadXuong.${x}" value="${C.leadXuong[x]||""}" placeholder="mặc định"${isA?"":" disabled"}> ngày</label>`).join("")}
+        <label>Bảng cũ sau <input class="field num" data-cfg="staleHours" value="${C.staleHours}"${isA?"":" disabled"}> giờ</label>
+        <label>2 bảng lệch giờ tối đa <input class="field num" data-cfg="gapHours" value="${C.gapHours}"${isA?"":" disabled"}> giờ</label>
+        <span id="updCfg">Lịch cập nhật Tồn kho + Cần đặt: ${[1,2,3,4,5,6,0].map(d=>`<label style="margin-right:4px"><input type="checkbox" data-upd="${d}"${Don.updDays().includes(d)?" checked":""}${isA?"":" disabled"}> ${Don.THU[d]}</label>`).join("")} <span class="muted">(ngày khác vẫn cập nhật bổ sung được)</span></span>
+      </div></details>`;
+  if(!verList) loadVersions();
+}
+/* Phiên bản dữ liệu (server) */
+function loadVersions(){ fetch(`/api/phien-ban/${H.active}`,{cache:"no-store"}).then(r=>r.ok?r.json():{items:[]}).then(j=>{ verList=j; const el=$("#verList"); if(el) el.innerHTML=verHTML(); }).catch(()=>{}); }
+function verHTML(){
+  const L=(verList&&verList.items)||[], NM={ton:"Tồn kho",need:"Cần đặt",days:"Ngày còn bán"};
+  if(!L.length) return `Chưa có phiên bản nào. Từ nay mỗi lần dán bảng sẽ lưu 1 phiên bản (giữ tối thiểu ${verList?verList.keepDays:90} ngày; bản đang được đơn sản xuất làm căn cứ không bao giờ xoá).`;
+  return `<div class="muted">${L.length} phiên bản · ${Math.round(verList.totalBytes/1024)} KB · giữ tối thiểu ${verList.keepDays} ngày</div>
+    <table class="pt"><thead><tr><th>Lúc</th><th>Bảng</th><th>Người dán</th><th></th></tr></thead><tbody>${L.slice(0,40).map((v,i)=>`<tr><td>${PT.hmd(v.at)}</td><td>${NM[v.kind]}</td><td>${esc(userN(v.by))}</td><td>${v.kind!=="days"&&L.slice(i+1).some(x=>x.kind===v.kind)?`<button class="btn ghost" data-cmp="${v.id}">So với lần trước</button>`:""}</td></tr>`).join("")}</tbody></table>
+    <div id="cmpOut"></div>`;
+}
+async function compareVersion(id){
+  const L=verList.items, i=L.findIndex(x=>x.id===id), cur=L[i], prev=L.slice(i+1).find(x=>x.kind===cur.kind);
+  const get=v=>fetch(`/api/phien-ban/${H.active}/${v.id}`,{cache:"no-store"}).then(r=>r.json());
+  const [a,b]=await Promise.all([get(prev),get(cur)]);
+  const opt={H}; opt[cur.kind]=a.value; const before=PT.analyze(H.active,opt), now=PT.analyze(H.active,{H});
+  const ch=[]; PT.COLORS.forEach(c=>[0,1,2,3,4].forEach(i=>{ const x=(a.value[c]||[])[i], y=(b.value[c]||[])[i]; if((x??null)!==(y??null)) ch.push(`${c} ${SZL[i]}: ${x??"—"} → ${y??"—"}`); }));
+  const g={}; before.rows.forEach(r=>g[r.sku]=r.grp); const moved=now.rows.filter(r=>g[r.sku]&&g[r.sku]!==r.grp).map(r=>`${r.sku}: ${GNAME[g[r.sku]]} → ${GNAME[r.grp]}`);
+  $("#cmpOut").innerHTML=`<div class="panel" style="padding:10px 12px;margin-top:8px"><b>${({ton:"Bảng tồn kho",need:"Bảng cần đặt"})[cur.kind]} ${PT.hmd(prev.at)} → ${PT.hmd(cur.at)}</b> · ${ch.length} ô thay đổi${ch.length?`<div class="muted">${ch.slice(0,30).join(" · ")}${ch.length>30?" …":""}</div>`:""}
+    <div style="margin-top:6px"><b>Nhóm thay đổi:</b> ${moved.length?moved.join(" · "):"không có size nào đổi nhóm"}</div></div>`;
+}
+/* Ghi giờ + người dán từng bảng, lưu phiên bản lên server (gộp các lần sửa liên tiếp trong 4 giây) */
+const verTimers={};
+function stampTables(kinds){
+  const d=data(), now=Date.now(); d.at=d.at||{}; d.by=d.by||{};
+  kinds.forEach(k=>{ d.at[k]=now; d.by[k]=Khung.me&&Khung.me.id; if(k==="ton"){ d.updatedAt=now; d.updated=stamp(); }
+    const key=H.active; clearTimeout(verTimers[key+k]);
+    verTimers[key+k]=setTimeout(()=>{ const g=H.heroes[key][k]; fetch(`/api/phien-ban/${key}`,{method:"POST",body:JSON.stringify({kind:k,grid:g,source:"dan-bang"})}).then(r=>r.json()).then(j=>{ if(j.id){ H.heroes[key].ver=H.heroes[key].ver||{}; H.heroes[key].ver[k]=j.id; saveH(); if(key===H.active){ verList=null; loadVersions(); } } }).catch(()=>{}); },4000);
+  });
+}
+/* Chuyển các size đã chọn sang Kế hoạch (ghi lại người chuyển, lúc nào, dựa trên dữ liệu nào) */
+function sendToPlan(){
+  const res=lastRes, picked=res.rows.filter(r=>SEL.has(r.c+"-"+r.i)); if(!picked.length) return;
+  const S=JSON.parse(localStorage.getItem("kehoach-sx-v3")||'{"models":{}}'), p=(S.models[H.active]=S.models[H.active]||{});
+  (p.handoffs=p.handoffs||[]).push({at:Date.now(), by:Khung.me&&Khung.me.id, skus:picked.map(r=>({c:r.c,i:r.i,grp:r.grp,A:r.A,B:r.B,C:r.C,D:r.D,dMin:r.dMin,dMax:r.dMax})), tonAt:res.times.ton.at, needAt:res.times.need.at, ver:data().ver||null});
+  if(p.handoffs.length>60) p.handoffs=p.handoffs.slice(-60);
+  localStorage.setItem("kehoach-sx-v3", JSON.stringify(S));
+  $("#sendPlan").disabled=true; $("#sendTxt").textContent="Đang lưu lần chuyển…";
+  setTimeout(()=>goPlan(`ke-hoach.html?m=${H.active}&chon=${picked.map(r=>r.c+"."+r.i).join(",")}#b2`), 900);   // chờ lưu xong rồi mới chuyển trang
+}
+window.goPlan = url => { location.href=url; };
+function _unused(){
+}/* Bảng nhập Tồn kho / Cần đặt */
+/* Chú thích màu rủi ro: 1 dòng chung phía trên cặp bảng Tồn kho / Cần đặt (để 2 bảng cao bằng nhau, thẳng hàng) + trong bảng Ngày còn bán */
+const rkLegend=()=>`<div class="rk-legend"><span><i style="background:var(--crit)"></i>Đỏ: hết áo, hoặc tồn không trụ được tới khi hàng về</span><span><i style="background:var(--warn)"></i>Vàng: còn hàng nhưng chỉ đủ bán dưới ${(lastRes&&lastRes.lead)||22} ngày (thời gian may 1 lô) → sắp hết, để ý đặt</span><span>· rê chuột vào ô để xem lý do</span></div>`;
+function gridPanel(key){
+  if(key==="ton"&&$("#rkLegend")) $("#rkLegend").innerHTML=rkLegend().replace(/^<div class="rk-legend">|<\/div>$/g,"");
+  const grid=data()[key];
+  const head=`<tr><th>Màu \\ Size</th>${SIZES.map(s=>`<th>${s}</th>`).join("")}${key==="days"?"":`<th class="tot">Tổng</th>`}</tr>`;
+  const body=shownColors().map(c=>`<tr><td class="lbl">${c}</td>${SIZES.map((s,i)=>`<td><input class="gi" data-g="${key}" data-c="${c}" data-i="${i}" inputmode="numeric" autocomplete="off" aria-label="${INPUTS[key].title} ${c} ${s}" value="${grid[c][i]??""}"></td>`).join("")}${key==="days"?"":`<td class="r num tot" data-t="${key}-${c}">${rowSum(grid,c)}</td>`}</tr>`).join("");
+  const foot=key==="days"?"":`<tr class="sumrow"><td class="lbl">Tổng</td>${SIZES.map((s,i)=>`<td class="r num" data-t="${key}-col${i}">${colSum(grid,i)}</td>`).join("")}<td class="r num tot" data-t="${key}-all">${allSum(grid)}</td></tr>`;
+  $("#p-"+key).innerHTML=`<div class="gp-head"><div class="t"><h3>${INPUTS[key].title}</h3><span class="chip">${key==="days"?"Tự lấy khi dán bảng Tồn kho từ hệ thống (dòng 35.2d trong ô) · không có thì nhập tay, có thể bỏ trống":"Nhập tay, dán từ Sheet, hoặc đọc từ ảnh"}</span></div>
+    <button class="btn ghost" data-allcolors title="Mã này chỉ hiện các màu đang có; bấm để nhập màu mới">${allColors?"Chỉ màu mã có":"Hiện đủ "+COLORS.length+" màu"}</button><button class="btn ghost" data-clear="${key}">Xoá bảng</button></div>
+    ${key==="days"?rkLegend():""}
+    <div class="scroll"><table class="g"><thead>${head}</thead><tbody>${body}${foot}</tbody></table></div>`;
+  markRisk();
+}
+/* Hiện đủ màu để nhập màu mới cho mã (VD lần đầu có Bee) / quay lại chỉ màu mã có */
+document.addEventListener("click",e=>{ if(!e.target.closest("[data-allcolors]")) return; allColors=!allColors; Object.keys(INPUTS).forEach(k=>{ if($("#p-"+k)) gridPanel(k); }); });
+/* Mức rủi ro từng size theo Phân tích nhu cầu (đúng nhóm A1 / A2 ở phần kết quả):
+   đỏ  = A1: đã hết áo (còn nhu cầu) hoặc số ngày còn bán ít hơn số ngày tới khi lô gần nhất về
+   vàng = chưa đỏ nhưng tồn chỉ đủ bán dưới thời gian may 1 lô (22 ngày) và còn nhu cầu → sắp hết, cần để ý đặt (gồm cả nhóm A2) */
+function riskOf(r, lead){
+  if(!r) return null;
+  if(r.grp==="A1") return "red";
+  if(r.grp==="A2") return "amber";
+  if(r.days!=null && r.days<lead && r.A>0 && (n(r.B)>0 || n(r.dMax)>0)) return "amber";
+  return null;
+}
+const dmy2 = t => { const d=new Date(t); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2); };
+function riskWhy(r, k, lead){
+  if(k==="red") return (r.why||[]).filter(x=>!/^Cần kiểm tra/.test(x))[0]||(r.why||[])[0]||"";
+  if(r.grp==="A2") return (r.why||[])[0]||"";
+  return `Còn ~${Math.round(r.days)} ngày bán, ít hơn ${lead} ngày may 1 lô`+(r.first?` · lô gần nhất ${PT.fmt(r.first.q)} áo về ${dmy2(r.first.arr.t)}${r.cover!=null?`, tính cả hàng đang về đủ bán ~${Math.round(r.cover)} ngày`:""}`:" · chưa có lô nào đang về");
+}
+function markRisk(){
+  const res=lastRes; if(!res || res.key!==H.active) return;
+  const by={}; res.rows.forEach(r=>by[r.c+"|"+r.i]=r);
+  document.querySelectorAll(`.gi[data-g="ton"],.gi[data-g="days"]`).forEach(el=>{
+    const r=by[el.dataset.c+"|"+el.dataset.i], k=riskOf(r,res.lead);
+    el.classList.toggle("rk-red",k==="red"); el.classList.toggle("rk-amber",k==="amber");
+    el.title=k?`${k==="red"?"Đỏ":"Vàng"}: ${riskWhy(r,k,res.lead)}`:"";
+  });
+}
+function updateTotals(key){
+  const g=data()[key], set=(id,v)=>{ const el=document.querySelector(`[data-t="${key}-${id}"]`); if(el) el.textContent=v; };
+  COLORS.forEach(c=>set(c,rowSum(g,c)));
+  SIZES.forEach((s,i)=>set("col"+i,colSum(g,i)));
+  set("all",allSum(g));
+}
+const parseNum = s => { const r=String(s).replace(/[^\d-]/g,""); if(r===""||r==="-") return _; const v=parseInt(r,10); return Number.isNaN(v)?_:v; };
+
+document.addEventListener("input",e=>{
+  const t=e.target; if(!t.classList.contains("gi")) return;
+  data()[t.dataset.g][t.dataset.c][+t.dataset.i]=t.dataset.g==="days"?parseDays(t.value):parseNum(t.value);
+  updateTotals(t.dataset.g); touch([t.dataset.g]); renderHero();
+});
+/* ===== Dán bảng copy từ hệ thống / Google Sheet =====
+   Trình duyệt copy bảng kèm cấu trúc ô (HTML). Mỗi ô lấy con số nguyên đầu tiên = số lượng;
+   "35.2d" (ngày còn bán), "+26%" (xu hướng), nhãn A/B/C/D bị bỏ qua. Ô ngay sau 5 size là Tổng để đối chiếu. */
+const isInt = s => /^\d+$/.test(s) || /^\d{1,3}([.,]\d{3})+$/.test(s);
+const toInt = s => +s.replace(/[.,]/g,"");
+function texts(node){
+  const out=[], w=node.ownerDocument.createTreeWalker(node,NodeFilter.SHOW_TEXT);
+  let t; while((t=w.nextNode())) t.textContent.split(/\s+/).forEach(s=>{ if(s) out.push(s); });
+  return out;
+}
+/* "35.2d" trong ô bảng hệ thống = số ngày còn bán của size đó */
+const dayOf = s => { const m=/^(\d+(?:[.,]\d+)?)d$/i.exec(s); return m?parseFloat(m[1].replace(",",".")):null; };
+const parseDays = s => { const v=parseFloat(String(s).replace(",",".").replace(/[^\d.]/g,"")); return Number.isNaN(v)?_:v; };
+function newGroup(){ const low={}; COLORS.forEach(c=>low[c]=[false,false,false,false,false]); return {grid:blank(), low, found:{}, tot:{}, days:blank()}; }
+function parseHTMLTables(html){
+  const doc=new DOMParser().parseFromString(html,"text/html"), groups=[];
+  doc.querySelectorAll("tr").forEach(tr=>{
+    const cells=[...tr.children], seen={};
+    cells.forEach((td,ci)=>{
+      const lab=NM()?colorCode(texts(td).join(" ")):(texts(td)[0]||"").toUpperCase();
+      if(!lab || !COLORS.includes(lab) || (!NM()&&texts(td).length>1)) return;
+      const occ=seen[lab]=(seen[lab]??-1)+1;      // 2 bảng cạnh nhau: lần thứ 2 gặp màu này là bảng 2
+      const g=groups[occ]=groups[occ]||newGroup();
+      if(g.found[lab]) return;
+      g.found[lab]=true;
+      const num=td=>{ const s=td&&texts(td).find(isInt); return s===undefined||!td?null:toInt(s); };
+      SIZES.forEach((_s,i)=>{ g.grid[lab][i]=num(cells[ci+1+i]); const td=cells[ci+1+i]; const dv=td?texts(td).map(dayOf).find(v=>v!==null):null; if(dv!==undefined&&dv!==null) g.days[lab][i]=dv; });
+      const tc=cells[ci+1+SIZES.length];
+      if(tc && !COLORS.includes((texts(tc)[0]||"").toUpperCase())){ const v=num(tc); if(v!==null) g.tot[lab]=v; }
+    });
+  });
+  return groups.filter(g=>Object.keys(g.found).length>=2);
+}
+/* Không có bảng HTML (vd bảng dựng bằng khối div): đọc lần lượt, sau mỗi tên màu lấy 5 số nguyên + 1 số Tổng */
+function parseTextStream(txt){
+  const groups=[], seen={};
+  let cur=null;
+  aliasText(txt).split(/\s+/).forEach(s=>{
+    const u=s.toUpperCase();
+    if(COLORS.includes(u)){
+      const occ=seen[u]=(seen[u]??-1)+1;
+      const g=groups[occ]=groups[occ]||newGroup();
+      cur=g.found[u]?null:{g,c:u,ints:[]};
+      if(cur) g.found[u]=true;
+      return;
+    }
+    const dv=dayOf(s);
+    if(cur && dv!==null && cur.ints.length>=1 && cur.ints.length<=SIZES.length){ cur.g.days[cur.c][cur.ints.length-1]=dv; return; }
+    if(cur && cur.ints.length<SIZES.length+1 && isInt(s)){
+      cur.ints.push(toInt(s));
+      if(cur.ints.length<=SIZES.length) cur.g.grid[cur.c][cur.ints.length-1]=toInt(s);
+      else cur.g.tot[cur.c]=toInt(s);
+    }
+  });
+  return groups.filter(g=>Object.keys(g.found).length>=2);
+}
+function parseClip(cd){
+  const html=cd.getData("text/html");
+  let gs=/<t[rd][\s>]/i.test(html)?parseHTMLTables(html):[];
+  if(!gs.length) gs=parseTextStream(cd.getData("text")||"");
+  return gs.map((g,i,arr)=>({...g, target: arr.length===2?(i?"need":"ton"):nextTarget}));
+}
+
+document.addEventListener("paste",e=>{
+  const t=e.target; if(!t.classList||!t.classList.contains("gi")) return;
+  /* Copy bảng có cột màu (từ hệ thống hoặc Sheet kèm cột màu): điền theo đúng tên màu */
+  const html=e.clipboardData.getData("text/html");
+  const hg=/<t[rd][\s>]/i.test(html)?parseHTMLTables(html):[];
+  if(hg.length){
+    e.preventDefault();
+    const key=t.dataset.g;
+    COLORS.forEach(c=>{ if(hg[0].found[c]) data()[key][c]=hg[0].grid[c].slice(); });
+    const withDays=key==="ton" && COLORS.some(c=>hg[0].days[c].some(v=>v!==_));
+    if(withDays){ COLORS.forEach(c=>{ if(hg[0].found[c]) data().days[c]=hg[0].days[c].slice(); }); gridPanel("days"); }
+    gridPanel(key); touch(withDays?[key,"days"]:[key]); renderHero();
+    return;
+  }
+  const txt=(e.clipboardData||window.clipboardData).getData("text");
+  if(!/[\t\n]/.test(txt.trim())) return;
+  e.preventDefault();
+  const key=t.dataset.g, grid=data()[key];
+  let row=COLORS.indexOf(t.dataset.c);
+  txt.replace(/\r/g,"").replace(/\n+$/,"").split("\n").forEach(line=>{
+    let cells=line.split("\t"), start=+t.dataset.i, color=COLORS[row];
+    const lab=(cells[0]||"").trim().toUpperCase();
+    if(COLORS.includes(lab)){ color=lab; cells=cells.slice(1); start=0; }
+    else if(lab && !/^-?[\d.,\s]*$/.test(lab)) return;   // bỏ dòng tiêu đề, dòng "Tổng"
+    if(!color) return;
+    cells.slice(0,SIZES.length-start).forEach((v,j)=>grid[color][start+j]=key==="days"?parseDays(v):parseNum(v));
+    row=COLORS.indexOf(color)+1;
+  });
+  gridPanel(key); touch([key]); renderHero();
+});
+document.addEventListener("keydown",e=>{
+  const t=e.target; if(!t.classList||!t.classList.contains("gi")) return;
+  const step={Enter:1,ArrowDown:1,ArrowUp:-1}[e.key]; if(!step) return;
+  const c=COLORS[COLORS.indexOf(t.dataset.c)+(e.shiftKey&&e.key==="Enter"?-1:step)];
+  const nx=c&&document.querySelector(`.gi[data-g="${t.dataset.g}"][data-c="${c}"][data-i="${t.dataset.i}"]`);
+  if(nx){ e.preventDefault(); nx.focus(); nx.select(); }
+});
+
+/* Đọc số từ ảnh: Tesseract chạy ngay trong trình duyệt, lấy vị trí từng con số rồi gán vào ô theo cột size và dòng màu */
+let tessP=null, worker=null, ocrCur=null, ocrSeq=0, nextTarget="ton";
+let OCR=[];
+function loadTess(){
+  if(window.Tesseract) return Promise.resolve();
+  if(!tessP) tessP=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+    s.onload=res; s.onerror=()=>{ tessP=null; rej(new Error("Không tải được bộ đọc ảnh, kiểm tra kết nối mạng")); };
+    document.head.appendChild(s);
+  });
+  return tessP;
+}
+function ocrStatus(it,txt){
+  it.status=txt;
+  const el=document.querySelector(`[data-ocr-status="${it.id}"]`); if(el) el.textContent=txt;
+}
+async function getWorker(){
+  await loadTess();
+  if(!worker){
+    worker=await Tesseract.createWorker("eng",1,{logger:m=>{
+      if(!ocrCur) return;
+      if(m.status==="recognizing text") ocrStatus(ocrCur,`Đang đọc ảnh… ${Math.round(m.progress*100)}%`);
+      else if(m.status!=="recognizing text") ocrStatus(ocrCur,"Đang tải bộ đọc ảnh (lần đầu hơi lâu)…");
+    }});
+  }
+  return worker;
+}
+/* Đọc 2 lượt: lượt 1 cả ảnh để tìm khung bảng (tiêu đề size, tên màu, vị trí dòng số lượng);
+   lượt 2 cắt riêng từng ô, chỉ đọc chữ số → chính xác hơn nhiều với chữ nhỏ, chữ màu, ô nhiều dòng */
+async function ocrFile(file, it){
+  const wk=await getWorker(), canvas=await prepImage(file);
+  ocrStatus(it,"Đang tìm khung bảng…");
+  await wk.setParameters({tessedit_pageseg_mode:"11", tessedit_char_whitelist:"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,%+-"});
+  const {data}=await wk.recognize(canvas);
+  const groups=parseOCR(data.words||[]);
+  await wk.setParameters({tessedit_pageseg_mode:"7", tessedit_char_whitelist:"0123456789"});
+  const total=groups.reduce((a,g)=>a+g.cells.length+g.totCells.length,0);
+  let done=0;
+  for(const g of groups){
+    for(const cell of g.cells){
+      ocrStatus(it,`Đang đọc từng ô… ${++done}/${total}`);
+      const r=await readCrop(wk,canvas,cell);
+      g.grid[cell.c][cell.i]=r.t?+r.t:null; g.conf[cell.c][cell.i]=r.conf;
+    }
+    for(const cell of g.totCells){
+      ocrStatus(it,`Đang đọc từng ô… ${++done}/${total}`);
+      const r=await readCrop(wk,canvas,cell);
+      if(r.t) g.tot[cell.c]=+r.t;
+    }
+    COLORS.forEach(c=>{
+      g.grid[c].forEach((v,i)=>{ g.low[c][i]=v!==null && g.conf[c][i]<75; });
+      if(g.tot[c]===undefined) return;
+      const vals=g.grid[c].slice(), fixed=reconcile(vals,g.tot[c],g.conf[c]);
+      if(fixed) fixed.forEach((v,i)=>{ if(v!==vals[i]){ g.grid[c][i]=v; g.low[c][i]=true; } });
+    });
+  }
+  return groups.map(({cells,totCells,conf,...g})=>g);
+}
+async function readCrop(wk,canvas,b){
+  const pad=16, w=Math.max(4,Math.round(b.x1-b.x0)), h=Math.max(4,Math.round(b.y1-b.y0));
+  const c=document.createElement("canvas"); c.width=w+pad*2; c.height=h+pad*2;
+  const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+  x.drawImage(canvas,Math.round(b.x0),Math.round(b.y0),w,h,pad,pad,w,h);
+  const {data}=await wk.recognize(c);
+  const t=(data.text||"").replace(/\D/g,"");
+  return {t:t.length&&t.length<=6?t:"", conf:data.confidence};
+}
+/* Phóng to ảnh chụp màn hình nhỏ; lấy kênh màu tối nhất để chữ cam/đỏ/xanh thành đậm như chữ đen, rồi tăng tương phản */
+async function prepImage(file){
+  const img=await createImageBitmap(file), k=img.width<800?3:img.width<1600?2:1;
+  const c=document.createElement("canvas"); c.width=img.width*k; c.height=img.height*k;
+  const x=c.getContext("2d"); x.imageSmoothingQuality="high"; x.drawImage(img,0,0,c.width,c.height);
+  const d=x.getImageData(0,0,c.width,c.height), p=d.data;
+  for(let i=0;i<p.length;i+=4){
+    const m=Math.min(p[i],p[i+1],p[i+2]), v=Math.max(0,Math.min(255,(m-40)*255/180));
+    p[i]=p[i+1]=p[i+2]=v;
+  }
+  x.putImageData(d,0,0);
+  return c;
+}
+function lev(a,b){
+  const d=Array.from({length:a.length+1},(_v,i)=>[i,...Array(b.length).fill(0)]);
+  for(let j=1;j<=b.length;j++) d[0][j]=j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[a.length][b.length];
+}
+function matchColor(t){
+  const s=t.replace(/0/g,"O").replace(/[^A-Z]/g,"");
+  if(s.length<2||s.length>4) return null;
+  if(COLORS.includes(s)) return s;
+  const near=COLORS.filter(c=>lev(c,s)<=1);
+  return near.length===1?near[0]:null;
+}
+/* Chỉ nhận số nguyên: "35.2D" (ngày còn bán), "+26%" (xu hướng) bị loại; nhãn nhóm A/B/C/D dính phía trước thì bỏ */
+function toNum(t){
+  const s=t.replace(/^[A-D\[\(|]+(?=\d)/,"").replace(/[.,](?=\d{3}$)/g,"").replace(/O/g,"0").replace(/[IL]/g,"1").replace(/S/g,"5").replace(/Z/g,"2");
+  return /^\d{1,6}$/.test(s)?+s:null;
+}
+/* Đối chiếu với cột Tổng của ảnh: thử bỏ chữ số đầu (nhãn A/B/C/D bị đọc thành số, vd 8161 → 161);
+   nếu dòng chỉ thiếu đúng 1 ô thì tính ô đó = tổng − các ô còn lại */
+function reconcile(vals,total,conf){
+  const idx=vals.map((v,i)=>v!==null&&v>=10?i:-1).filter(i=>i>=0);
+  const miss=vals.map((v,i)=>v===null?i:-1).filter(i=>i>=0);
+  const tries=[];
+  for(let m=0;m<1<<idx.length;m++){
+    const out=vals.slice(); let drops=0;
+    idx.forEach((i,b)=>{ if(m>>b&1){ out[i]=+String(out[i]).slice(1); drops++; } });
+    tries.push({out,drops,s:out.reduce((a,v)=>a+n(v),0)});
+  }
+  tries.sort((a,b)=>a.drops-b.drops);
+  const exact=tries.find(t=>t.s===total);
+  if(exact) return exact.out;
+  if(miss.length===1){
+    const fit=tries.find(t=>t.s<=total);
+    if(fit){ fit.out[miss[0]]=total-fit.s; return fit.out; }
+  }
+  /* Một ô bị rớt/thừa chữ số (11 đọc thành 1): ô đúng = tổng − các ô khác, và phải chứa số đã đọc (hoặc ngược lại) */
+  if(!miss.length){
+    const s=vals.reduce((a,v)=>a+n(v),0);
+    const sub=(a,b)=>{ let j=0; for(const ch of b) if(ch===a[j]) j++; return j===a.length; };   // chữ số của a nằm theo thứ tự trong b
+    const fits=vals.map((v,i)=>{ const want=total-(s-v); return want>=0 && want!==v && (sub(String(v),String(want))||sub(String(want),String(v))) ? [i,want] : null; }).filter(Boolean);
+    /* Nhiều ô cùng khớp (vd 2 ô cùng đọc ra "1"): chọn ô bộ đọc kém chắc nhất, nếu kém hẳn các ô kia */
+    if(fits.length>1 && conf){
+      fits.sort((a,b)=>conf[a[0]]-conf[b[0]]);
+      if(conf[fits[1][0]]-conf[fits[0][0]]>=10) fits.length=1;
+    }
+    if(fits.length===1){ const out=vals.slice(); out[fits[0][0]]=fits[0][1]; return out; }
+  }
+  return null;
+}
+function sizeOf(t){ return SIZES.indexOf(t.replace(/Z/g,"2").replace(/^X1$|^XI$/,"XL")); }
+function fitCols(pts){
+  const k=pts.length, mx=pts.reduce((s,p)=>s+p.si,0)/k, my=pts.reduce((s,p)=>s+p.cx,0)/k;
+  const b=pts.reduce((s,p)=>s+(p.si-mx)*(p.cx-my),0)/pts.reduce((s,p)=>s+(p.si-mx)**2,0);
+  return {cols:SIZES.map((_s,i)=>my+b*(i-mx)), sp:b};
+}
+function parseOCR(words){
+  const W=words.map(w=>({t:(w.text||"").trim().toUpperCase(), conf:w.confidence, x0:w.bbox.x0, x1:w.bbox.x1, y0:w.bbox.y0, y1:w.bbox.y1,
+    cx:(w.bbox.x0+w.bbox.x1)/2, cy:(w.bbox.y0+w.bbox.y1)/2, h:w.bbox.y1-w.bbox.y0})).filter(w=>w.t);
+  const labels=W.map(w=>({...w,color:matchColor(w.t)})).filter(w=>w.color);
+  if(!labels.length) return [];
+
+  /* Tìm dòng tiêu đề M L XL 2X 3X (có thể có 2 bảng cạnh nhau) */
+  const heads=W.map(w=>({...w,si:sizeOf(w.t)})).filter(w=>w.si>=0).sort((a,b)=>a.cy-b.cy);
+  const hrows=[];
+  heads.forEach(h=>{ const r=hrows.find(r=>Math.abs(r.cy-h.cy)<Math.max(h.h,8)); r?r.items.push(h):hrows.push({cy:h.cy,items:[h]}); });
+  let groups=[];
+  hrows.forEach(r=>{
+    let cur=null;
+    const push=()=>{ if(cur&&cur.pts.length>=2) groups.push({...fitCols(cur.pts),cy:r.cy}); };
+    r.items.sort((a,b)=>a.cx-b.cx).forEach(h=>{
+      if(!cur||h.si<=cur.last){ push(); cur={pts:[],last:-1}; }
+      cur.pts.push(h); cur.last=h.si;
+    });
+    push();
+  });
+  groups=groups.filter((g,i)=>Math.abs(g.sp)>4 && !groups.slice(0,i).some(o=>Math.abs(o.cols[0]-g.cols[0])<Math.abs(o.sp)));
+
+  /* Có cột tên màu mà không đọc được tiêu đề của bảng đó (vd bảng thứ 2 bên phải): mượn khung cột của bảng đã thấy, dời theo vị trí cột màu */
+  if(groups.length){
+    const ref=groups[0], sp0=Math.abs(ref.sp);
+    const xs=labels.map(l=>l.cx).sort((a,b)=>a-b), cl=[[xs[0]]];
+    xs.slice(1).forEach((x,i)=>{ x-xs[i]>sp0?cl.push([x]):cl[cl.length-1].push(x); });
+    const ctr=cl.filter(c=>c.length>=3).map(c=>c.reduce((a,b)=>a+b,0)/c.length);
+    const refL=ctr.filter(x=>x<ref.cols[0]).pop();
+    if(refL!==undefined) ctr.forEach(x=>{
+      if(!groups.some(g=>g.cols[0]>x && g.cols[0]-x<3*Math.abs(g.sp))) groups.push({cols:ref.cols.map(c=>c+x-refL), sp:ref.sp, cy:ref.cy});
+    });
+  }
+
+  /* Không thấy tiêu đề: gom cột theo vị trí các con số trên dòng màu */
+  if(!groups.length){
+    const nums=new Set();
+    labels.forEach(l=>W.forEach(w=>{ if(w.cx>l.x1 && Math.abs(w.cy-l.cy)<Math.max(l.h,10)*.7 && toNum(w.t)!==null) nums.add(w); }));
+    const xs=[...nums].map(w=>w.cx).sort((a,b)=>a-b);
+    if(xs.length<5) return [];
+    const gap=[...nums].map(w=>w.h).sort((a,b)=>a-b)[nums.size>>1]*2.5;
+    const cl=[[xs[0]]];
+    xs.slice(1).forEach((x,i)=>{ x-xs[i]>gap?cl.push([x]):cl[cl.length-1].push(x); });
+    const ctr=cl.map(c=>c.reduce((a,b)=>a+b,0)/c.length);
+    const mk=cs=>({cols:cs, sp:(cs[4]-cs[0])/4, cy:-Infinity});
+    if(ctr.length>=11) groups=[mk(ctr.slice(0,5)),mk(ctr.slice(6,11))];
+    else if(ctr.length>=5) groups=[mk(ctr.slice(0,5))];
+  }
+  groups.sort((a,b)=>a.cols[0]-b.cols[0]);
+
+  return groups.map((g,gi)=>{
+    const sp=Math.abs(g.sp)||40, lo=g.cols[0]-sp*.6, hi=g.cols[4]+sp*.6;
+    const prev=groups[gi-1], left=prev?prev.cols[4]+Math.abs(prev.sp)*.6:-Infinity;
+    const grid=blank(), low={}, found={}, tot={}, conf={}, cells=[], totCells=[];
+    const totLo=g.cols[4]+sp*.55, totHi=g.cols[4]+sp*1.9;
+    COLORS.forEach(c=>{ low[c]=[false,false,false,false,false]; conf[c]=[0,0,0,0,0]; });
+    const med=a=>{ const s=a.slice().sort((x,y)=>x-y); return s[s.length>>1]; };
+    const rowsInfo=[];
+    const labs=[];
+    labels.filter(l=>l.cx<lo+sp*.3 && l.cx>left && l.cy>g.cy+l.h*.8).sort((a,b)=>a.cy-b.cy)
+      .forEach(l=>{ if(!labs.some(x=>x.color===l.color)) labs.push(l); });
+    /* Mỗi dòng màu kéo dài tới giữa dòng trên và dòng dưới (ô có thể nhiều dòng chữ: tồn, ngày còn bán, xu hướng) */
+    labs.forEach((l,li)=>{
+      found[l.color]=true;
+      const prevL=labs[li-1], nextL=labs[li+1];
+      const half=nextL?(nextL.cy-l.cy)/2:prevL?(l.cy-prevL.cy)/2:Math.max(l.h,10)*.7;
+      const up=prevL?(prevL.cy+l.cy)/2:l.cy-half, dn=nextL?(l.cy+nextL.cy)/2:l.cy+half;
+      const cand=[[],[],[],[],[]];
+      let totW=null;
+      W.forEach(w=>{
+        if(w.cy<up||w.cy>dn) return;
+        const v=toNum(w.t); if(v===null) return;
+        if(w.cx>totLo&&w.cx<totHi){ if(!totW||w.cy<totW.cy) totW={...w,v}; return; }
+        if(w.cx<lo||w.cx>hi) return;
+        let i=0, best=Infinity;
+        g.cols.forEach((x,j)=>{ const d=Math.abs(w.cx-x); if(d<best){ best=d; i=j; } });
+        if(best>sp*.55) return;
+        cand[i].push({...w,v,d:best});
+      });
+      /* Trong một ô: lấy dòng trên cùng (số lượng), trong dòng đó lấy chữ gần giữa cột nhất (bỏ ô nhãn A/B/C/D bên trái) */
+      const pick=cand.map(cs=>{
+        if(!cs.length) return null;
+        const top=Math.min(...cs.map(w=>w.cy)), lh=med(cs.map(w=>w.h));
+        return cs.filter(w=>w.cy-top<lh*.6).sort((a,b)=>a.d-b.d)[0];
+      });
+      pick.forEach((p,i)=>{ if(p){ grid[l.color][i]=p.v; conf[l.color][i]=p.conf; } });
+      if(totW){ tot[l.color]=totW.v; totCells.push({c:l.color, x0:totW.x0-6, x1:totW.x1+6, y0:totW.y0-6, y1:totW.y1+6}); }
+      rowsInfo.push({l, pick});
+    });
+    /* Vùng cắt cho lượt đọc từng ô: dòng số lượng cách tên màu một khoảng cố định ở mọi hàng
+       → đo từ các ô đọc chắc chắn rồi áp cho cả bảng */
+    const good=rowsInfo.flatMap(r=>r.pick.filter(p=>p&&p.conf>70&&String(p.v).length>=2).map(p=>({dy:p.cy-r.l.cy, h:p.h})));
+    const any=rowsInfo.flatMap(r=>r.pick.filter(Boolean).map(p=>({dy:p.cy-r.l.cy, h:p.h})));
+    const base=good.length>=3?good:any;
+    if(base.length){
+      const dy=med(base.map(b=>b.dy)), lh=med(base.map(b=>b.h));
+      rowsInfo.forEach(r=>g.cols.forEach((x,i)=>cells.push({c:r.l.color, i,
+        x0:x-sp*.22, x1:x+sp*.5, y0:r.l.cy+dy-lh*.85, y1:r.l.cy+dy+lh*.85})));
+    }
+    return {grid, low, found, tot, conf, cells, totCells};
+  }).filter(g=>Object.keys(g.found).length>=2)
+    .map((g,i,arr)=>({...g, target: arr.length===2?(i?"need":"ton"):nextTarget}));
+}
+
+async function handleImages(files){
+  for(const f of files){
+    const it={id:++ocrSeq, url:URL.createObjectURL(f), status:"Đang chuẩn bị…", groups:null};
+    OCR.unshift(it); renderOCR();
+    try{
+      ocrCur=it;
+      it.groups=await ocrFile(f,it);
+      it.status=it.groups.length?"":"Không tìm thấy bảng trong ảnh. Ảnh cần có cột màu (TRG, XDE…) và dòng tiêu đề M L XL 2X 3X.";
+    }catch(err){ it.status="Lỗi: "+(err&&err.message||err); }
+    ocrCur=null;
+    renderOCR();
+  }
+}
+function chk(g,c){
+  const t=g.tot[c]; if(t===undefined) return `<span class="muted">—</span>`;
+  const d=rowSum(g.grid,c)-t;
+  return d===0?`<span style="color:var(--ok);font-weight:600">${t} ✓</span>`:`<span style="color:var(--crit);font-weight:600" title="Tổng các ô đang ${d>0?"thừa":"thiếu"} ${Math.abs(d)} so với ảnh">${t} · lệch ${d>0?"+":""}${d}</span>`;
+}
+const okRows = g => COLORS.filter(c=>g.tot[c]!==undefined && rowSum(g.grid,c)===g.tot[c]).length;
+function renderOCR(){
+  const opt=(v,cur,l)=>`<option value="${v}"${cur===v?" selected":""}>${l}</option>`;
+  $("#ocrOut").innerHTML=OCR.map((it,k)=>`<div class="ocr-item${it.url?"":" noimg"}">
+    ${it.url?`<a href="${it.url}" target="_blank" rel="noopener"><img src="${it.url}" alt="Ảnh đã tải lên"></a>`:""}
+    <div class="ocr-body">
+      ${it.groups&&it.groups.length?`
+        <p class="muted small" style="margin:0">${it.url?"Đọc từ ảnh: kiểm tra lại số trước khi điền. Ô tô vàng là chỗ đọc chưa chắc, ô trống là không đọc được hoặc ảnh để trống.":"Dán từ bảng copy: số lấy đúng theo từng ô. Xem cột Tổng có ✓ hết là chuẩn."}</p>
+        <div class="two">${it.groups.map((g,gi)=>`<div class="ocr-g">
+          <div class="ocr-gh"><b>Bảng ${gi+1}</b><span class="muted small">đọc được ${Object.keys(g.found).length}/10 màu${Object.keys(g.tot).length?` · <span data-okrows="${k}|${gi}">${okRows(g)}</span>/${Object.keys(g.tot).length} dòng khớp cột Tổng`:""}</span>
+            <label class="small muted">Đưa vào <select data-ocr-target="${k}|${gi}">${opt("ton",g.target,"Tồn kho")}${opt("need",g.target,"Cần đặt")}${opt("",g.target,"Bỏ qua")}</select></label></div>
+          <div class="scroll"><table class="g"><thead><tr><th>Màu \\ Size</th>${SIZES.map(s=>`<th>${s}</th>`).join("")}<th>Tổng (ảnh)</th></tr></thead><tbody>
+          ${COLORS.map(c=>`<tr><td class="lbl"${g.found[c]?"":` style="color:var(--faint)" title="Không thấy màu này trong ảnh"`}>${c}</td>${SIZES.map((s,i)=>`<td><input class="oi${g.low[c][i]?" low":""}" data-o="${k}|${gi}|${c}|${i}" inputmode="numeric" autocomplete="off" aria-label="Bảng ${gi+1} ${c} ${s}" value="${g.grid[c][i]??""}"></td>`).join("")}<td class="r num" style="white-space:nowrap" data-chk="${k}|${gi}|${c}">${chk(g,c)}</td></tr>`).join("")}
+          </tbody></table></div></div>`).join("")}</div>
+        <div class="actions"><button class="btn primary" data-ocr-apply="${k}">Điền vào ${hero().name}</button><button class="btn" data-ocr-drop="${k}">${it.url?"Bỏ ảnh này":"Bỏ"}</button></div>`
+      :`<p class="muted" style="margin:0" data-ocr-status="${it.id}">${it.status}</p>${it.groups||it.status.startsWith("Lỗi")?`<div class="actions"><button class="btn" data-ocr-drop="${k}">Bỏ ảnh này</button></div>`:""}`}
+    </div></div>`).join("");
+}
+function applyOCR(k){
+  const it=OCR[k], use=it.groups.filter(g=>g.target);
+  if(!use.length){ alert("Chưa chọn bảng nào để điền."); return; }
+  const filled=use.filter(g=>allSum(data()[g.target])>0).map(g=>INPUTS[g.target].title);
+  if(filled.length && !confirm(`Ghi đè bảng ${[...new Set(filled)].join(", ")} của ${hero().name} bằng số đọc từ ảnh?`)) return;
+  use.forEach(g=>{
+    const tgt=data()[g.target];
+    COLORS.forEach(c=>tgt[c]=g.grid[c].slice());
+    if(g.target==="ton" && g.days && COLORS.some(c=>g.days[c].some(v=>v!==_))){ COLORS.forEach(c=>data().days[c]=g.days[c].slice()); gridPanel("days"); }   // kèm số ngày còn bán
+    gridPanel(g.target);
+    nextTarget=g.target==="ton"?"need":"ton";
+  });
+  touch([...new Set(use.flatMap(g=>g.target==="ton"&&g.days&&COLORS.some(c=>g.days[c].some(v=>v!==_))?["ton","days"]:[g.target]))]); renderHero();
+  if(it.url) URL.revokeObjectURL(it.url); OCR.splice(k,1); renderOCR();
+}
+document.addEventListener("input",e=>{
+  const t=e.target; if(!t.classList.contains("oi")) return;
+  const [k,gi,c,i]=t.dataset.o.split("|");
+  const g=OCR[+k].groups[+gi];
+  g.grid[c][+i]=parseNum(t.value);
+  t.classList.remove("low");
+  const cell=document.querySelector(`[data-chk="${k}|${gi}|${c}"]`); if(cell) cell.innerHTML=chk(g,c);
+  const ok=document.querySelector(`[data-okrows="${k}|${gi}"]`); if(ok) ok.textContent=okRows(g);
+});
+document.addEventListener("change",e=>{
+  const t=e.target.closest("[data-ocr-target]"); if(!t) return;
+  const [k,gi]=t.dataset.ocrTarget.split("|");
+  OCR[+k].groups[+gi].target=t.value;
+});
+document.addEventListener("paste",e=>{
+  if(!e.clipboardData || (e.target.closest && e.target.closest("input,textarea,select"))) return;
+  const gs=parseClip(e.clipboardData);
+  if(gs.length){
+    e.preventDefault();
+    OCR.unshift({id:++ocrSeq, url:null, status:"", groups:gs});
+    renderOCR();
+    $("#nhap").scrollIntoView({behavior:"smooth",block:"start"});
+    return;
+  }
+  if(e.clipboardData.getData("text").trim()) return;   // copy từ Excel kèm cả ảnh: ưu tiên phần chữ
+  const files=[...e.clipboardData.files].filter(f=>f.type.startsWith("image/"));
+  if(!files.length) return;
+  e.preventDefault(); handleImages(files);
+  $("#nhap").scrollIntoView({behavior:"smooth",block:"start"});
+});
+const drop=$("#drop");
+drop.addEventListener("dragover",e=>{ e.preventDefault(); drop.classList.add("drag"); });
+drop.addEventListener("dragleave",()=>drop.classList.remove("drag"));
+drop.addEventListener("drop",e=>{
+  e.preventDefault(); drop.classList.remove("drag");
+  const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith("image/"));
+  if(files.length) handleImages(files);
+});
+$("#imgBtn").addEventListener("click",()=>$("#imgFile").click());
+$("#imgFile").addEventListener("change",e=>{ handleImages([...e.target.files]); e.target.value=""; });
+
+/* Trang */
+/* Bộ lọc chung (khung.js): chỉ hiện các mã theo bộ lọc; mẫu đang xem bị lọc mất thì chuyển sang mẫu đầu tiên còn hiện */
+const shownHeroes = () => HEROES.filter(h=>Khung.visible(h.key)&&Khung.match(h.name,h.code,Khung.aliasOf(h)));
+function pickShown(){ const v=shownHeroes(); if(v.length && !v.some(h=>h.key===H.active)) H.active=v[0].key; }
+Khung.onFilter(()=>{ pickShown(); renderPage(); });
+/* UX V5 (anh chốt 13/11/2026): mỗi mã có 2 tình trạng tách riêng — DỮ LIỆU (theo kỳ T2–T4–T6) và NGHIỆP VỤ — kèm ngày, người, độ mới.
+   Lọc nhanh: Cần xử lý / Chưa cập nhật / Đã cập nhật / Tất cả. Mã đang chọn chỉ viền, không tô kín. Bấm nhãn cảnh báo → mở đúng bước */
+const MFK="_ux_mf_"+((Khung.me&&Khung.me.id)||"x");
+let MF=(()=>{ try{ const q=new URLSearchParams(location.search).get("mf"); if(q) return q; return localStorage.getItem(MFK)||"need"; }catch(e){ return "need"; } })();
+/* V5.4 Đợt 1: thêm bộ lọc "Chưa đủ dữ liệu kỳ" (Đủ = cả Tồn kho và Cần đặt kỳ này, R1 = A). Nhãn DỮ LIỆU V5.3 giữ nguyên */
+const MF_L=[["need","Cần xử lý"],["chua","Chưa cập nhật kỳ này"],["ky","Chưa đủ dữ liệu kỳ"],["ok","Đã cập nhật"],["all","Tất cả"]];
+const mfIn=(st,k)=>k==="all"||(k==="need"&&st.need)||(k==="chua"&&st.data!=="ok")||(k==="ok"&&st.data==="ok")||(k==="ky"&&!!st.ps&&st.ps.k!=="du");
+function renderTabs(){
+  const shown=shownHeroes();
+  let bar=$("#mFilter"); if(!bar){ bar=document.createElement("div"); bar.id="mFilter"; $("#tabs").before(bar); }
+  if(!shown.length){ bar.innerHTML=""; $("#tabs").innerHTML=`<div class="muted small" style="padding:8px 4px">${Khung.emptyText()}</div>`; return; }
+  const sig=[localStorage.getItem("kehoach-sx-v3"),localStorage.getItem("checkhero-v3"),localStorage.getItem("danhmuc-v1"),Don.today(),new Date().getHours()].join("|");
+  if(renderTabs.sig!==sig){ renderTabs.sig=sig; renderTabs.c={}; }
+  const ST=renderTabs.c; shown.forEach(h=>{ if(ST[h.key]) return; try{ ST[h.key]=Don.mState(h); }catch(e){ ST[h.key]={data:"loi",dataT:"Dữ liệu lỗi",dataTone:"r",err:["không đọc được dữ liệu"],biz:"chua-du-lieu",bizT:"Chưa có dữ liệu",bizTone:"g",need:true}; }
+    try{ ST[h.key].ps=Don.periodState?Don.periodState(h):null; }catch(e){ ST[h.key].ps=null; } });
+  const PG=Don.periodProgress?Don.periodProgress():null;
+  const cnt=k=>shown.filter(h=>mfIn(ST[h.key],k)).length, any=ST[shown[0].key]||{}, due=any.due, nx=any.next, td=Don.today();
+  if(MF!=="all"&&!cnt(MF)) MF="all";
+  bar.innerHTML=`<div class="ux-bar" style="margin-bottom:8px"><div class="ux-chips">${MF_L.map(([k,t])=>`<button type="button" class="ux-chip${k==="need"&&cnt(k)?" t-o":""}${MF===k?" on":""}" data-mf="${k}">${t} <span class="n">${cnt(k)}</span></button>`).join("")}</div>
+    <span class="ux-sep"></span>${PG?`<span class="ux-b ${PG.du===PG.total?"k":"o"}" id="kyProgress" title="Đủ = có cả Tồn kho và Cần đặt từ ngày kỳ ${Don.dm(PG.due)} · Một phần = mới có 1 trong 2 · cập nhật ngoài lịch vẫn được tính">Kỳ ${Don.dm(PG.due)}: ${PG.du}/${PG.total} mã đủ · ${PG["mot-phan"]} một phần · ${PG.chua} chưa cập nhật</span> `:""}<span class="ux-hint">Lịch cập nhật bắt buộc <b>${Don.schedText()}</b> · kỳ hiện tại từ ${Don.THU[new Date(due+"T00:00:00").getDay()]} ${Don.dm(due)}${due===td?" (hôm nay)":""}${nx?` · kỳ kế tiếp ${Don.THU[new Date(nx+"T00:00:00").getDay()]} ${Don.dm(nx)}`:""}</span></div>`;
+  const L0=shown.filter(h=>mfIn(ST[h.key],MF)||h.key===H.active);
+  /* 09/11/2026 (anh duyệt): chia theo Ngành (tab ở thanh lọc) · Bán chạy / Bán bình thường, thứ tự danh mục. Nhãn Thêu TP / Áo phôi = hình thức đặt đặc biệt có thể chọn */
+  const tab=h=>{ const st=ST[h.key], when=st.at?new Date(st.at).toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}):"";
+    const dB=`<span class="ux-b ${st.dataTone}" data-mgo="data" title="${Khung.esc((st.err||[]).join(" · ")||st.dataT)}">${st.dataT}${st.data==="loi"&&st.err&&st.err.length?": "+Khung.esc(st.err[0]):""}</span>`;
+    const bB=["binh-thuong","chua-du-lieu"].includes(st.biz)?`<span class="ux-b plain ux-t-g">${st.bizT}</span>`:`<span class="ux-b ${st.bizTone}" data-mgo="${st.biz}" title="Bấm để mở đúng bước">${st.bizT}${st.biz==="can-dat"&&st.A?` · ${st.A} size gấp`:""}</span>`;
+    const ps=st.ps, pT=t=>t?new Date(t).toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}):"chưa có";
+    /* V5.4 R1: chỉ thêm nhãn thứ 3 khi "Một phần" — Đủ / Chưa cập nhật đã trùng nhãn dữ liệu V5.3 (giữ quy tắc 2 nhãn mỗi mã) */
+    const pB=ps&&ps.k==="mot-phan"?`<span class="ux-b ${ps.tone}" data-ky="${ps.k}" title="${Khung.esc(`Kỳ từ ${Don.dm(ps.due)} · Tồn kho: ${pT(ps.ton)}${ps.verTon?" ("+ps.verTon+")":""} · Cần đặt: ${pT(ps.need)}${ps.verNeed?" ("+ps.verNeed+")":""}`)}">Kỳ: ${ps.t}${ps.k==="mot-phan"?" · thiếu "+ps.missing:""}</span>`:"";
+    return `<button class="tab" role="tab" data-hero="${h.key}" aria-selected="${h.key===H.active}">
+      <span class="c">${Khung.esc(h.name.replace(/^Polo\s+/,""))}${h.theu?`<span class="mtag">Thêu TP</span>`:""}${h.phoi?`<span class="mtag">Áo phôi</span>`:""}${Khung.canEdit(h.key)?"":`<span class="kb-ro">chỉ xem</span>`}</span>
+      <span class="ux-st">${dB} ${bB} ${pB}</span>
+      <span class="n">${Khung.esc(Khung.userName(h.owner))}${st.at?` · ${when}${st.by&&st.by!==h.owner?" · "+Khung.esc(Khung.userName(st.by)):""} · ${st.ageT}`:""}</span></button>`; };
+  const G=Khung.sections(L0).map(s=>[s.label,s.list]);
+  $("#tabs").innerHTML=G.map(([t,L])=>`<div class="tgrp"><div class="tgl">${t} <span class="muted">${L.length}</span></div><div class="trow">${L.map(tab).join("")}</div></div>`).join("")
+    +(L0.length<shown.length?`<div class="ux-hint" style="padding-left:2px">${shown.length-L0.length} mã khác đang ẩn theo bộ lọc · <button type="button" class="ux-clear" data-mf="all">Xem tất cả</button></div>`:"");
+}
+document.addEventListener("click",e=>{
+  const f=e.target.closest("[data-mf]"); if(f){ MF=f.dataset.mf; try{ localStorage.setItem(MFK,MF); }catch(err){} renderTabs(); return; }
+  const g=e.target.closest("[data-mgo]"); if(!g) return; const t=g.closest("[data-hero]"); if(!t) return;
+  e.preventDefault(); e.stopPropagation(); const k=t.dataset.hero, a=g.dataset.mgo;
+  if(a==="can-dat"||a==="da-xu-ly"){ location.href="ke-hoach.html?m="+encodeURIComponent(k); return; }
+  if(a==="dang-don"){ location.href="theo-doi.html?m="+encodeURIComponent(k); return; }
+  if(H.active!==k){ H.active=k; renderPage(); }
+  if(a==="doi-chieu"){ const el=$("#doi-chieu"); if(el){ el.scrollIntoView({behavior:"smooth",block:"start"}); el.classList.add("ux-flash"); setTimeout(()=>el.classList.remove("ux-flash"),1300); } return; }
+  if(a==="data"){ if(Khung.canEdit(k)&&Khung.ready(Khung.models(true).find(x=>x.key===k)||{})) showInput(true); else { const el=$("#updated")||$("#tabs"); el.scrollIntoView({behavior:"smooth",block:"center"}); } }
+}, true);
+function renderPage(){
+  pickShown();
+  document.body.classList.toggle("ro", !Khung.canEdit(H.active));
+  $("#roNote").innerHTML=`<b>Chỉ xem.</b> ${Khung.esc(hero().name)} do <b>${Khung.esc(Khung.userName(hero().owner))}</b> phụ trách.`;
+  const h=hero(), d=data(), plan=`ke-hoach.html?m=${h.key}`;
+  renderTabs();
+  { const ok=Khung.ready(h); document.body.classList.toggle("notready", !ok); $("#notReady").hidden=ok;
+    if(!ok) $("#notReady").innerHTML=`<b>${Khung.esc(h.name)}</b> chưa khai size và màu. ${Khung.isAdmin()?`Khai ở <a href="danh-muc.html">Danh mục mã</a> (nút Sửa) rồi quay lại dán bảng SIXMEN.`:"Nhờ Admin khai ở Danh mục mã rồi mới nhập bảng SIXMEN."}`; }
+  $("#toPlan").href=plan; if($("#navPlan")) $("#navPlan").href=plan;
+  { const due=Don.updDue(), nx=Don.updNext(), lich=Don.updDays().slice().sort((a,b)=>(a||7)-(b||7)).map(x=>Don.THU[x]).join(" · ");
+    $("#updated").textContent=(hasData(d)&&d.updated?"Cập nhật "+d.updated:"Chưa có dữ liệu")+` · lịch ${lich}`+(due===Don.today()?" · hôm nay là ngày cập nhật":"")+(nx?` · lần kế tiếp ${Don.THU[new Date(nx+"T00:00:00").getDay()]} ${Don.dm(nx)}`:""); }
+  $("#note").innerHTML=`Dán bảng Tồn kho và Cần đặt sáng nay của <b>${h.name}</b>. Mỗi bảng ghi giờ, người dán riêng và lưu một phiên bản; phân tích bên dưới tự chạy lại ngay.`;
+  gridPanel("ton"); gridPanel("need"); gridPanel("days");
+  renderOCR();
+  if(renderPage.last!==H.active){ SEL.clear(); verList=null; renderPage.last=H.active; if(!hasData(d)&&Khung.canEdit(H.active)) showInput(true); }
+  renderHero(); updSend();
+  initSpy();
+}
+document.addEventListener("click",e=>{
+  const tab=e.target.closest("[data-hero]");
+  if(tab){ H.active=tab.dataset.hero; saveH(); history.replaceState(null,"","?m="+H.active); renderPage(); return; }
+  const clr=e.target.closest("[data-clear]");
+  if(clr){
+    if(!confirm(`Xoá bảng ${INPUTS[clr.dataset.clear].title} của ${hero().name}?`)) return;
+    data()[clr.dataset.clear]=blank(); gridPanel(clr.dataset.clear); touch([clr.dataset.clear]); renderHero(); return;
+  }
+  const a=e.target.closest("[data-ocr-apply]"); if(a){ applyOCR(+a.dataset.ocrApply); return; }
+  const dr=e.target.closest("[data-ocr-drop]");
+  if(dr){ const it=OCR[+dr.dataset.ocrDrop]; if(it.url) URL.revokeObjectURL(it.url); OCR.splice(+dr.dataset.ocrDrop,1); renderOCR(); }
+});
+
+/* ===== Thao tác trên trang Phân tích nhu cầu ===== */
+function showInput(on){ $("#nhap").hidden=!on; if(on) $("#nhap").scrollIntoView({behavior:"smooth",block:"start"}); }
+function updSend(){ const n=SEL.size; $("#sendBar").hidden=!n; $("#sendTxt").textContent=`Đã chọn ${n} size của ${hero().name}`; }
+document.addEventListener("click",e=>{
+  if(e.target.id==="refresh"){ showInput(true); return; }
+  if(e.target.id==="closeInput"){ showInput(false); return; }
+  if(e.target.id==="clearSel"){ SEL.clear(); renderHero(); updSend(); return; }
+  if(e.target.id==="sendPlan"){ sendToPlan(); return; }
+  const o=e.target.closest("[data-open]"); if(o){ const b=$("#verBox"); if(b){ b.open=true; b.scrollIntoView({behavior:"smooth"}); } return; }
+  const sa=e.target.closest("[data-selall]"); if(sa){ e.preventDefault(); lastRes[sa.dataset.selall].forEach(r=>SEL.add(r.c+"-"+r.i)); renderHero(); updSend(); return; }
+  const inc=e.target.closest("[data-inc]"); if(inc){ const row=document.querySelector(`[data-incrow="${inc.dataset.inc}"]`); if(row) row.hidden=!row.hidden; return; }
+  const cm=e.target.closest("[data-cmp]"); if(cm){ compareVersion(cm.dataset.cmp); return; }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.pick){ if(t.checked) SEL.add(t.dataset.pick); else SEL.delete(t.dataset.pick); updSend(); return; }
+  if(t.dataset&&t.dataset.upd!=null&&Khung.isAdmin()){   // V3: lịch cập nhật (mặc định T2 · T4 · T6)
+    const S=JSON.parse(localStorage.getItem("kehoach-sx-v3")||'{"models":{}}'), c=S.ptCfg=S.ptCfg||{};
+    const d=[...document.querySelectorAll("[data-upd]:checked")].map(x=>+x.dataset.upd); if(!d.length){ alert("Chọn ít nhất 1 ngày cập nhật."); renderHero(); return; }
+    c.updDays=d; localStorage.setItem("kehoach-sx-v3",JSON.stringify(S)); renderPage(); return;
+  }
+  if(t.dataset&&t.dataset.cfg&&Khung.isAdmin()){
+    const S=JSON.parse(localStorage.getItem("kehoach-sx-v3")||'{"models":{}}'), c=S.ptCfg=S.ptCfg||{}, k=t.dataset.cfg, v=t.tagName==="SELECT"?t.value:parseFloat(String(t.value).replace(",","."));
+    if(k==="leadModel"){ c.leadModel=c.leadModel||{}; if(v>0) c.leadModel[H.active]=v; else delete c.leadModel[H.active]; }
+    else if(k.startsWith("leadXuong.")){ c.leadXuong=c.leadXuong||{}; const x=k.split(".")[1]; if(v>0) c.leadXuong[x]=v; else delete c.leadXuong[x]; }
+    else if(k==="sixmenPO") c.sixmenPO=v; else if(v>0) c[k]=v;
+    localStorage.setItem("kehoach-sx-v3",JSON.stringify(S)); renderHero();
+  }
+});
+window.addEventListener("storage",e=>{ if(e.key==="kehoach-sx-v3"||e.key==="danhmuc-v1") renderHero(); });/* Khung: menu trên điện thoại + đánh dấu mục đang xem ở sidebar */
+let io=null;
+function initSpy(){
+  if(io) io.disconnect();
+  const subs=[...document.querySelectorAll(".sub a")];
+  io=new IntersectionObserver(es=>es.forEach(en=>{
+    if(en.isIntersecting) subs.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+en.target.id));
+  }),{rootMargin:"-25% 0px -65% 0px"});
+  subs.forEach(a=>{ const el=document.querySelector(a.getAttribute("href")); a.hidden=!el; if(el) io.observe(el); });
+}
+$("#menuBtn").addEventListener("click",e=>{ e.stopPropagation(); document.body.classList.toggle("nav-open"); });
+document.addEventListener("click",e=>{ if(document.body.classList.contains("nav-open") && (!e.target.closest(".side") || e.target.closest(".sub a"))) document.body.classList.remove("nav-open"); });
+$("#todayChip").textContent=new Date().toLocaleDateString("vi-VN");
+/* Tab khác lưu dữ liệu → tab này lấy bản mới về, chỉ vẽ lại, không lưu đè */
+window.addEventListener("storage",e=>{
+  if(e.key!==HKEY || !e.newValue) return;
+  clearTimeout(saveTimer);
+  const act=H.active;
+  try { H=JSON.parse(e.newValue); } catch(err) { return; }
+  normH(); H.active=act;
+  renderPage();
+});
+
+renderPage();
+</script>
+</body>
+</html>
