@@ -61,3 +61,16 @@ Không thêm trạng thái lưu mới. Các trạng thái được tính từ d�
 | Hồi quy V5.4 Đợt 2 | 37/38 · JS 75 lượt 0 lỗi · NVL-03 sai từ trước CR-01 (ghi nhận riêng) |
 
 Bộ Đợt 2 cập nhật 2 kiểm tra theo thay đổi CR03 đã duyệt: tên dòng "SKU & loại hình" + dòng "Phiên bản nhu cầu"; so mã nguồn chotChecks nay yêu cầu khối NVL gia công và quy tắc chốt ngoại lệ giữ đúng từng ký tự V5.3.
+## Kiểm thử trên commit cuối 9822f14 (24/11/2026, cổng tạm 8096–8099, bản sao dữ liệu, không đụng bản chính)
+| Bộ | Kết quả |
+|---|---|
+| CR03 mở rộng (KH-01 → 20, NV-01/02/04/05/07/11, FIX-01/02/04) | 37/37 · 44 lượt mở trang 0 lỗi JS |
+| Nâng cấp trên bản sao dữ liệu bản chính (NC-01, NC-02) | Đạt: 11 trang 0 lỗi JS, dữ liệu không đổi |
+| Rollback về code V5.4 (NC-04) | Đạt: không mất dữ liệu |
+| Rollback khi còn KHTL gia công chưa chọn xưởng (NC-03) | Code V5.4 lỗi JS ở 3 trang Kế hoạch (`XUONG[o.xuong].type`) → bắt buộc chạy `CR03-kiem-truoc-rollback.ps1` và gán xưởng / xoá bản nháp trước khi rollback |
+| CR02 server phiên bản khoá | 21/21 |
+| CR02 màn Cập nhật Cần đặt | 25/25 (lần chạy chung 23/25 do Chrome khởi động nguội ở trang đầu; chạy lại riêng đạt đủ) |
+| CR01 | 12/12 · JS 90 lượt 0 lỗi |
+| Hồi quy V5.4 bản hoàn thiện | 25/25 |
+| Hồi quy V5.4 Đợt 3 | 29/29 · JS 81 lượt 0 lỗi |
+| Hồi quy V5.4 Đợt 2 | 37/38 · JS 75 lượt 0 lỗi · NVL-03 sai từ trước CR-01 (chỉ là chữ nhãn cột, chức năng đã làm ở Đợt 3) |
