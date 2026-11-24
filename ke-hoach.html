@@ -225,6 +225,7 @@ body.gui-mode #kDash,body.gui-mode #bgAll,body.gui-mode #openAll,body.gui-mode #
 .seg button{border:0;border-right:1px solid var(--line);background:var(--surface,#fff);padding:8px 12px;min-height:40px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
 .seg button:last-child{border-right:0}.seg button.on{background:var(--accent);color:#fff;font-weight:600}
 .cr3-open{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.dims{display:flex;flex-wrap:wrap;gap:6px 16px;padding:6px 14px;align-items:center}.dims>span{display:inline-flex;gap:6px;align-items:center}.dims .l{color:var(--muted);font-size:11px;font-weight:600}
 #bgAll{display:grid;gap:10px}
 .hd button:disabled,.ck-acts button:disabled{opacity:.45;cursor:not-allowed}
 body[data-step="kh"] #xac-nhan{min-height:calc(100vh - 140px)}   /* link #b3 / #b4 cuộn được tới đầu khu dù trang ngắn */
@@ -889,10 +890,14 @@ async function chotOrder(o){
     else if(!K.ok){ alert(`Chưa chốt được ${OL(o)}:\n• `+bad.join("\n• ")+`\n\nXem thẻ Kiểm tra & Chốt để bổ sung.${K.nvlOnly?"\n\nThiếu NVL: nhờ Admin chốt ngoại lệ nếu cần.":""}`); setStep(4,o.id); return; } }
   /* CR03: Cần đặt có phiên bản mới so với lúc lập → bắt buộc xem bảng so sánh, xác nhận (không tự sửa số, không chặn chốt). Server kiểm lại */
   if(!vAcked(o,S.active)){ if(!await needCmp(o,true)) return; o=orderById(id)||o; o.needAck={v:curV(S.active), from:+o.needV, at:Date.now(), by:ME_ID()}; if(o.khtl) (o.khtl.log=o.khtl.log||[]).push({at:Date.now(), by:ME_ID(), act:"xac-nhan-v", note:`${vTxt(o.needV)} → ${vTxt(curV(S.active))}: giữ / đã điều chỉnh phương án`}); saveNow(); }
+  /* CR03 FIX-05: dữ liệu nhu cầu cũ → quản lý xác nhận dùng số hiện có (lưu người / giờ / tình trạng dữ liệu) */
+  { const st0=chotChecks(o).list.stale; if(st0){ if(!confirm(`Dữ liệu nhu cầu ${model().name}: ${st0}.\n\nXác nhận vẫn chốt theo số Cần đặt hiện có? (lưu người, giờ xác nhận)`)) return; o=orderById(id)||o; o.dataAck={at:Date.now(), by:ME_ID(), state:st0}; } }
   if(chotOv){ const C=nvlCheck(o); chotOv.short=C.rows.filter(r=>r.status==="thieu"||r.status==="dang-ve").map(r=>({item:r.it.id, name:r.it.name, unit:r.unit, short:Math.round(n(r.status==="thieu"?r.short:r.gap)*100)/100, st:r.status})); }   // CR03: lưu bảng NVL còn thiếu lúc chốt ngoại lệ
   if(IS_GC(o)){ if(!await holdDialog(o,"chot")) return; }
   else if(!confirm(`Chốt kế hoạch ${OL(o)}?\n\nKhoá số lượng, tính vào Đã đặt. Chốt KHÔNG tự bàn giao, KHÔNG gửi xưởng.\nBước tiếp: bấm Bàn giao cho ${execName()} → ${execName()} tiếp nhận → tạo 2 PO ERP → QLVH duyệt → gửi xưởng.`)) return;
   o=orderById(id); if(!o||o.closed) { renderAll(); return; }
+  /* CR03 FIX-01: kết quả kiểm tra NVL lúc chốt gửi kèm để server đối chiếu với sổ phân bổ / tồn / hàng đang về (chốt ngoại lệ: không cần) */
+  if(IS_GC(o)&&!chotOv){ loadN(); const C=nvlCheck(o); o.nvlChk={at:Date.now(), by:ME_ID(), state:C.state, missing:C.missing.slice(), noRate:C.noRate.slice(), rows:C.rows.map(r=>({item:r.it.id, need:Math.round(n(r.need)*1e4)/1e4, st:r.status}))}; }
   { const hd=H.heroes[S.active]||{}, T=PT.times(hd); o.basis={ton:(hd.ver||{}).ton||null, need:(hd.ver||{}).need||null, tonAt:T.ton.at, needAt:T.need.at}; }   // dữ liệu làm căn cứ khi chốt
   /* Kế hoạch tương lai → đúng 1 đơn sản xuất (chính bản ghi này): ngày đặt + mã đơn theo ngày chốt, giữ ngày / mã lúc lập kế hoạch (anh duyệt 28/10) */
   if(o.khtl){ const k=o.khtl, now=Date.now();
@@ -1198,9 +1203,11 @@ function khtlCard(x){
       <span class="pill ${x.ready?"p-ok":"p-warn"}" data-kready="${x.ready?1:0}">${x.ready?"Đủ điều kiện · chờ chốt":"Chưa đủ điều kiện"}</span>${gc?`<span class="pill ${NV.PLAN_PILL[st]}">NVL: ${NV.PLAN_STATE[st]}</span>`:""}${(()=>{ const unk=khtlUnknown(o); return unk.length?`<span class="pill p-mute" title="${esc(unk.join(", "))}">${unk.length} size chưa có Cần đặt</span>`:""; })()}${vChanged(o,m)?`<span class="pill p-warn">Cần đặt có bản mới ${vTxt(curV(m))}</span>`:""}${con.length?`<span class="pill p-warn" title="Nhiều kế hoạch / đơn cùng cần lượng tồn này, chưa ai giữ">Tồn đang tranh chấp</span>`:""}</div>
     <div class="kh-grid">
       <div><span class="l">Điều kiện còn thiếu</span><span>${x.miss.length?x.miss.map(z=>`<b class="bad">${esc(z)}</b>`).join("<br>"):`<span style="color:var(--ok)">Đủ</span>`}${shortTxt.length?"<br>"+shortTxt.join("<br>"):""}</span></div>
-      <div><span class="l">Đơn mua NVL liên quan</span><span>${!gc?`<span class="muted">không dùng NVL gia công</span>`:Ls.length?Ls.map(L=>`<a href="dat-mua.html#ds-${L.id}">${esc(L.no||"DS")}</a> · ${LIST_ST[L.status]||L.status}${L.eta?` · hẹn ${dmy(L.eta)}`:""}${lkTxt(C,L)}`).join("<br>"):`<span class="muted">chưa có</span>`}</span></div>
+      <div><span class="l">Đơn mua NVL liên quan · bàn giao</span><span>${!gc?`<span class="muted">không dùng NVL gia công</span>`:Ls.length?Ls.map(L=>{ const bb=Don.buyBg?Don.buyBg(L):""; return `<a href="dat-mua.html#ds-${L.id}">${esc(L.no||"DS")}</a> · ${LIST_ST[L.status]||L.status}${L.eta?` · hẹn ${dmy(L.eta)}`:""}${lkTxt(C,L)}<br><span class="muted small" data-buybg="${bb}">${esc(BUYBG[bb]||"")}${L.giao&&L.giao.user?" · "+esc(Khung.userName(L.giao.user)):""}</span>`; }).join("<br>"):`<span class="muted">chưa có</span>`}</span></div>
       <div><span class="l">Dự kiến đủ điều kiện</span><span>${x.ready?"Đã đủ":gc&&eta.length&&x.miss.every(z=>/^NVL/.test(z))?"NVL về "+dmy(eta[eta.length-1]):"—"}${pend>1e-9?`<br><span class="muted">chờ kiểm ${fmt1(pend)}</span>`:""}</span></div>
       <div><span class="l">Lưu lúc</span><span>${time(k.at)} · ${esc(Khung.userName(k.by))}<br><span class="muted">chờ ${Math.max(0,Math.round((Date.now()-n(k.at))/864e5))} ngày</span></span></div></div>
+    ${(()=>{ const nb=Ls.filter(L=>Don.buyBg&&["nhap","chua-bg","tra-lai"].includes(Don.buyBg(L))); return stepHTML(`Kế hoạch tương lai · ${x.ready?"đủ điều kiện, chờ chốt":"chưa đủ điều kiện"}`, x.miss, (gc&&nb.length?Khung.userName(md.owner)+" (chốt / bàn giao yêu cầu đặt NVL)":gc&&Ls.some(L=>L.giao&&L.giao.user&&!L.giao.traAt)?Khung.userName((Ls.find(L=>L.giao&&L.giao.user)||{giao:{}}).giao.user)+" (thực hiện đặt NVL) · "+Khung.userName(md.owner)+" (chốt sản xuất)":Khung.userName(md.owner)+" (quản lý kế hoạch)"),
+      x.ready?"Kiểm tra lại & chốt sản xuất (không tự chốt)":gc&&sh.length&&!Ls.length?"Lập yêu cầu đặt NVL cho phần thiếu, chốt và bàn giao yêu cầu":nb.length?"Chốt / bàn giao yêu cầu đặt NVL ở trang Đặt mua NVL":gc&&Ls.length?"Theo dõi NVL về (trang Đặt mua NVL)":"Bổ sung: "+x.miss.join(", ")); })()}
     <div class="kh-next"><b>Tiếp theo:</b> ${NEXT[st]||""}${canHold&&!["du-chua-giu","da-giu"].includes(st)?` Có thể giữ trước phần NVL đang có (<b>Giữ NVL hiện có</b>).`:""}</div>
     ${notes.length?`<div class="ck-warn">${notes.map(w=>`<div class="${w.c}">${w.c==="bad"?"⚠ ":""}${w.t}</div>`).join("")}</div>`:""}
     ${khtlNvlTable(NR)}${khtlSupply(o,m,C,ed&&!k.edit)}
@@ -1208,7 +1215,7 @@ function khtlCard(x){
       <button class="btn${x.ready?" ok":""}" data-kact="recheck">Kiểm tra lại &amp; Chốt kế hoạch</button>
       ${canHold?`<button class="btn primary" data-kact="hold" title="Chọn lượng giữ (giữ một phần được), xác nhận; server kiểm tra khả dụng lúc bấm, không cho giữ trùng">${anyHeld?"Giữ bổ sung…":"Giữ NVL hiện có…"}</button>`:""}
       ${anyHeld?`<button class="btn ghost" data-kact="release" title="Nhả một phần hoặc toàn bộ phần đã giữ, có xác nhận và lý do">Nhả / điều chỉnh phần đã giữ…</button>`:""}
-      ${sh.length?`<a class="btn${canHold?"":" primary"}" href="dat-mua.html?m=${m}&khtl=${encodeURIComponent(o.id)}" title="Tạo sẵn danh sách nháp cho phần thiếu của kế hoạch này">Đặt mua NVL thiếu →</a>`:""}
+      ${sh.length?`<a class="btn${canHold?"":" primary"}" href="dat-mua.html?m=${m}&khtl=${encodeURIComponent(o.id)}" title="Tạo sẵn danh sách nháp cho phần thiếu của kế hoạch này (tự điền NVL thiếu, quản lý xác nhận / sửa số đặt)">Lập yêu cầu đặt NVL thiếu →</a>`:""}
       <button class="btn ghost" data-kact="detail" aria-expanded="${khtlOpen.has(o.id)}">${khtlOpen.has(o.id)?"Ẩn chi tiết":"Xem chi tiết NVL"}</button>
       <button class="btn ghost" data-kact="edit">Sửa số lượng / xưởng</button>
       <button class="btn ghost" data-kact="cancel" style="margin-left:auto">Huỷ kế hoạch</button></div>`
@@ -2036,11 +2043,12 @@ document.addEventListener("click",async e=>{
     /* CR03 (phương án A): bảng thêu / phôi qua danh sách điều kiện như mọi loại hình; Cần đặt có bản mới → xem so sánh, xác nhận */
     const ck=await gapChotDialog(key); if(!ck) return;
     let ack=null; if(!vAcked(ck.o,S.active)){ if(!await needCmp(ck.o,true)) return; ack={v:curV(S.active), from:+ck.o.needV, at:Date.now(), by:ME_ID()}; }
+    let dAck=null; { const st0=chotChecks(ck.o).list.stale; if(st0){ if(!confirm(`Dữ liệu nhu cầu ${m.name}: ${st0}.\n\nXác nhận vẫn chốt theo số Cần đặt hiện có?`)) return; dAck={at:Date.now(), by:ME_ID(), state:st0}; } }   // CR03 FIX-05
     const date=gapDate[key]||today(), [,mo,dd]=date.split("-"), sizes={}, names={};   // ngày đặt anh chọn (mặc định hôm nay)
     COLORS.forEach(c=>{ if(rowSum(g,c)>0){ sizes[c]=g[c].map(n); names[c]=gapName(c); } });
     const hd=H.heroes[S.active]||{}, T=PT.times(hd);
     plan().gapOrders.unshift({id:"g"+Date.now(), type:key, date, closed:date, closedTs:Date.now(), dueDate:ck.due||addDays(date,L.days), flow:3, closedBy:ME_ID(), createdBy:ME_ID(),   // V3: đơn gấp cũng qua QLVH duyệt
-      code:`${dd}${mo}_${L.code}_${m.code||m.key.toUpperCase()}_${String(++S.seq).padStart(6,"0")}`, erpCode:"", sizes, names, needV:ck.o.needV??null, ...(ack?{needAck:ack}:{}), basis:{ton:(hd.ver||{}).ton||null, need:(hd.ver||{}).need||null, tonAt:T.ton.at, needAt:T.need.at, v:curV(S.active)}});
+      code:`${dd}${mo}_${L.code}_${m.code||m.key.toUpperCase()}_${String(++S.seq).padStart(6,"0")}`, erpCode:"", sizes, names, needV:ck.o.needV??null, ...(ack?{needAck:ack}:{}), ...(dAck?{dataAck:dAck}:{}), basis:{ton:(hd.ver||{}).ton||null, need:(hd.ver||{}).need||null, tonAt:T.ton.at, needAt:T.need.at, v:curV(S.active)}});
     plan().grids[key]=blank(); gapOpen=null; delete gapDate[key]; delete (plan().gapDraft||{})[key];
     gridPanel(key); recalc(); saveNow();
     try { chotToast54(plan().gapOrders[0]); } catch(e){ console.error(e); }
@@ -2350,8 +2358,12 @@ function chotChecks(o){
     add("Xưởng & ngày giao dự kiến", hasX&&o.date?"ok":"no", hasX?`${X.name} · đặt ${dmy(o.date)} · dự kiến giao ${dmy(due)}${o.dueDate?"":` (đặt + ${dd} ngày)`}`:"Chưa chọn xưởng: bắt buộc chọn trước khi chốt", hasX&&o.date?null:{step:2, t:hasX?"Nhập ngày đặt":"Chọn xưởng"}); }
   { const st=Don.mState(m,S,H.heroes), T=PT.times(H.heroes[S.active]), da=o.dataAt||{}, upd=(T.ton.at&&da.ton&&T.ton.at>da.ton)||(T.need.at&&da.need&&T.need.at>da.need);
     let unk=0; { const R0=ptRem(S.active), cs=new Set(o.lines.map(l=>l.color)); Object.keys(R0).forEach(c=>{ if(cs.has(c)) R0[c].forEach(v=>{ if(v===null) unk++; }); }); }
-    const s=st.data==="loi"||st.data==="chua"?"no":st.data!=="ok"||upd||unk?"kt":"ok";
-    add("Dữ liệu nhu cầu", s, [st.dataT+(st.ageT?` (${st.ageT})`:""), upd?"dữ liệu cập nhật sau khi lập kế hoạch, xem lại số":"", unk?`${unk} size chưa có số Cần đặt`:"", (st.err||[]).join(", ")].filter(Boolean).join(" · "), s==="ok"?null:{href:"check-hero.html?m="+S.active, t:"Mở Phân tích nhu cầu"}); }
+    /* CR03 FIX-05: chưa từng có số nhu cầu → Chưa đạt (cập nhật trước khi chốt); đã có số nhưng cũ / không rõ giờ cập nhật → Cần kiểm tra, chốt phải xác nhận */
+    const hd0=H.heroes[S.active]||{}, hasNum=["need"].some(k=>Object.values(hd0[k]||{}).some(r=>(r||[]).some(v=>v!==null&&v!==undefined&&v!=="")));
+    const none=st.data==="chua"&&!hasNum, stale=st.data!=="ok"&&st.data!=="loi"&&!none;
+    const s=st.data==="loi"||none?"no":stale||upd||unk?"kt":"ok";
+    R.stale=stale?(st.data==="chua"?"có số nhưng chưa ghi giờ cập nhật":st.dataT+(st.ageT?` (${st.ageT})`:"")):null;
+    add("Dữ liệu nhu cầu", s, [none?"Chưa có dữ liệu nhu cầu: cập nhật ở Phân tích nhu cầu trước khi chốt":st.data==="chua"?"Có số Cần đặt nhưng chưa ghi giờ cập nhật: kiểm tra, khi chốt phải xác nhận":st.dataT+(st.ageT?` (${st.ageT})`:"")+(stale?" · khi chốt phải xác nhận dùng số hiện có":""), upd?"dữ liệu cập nhật sau khi lập kế hoạch, xem lại số":"", unk?`${unk} size chưa có số Cần đặt`:"", (st.err||[]).join(", ")].filter(Boolean).join(" · "), s==="ok"?null:{href:"check-hero.html?m="+S.active, t:"Mở Phân tích nhu cầu"}); }
   /* CR03: phiên bản Cần đặt làm căn cứ. Có bản mới → Cần kiểm tra (không chặn), khi chốt bắt buộc xem bảng so sánh và xác nhận */
   { const c=curV(S.active), ch=vChanged(o,S.active), ak=vAcked(o,S.active);
     add("Phiên bản nhu cầu", ch&&!ak?"kt":"ok", o.needV==null?(c==null?"Mã chưa lưu phiên bản Cần đặt":`Kế hoạch lập trước khi có phiên bản (đang dùng ${vTxt(c)})`)
@@ -2398,9 +2410,9 @@ document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-bgact]"); if(!b) return;
   const cd=b.closest("[data-bgid]"), id=cd.dataset.bgid, mk=cd.dataset.bgm||S.active, P=S.models[mk]||{}, md=MODELS.find(x=>x.key===mk)||model();   // CR03: thẻ Chờ bàn giao gộp mọi mã
   const o=[...(P.orders||[]), ...(P.gapOrders||[])].find(x=>x.id===id); if(!o||!Khung.canEdit(mk)) return;
-  if(!confirm(`Bàn giao ${OL(o,md)} cho ${execName()}?\n\nTạo đúng 1 việc trong Công việc của ${execName()} (tiếp nhận hoặc trả lại). Không tạo thêm đơn. ${Khung.userName(md.owner)} vẫn quản lý SKU và kế hoạch.`)) return;
+  const tu=await Khung.pickUser(`Bàn giao đơn sản xuất ${OL(o,md)}`, `Tạo đúng 1 việc trong Công việc của người được chọn (tiếp nhận hoặc trả lại). Không tạo thêm đơn. ${Khung.userName(md.owner)} vẫn quản lý SKU và kế hoạch.`); if(!tu) return;   // CR03 FIX-02: chọn người thực hiện
   b.disabled=true; saveNow();
-  const r=await Don.op({op:"ban-giao", model:mk, oid:id});
+  const r=await Don.op({op:"ban-giao", model:mk, oid:id, toUser:tu});
   if(r.status!==200) alert((r.j&&r.j.error)||"Không bàn giao được");
   reloadS(); renderAll();
 });
@@ -2415,6 +2427,7 @@ function renderCheck(){
         <div class="ck-head"><h3>${esc(o.khtl?o.khtl.code:OL(o))}</h3><span class="muted">${model().name} · ${esc((KINDS[kindOf(o)]||{t:""}).t)} · ${esc(X.name)} · ${osum(o)}</span>
           <span class="pill ${K.ok?"p-ok":"p-bad"}">${K.ok?"Đủ điều kiện chốt":"Chưa đủ điều kiện chốt"}</span>
           <button class="btn ghost" data-gostep="2" data-focus="${o.id}" style="margin-left:auto">← Sửa ở Lập kế hoạch</button></div>
+        ${stepHTML("Đang lập kế hoạch · kiểm tra điều kiện", K.list.filter(z=>z.st==="no").map(z=>z.t), Khung.userName(model().owner)+" (quản lý kế hoạch)", K.ok?"Chốt kế hoạch, rồi bàn giao sản xuất":K.nvlOnly?(K.adminOv?"Thiếu NVL: Lưu kế hoạch tương lai (A) hoặc Chốt ngoại lệ (B)":"Thiếu NVL: Lưu kế hoạch tương lai, đặt NVL"):"Bổ sung các mục Chưa đạt")}
         <div class="scroll"><table class="ck-sz"><thead><tr><th>Màu</th>${qMode(o)?"":"<th>Cây</th>"}${SZ_LABEL.map(s=>`<th>${s}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>
           ${o.lines.map(l=>`<tr><td>${l.color} · ${esc(catOf(l.color).name)}</td>${qMode(o)?"":`<td>${n(l.cay)}</td>`}${lineSizes(l).map(v=>`<td>${v}</td>`).join("")}<td><b>${lineQty(l)}</b></td></tr>`).join("")}</tbody></table></div>
         ${ckRowsHTML(K)}${r1Warn()}
@@ -3060,7 +3073,7 @@ function gapFromPlan(o){
   o.lines.forEach(l=>{ const sz=lineSizes(l); if(sz.some(v=>v>0)){ sizes[l.color]=(sizes[l.color]||[0,0,0,0,0]).map((v,i)=>v+sz[i]); names[l.color]=gapName(l.color); } });
   const g={id:o.id, type:k, date:o.date, closed:o.closed, closedTs:o.closedTs, dueDate:o.dueDate||addDays(o.date,L.days), flow:3, closedBy:o.closedBy, createdBy:o.createdBy,
     code:`${dd}${mo}_${L.code}_${m.code||m.key.toUpperCase()}_${String(++S.seq).padStart(6,"0")}`, erpCode:"", sizes, names, needV:o.needV??null, basis:o.basis||null};
-  if(o.needAck) g.needAck=o.needAck; if(o.khtl) g.khtl=o.khtl; if(o.chotOverride) g.chotOverride=o.chotOverride;
+  if(o.needAck) g.needAck=o.needAck; if(o.dataAck) g.dataAck=o.dataAck; if(o.nvlChk) g.nvlChk=o.nvlChk; if(o.khtl) g.khtl=o.khtl; if(o.chotOverride) g.chotOverride=o.chotOverride;
   plan().orders=plan().orders.filter(x=>x.id!==o.id); plan().gapOrders.unshift(g); return g;
 }
 /* Bảng thêu / phôi đang lập → KHTL (chuyển hẳn số sang kế hoạch, dọn bảng: không để 2 nơi) */
@@ -3120,19 +3133,33 @@ function bgItems(){
       const ph=Don.phase(o), iss=(o.vuong||[]).filter(v=>v.state!=="xong");
       let nv=null; if(!o.type&&IS_GC(o)&&!o.sentAt&&!o.nvlOut){ try { nv=NV.check(N,S,md.key,o); } catch(err){ nv=null; } }
       const short=!!nv&&NV_SHORT.includes(nv.state), due=o.dueDate||Don.addDays(o.date||td,LEAD), late=short&&due<td;
-      let cat=null, why="";
-      if(ph==="tra-lai"){ cat="xu-ly"; why="Bị trả lại · "+((o.exec||{}).traReason||""); }
-      else if(iss.length){ cat="xu-ly"; why="Vướng mắc chưa xong · "+iss.map(v=>v.text).join("; "); }
-      else if(short&&o.chotOverride){ cat="xu-ly"; why="Chốt ngoại lệ, còn thiếu NVL"+(late?" · đã quá ngày giao dự kiến":""); }
-      else if(short){ cat="xu-ly"; why=late?"Thiếu NVL · đã quá ngày giao dự kiến":"Thiếu NVL · nguy cơ trễ hạn"; }
-      else if(ph==="chua-bg") cat="chua-bg";
-      else if(ph==="cho-nhan") cat="cho-nhan";
-      if(cat) L.push({m:md.key, md, o, ph, cat, why, nv, short, late, due, iss});
+      /* CR03 FIX-04: bàn giao · vấn đề (trả lại / vướng mắc / thiếu NVL / ngoại lệ) là các cờ độc lập. Nhóm chính (để đếm chỉ số, không trùng):
+         Chưa bàn giao (kể cả đang thiếu NVL / ngoại lệ: vẫn là việc bàn giao của quản lý) > Cần xử lý > Chờ tiếp nhận */
+      const bg=Don.bgState(o), F={traLai:ph==="tra-lai", vuong:iss.length>0, thieu:short, ngoaiLe:!!o.chotOverride&&short, chuaBg:bg==="chua-bg", choNhan:bg==="cho-nhan"};
+      const W=[]; if(F.traLai) W.push("Bị trả lại · "+((o.exec||{}).traReason||"")); if(F.vuong) W.push("Vướng mắc chưa xong · "+iss.map(v=>v.text).join("; "));
+      if(short) W.push((o.chotOverride?"Chốt ngoại lệ, còn thiếu NVL":"Thiếu NVL")+(late?" · đã quá ngày giao dự kiến":" · nguy cơ trễ hạn"));
+      const cat=F.chuaBg?"chua-bg":(F.traLai||F.vuong||short)?"xu-ly":F.choNhan?"cho-nhan":null;
+      if(cat) L.push({m:md.key, md, o, ph, bg, cat, F, why:W.join(" · "), nv, short, late, due, iss});
     }); });
-  const R={"xu-ly":0,"chua-bg":1,"cho-nhan":2}; L.sort((a,b)=>R[a.cat]-R[b.cat]||(a.due||"").localeCompare(b.due||""));
+  const R={"xu-ly":0,"chua-bg":1,"cho-nhan":2}; L.sort((a,b)=>(b.why?1:0)-(a.why?1:0)||R[a.cat]-R[b.cat]||(a.due||"").localeCompare(b.due||""));
   return L;
 }
+/* Bộ lọc tab ④: 1 đơn có thể khớp nhiều bộ lọc (khác chỉ số đầu trang: mỗi đơn đếm 1 lần) */
+const BF_L=[["all","Tất cả",x=>true],["chua-bg","Chưa bàn giao",x=>x.F.chuaBg],["cho-nhan","Chờ tiếp nhận",x=>x.F.choNhan],["tra-lai","Bị trả lại",x=>x.F.traLai],["vuong","Vướng mắc",x=>x.F.vuong],["thieu","Thiếu NVL",x=>x.F.thieu],["ngoai-le","Chốt ngoại lệ còn thiếu NVL",x=>x.F.ngoaiLe],["nhan-xl","Chờ tiếp nhận / cần xử lý",x=>x.cat!=="chua-bg"]];
 const BG_CAT={"xu-ly":["Cần xử lý","p-bad"],"chua-bg":["Chưa bàn giao","p-warn"],"cho-nhan":["Chờ tiếp nhận","p-info"]};
+/* CR03 FIX-04 / FIX-06: 4 trạng thái tách riêng trên mỗi đơn — Kế hoạch · Bàn giao · NVL · Thực thi — kèm người chịu trách nhiệm */
+/* CR03 FIX-06: dòng tóm tắt chung cho mọi hồ sơ: Đang ở bước nào · Còn thiếu gì · Ai xử lý · Bước tiếp theo */
+const stepHTML = (buoc, thieu, ai, tiep) => `<div class="dims small" data-stepline><span><span class="l">Bước</span><b>${esc(buoc)}</b></span><span><span class="l">Còn thiếu</span>${thieu&&thieu.length?`<span style="color:var(--crit)">${esc([].concat(thieu).join(" · "))}</span>`:`<span style="color:var(--ok)">không</span>`}</span><span><span class="l">Phụ trách</span><b>${esc(ai)}</b></span><span><span class="l">Tiếp theo</span>${esc(tiep)}</span></div>`;
+const BUYBG={nhap:"Nháp (chưa chốt)","chua-bg":"Đã chốt · chưa bàn giao","cho-nhan":"Chờ tiếp nhận","tra-lai":"Bị trả lại",nhan:"Đã tiếp nhận"};
+const BGS={"chua-bg":["Chưa bàn giao","p-warn"],"cho-nhan":["Chờ tiếp nhận","p-info"],"tra-lai":["Bị trả lại","p-bad"],nhan:["Đã tiếp nhận","p-ok"]};
+function dimsHTML(x){
+  const o=x.o, e=o.exec||{}, bg=BGS[x.bg]||["Không áp dụng","p-mute"], nvS=x.nv?(NV.STATE[x.nv.state]||x.nv.state):kindOf(o)==="gc"&&(o.nvlOut||o.sentAt)?"Đã xuất NVL":"Không dùng NVL gia công";
+  const nvP=x.nv?(x.short?"p-bad":x.nv.state==="du"?"p-ok":"p-warn"):"p-mute", ex=Don.progress?Don.progress(o).t:"";
+  const who=x.bg==="chua-bg"||x.bg==="tra-lai"?Khung.userName(x.md.owner)+" (quản lý kế hoạch)":e.user?Khung.userName(e.user)+" (thực thi)":Khung.userName(x.md.owner);
+  return `<div class="dims small" data-dims><span><span class="l">Kế hoạch</span><span class="pill p-ok">Đã chốt ${dmy(o.closed)}</span>${o.chotOverride?`<span class="pill p-warn">ngoại lệ</span>`:""}</span>
+    <span><span class="l">Bàn giao</span><span class="pill ${bg[1]}">${bg[0]}</span></span><span><span class="l">NVL</span><span class="pill ${nvP}">${esc(nvS)}</span></span>
+    <span><span class="l">Thực thi</span><span class="pill p-mute">${esc(Don.PHASE[x.ph]||ex||"—")}</span></span><span><span class="l">Phụ trách</span><b>${esc(who)}</b></span></div>`;
+}
 function bgCard2(x){
   const {o,md,ph}=x, e=o.exec||{}, can=Khung.canEdit(x.m), X=Don.xOf(o), lb=Don.label(o,md);
   const nx=ph==="tra-lai"?"Xử lý lý do trả lại rồi bàn giao lại":x.iss.length?"Mở đơn, xử lý vướng mắc":x.short?"Bổ sung NVL (đặt mua / giữ NVL) trước khi gửi xưởng"+(ph==="chua-bg"?"; bàn giao khi sẵn sàng":""):ph==="chua-bg"?`Bàn giao cho ${execName()}`:ph==="cho-nhan"?`Chờ ${Khung.userName(e.user)} tiếp nhận hoặc trả lại`:"";
@@ -3140,20 +3167,21 @@ function bgCard2(x){
   const nvT=x.nv&&x.short?`<div class="${x.late?"bad":"warn"}">NVL: ${esc(NV.STATE[x.nv.state]||x.nv.state)}${(x.nv.rows||[]).filter(r=>r.status==="thieu").map(r=>` · thiếu ${esc(r.it.name)} ${fmt1(r.short)} ${esc(r.unit)}`).join("")} · ngày giao dự kiến ${dmy(x.due)}${x.late?" (đã quá)":""}</div>`:"";
   return `<div class="panel ck-card bg-card" data-bgid="${o.id}" data-bgm="${x.m}" data-bgcat="${x.cat}">
     <div class="ck-head"><h3>${esc(lb)}</h3><span class="muted">${esc(md.name)} · ${esc(X.name)} · ${esc(Don.typeLabel(o))} · ${fmt(recQ(x.m,o))} ${Khung.unitOf(x.m)} · ${esc(Khung.userName(md.owner))}</span>
-      <span class="pill ${BG_CAT[x.cat][1]}">${BG_CAT[x.cat][0]}</span><span class="pill ${Don.PHASE_PILL[ph]||"p-mute"}">${esc(Don.PHASE[ph]||ph)}</span>
+      <span class="pill ${BG_CAT[x.cat][1]}">${BG_CAT[x.cat][0]}</span>
       <a class="btn ghost" href="don-hang.html?id=${encodeURIComponent(o.id)}${x.iss.length?"#vuong":""}" style="margin-left:auto">Chi tiết đơn →</a></div>
-    <div class="ck-warn">${x.why?`<div class="${x.cat==="xu-ly"?"bad":"info"}">${esc(x.why)}</div>`:""}${ov}${nvT}
+    ${dimsHTML(x)}
+    <div class="ck-warn">${x.why?`<div class="bad">${esc(x.why)}</div>`:""}${ov}${nvT}
       ${ph==="cho-nhan"?`<div class="info">Bàn giao ${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} → <b>${esc(Khung.userName(e.user))}</b></div>`:""}</div>
     <div class="kh-next"><b>Tiếp theo:</b> ${esc(nx)}</div>
     <div class="ck-acts">${x.short&&can?`<a class="btn" href="dat-mua.html?m=${encodeURIComponent(x.m)}">Đặt mua NVL →</a>`:""}
-      ${(ph==="chua-bg"||ph==="tra-lai")&&can?`<button class="btn primary" data-bgact="giao" style="margin-left:auto">${ph==="tra-lai"?"Bàn giao lại cho ":"Bàn giao cho "}${esc(execName())}</button>`:""}</div></div>`;
+      ${(ph==="chua-bg"||ph==="tra-lai")&&can?`<button class="btn primary" data-bgact="giao" style="margin-left:auto">${ph==="tra-lai"?"Bàn giao lại sản xuất…":"Bàn giao sản xuất…"}</button>`:""}</div></div>`;
 }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-bf]"); if(!b) return; BF=b.dataset.bf; renderBgAll(); });
 function renderBgAll(){
   const box=$("#bgList"); if(!box||GUI_ID) return;
-  const L=bgItems(), c=k=>L.filter(x=>x.cat===k).length, F=[["all","Tất cả",L.length],["xu-ly","Cần xử lý",c("xu-ly")],["chua-bg","Chưa bàn giao",c("chua-bg")],["cho-nhan","Chờ tiếp nhận",c("cho-nhan")]];
-  const sh=L.filter(x=>BF==="all"||(BF==="nhan-xl"?x.cat==="cho-nhan"||x.cat==="xu-ly":x.cat===BF));
-  $("#bgFilter").innerHTML=`<div class="ux-bar" style="margin-bottom:8px"><div class="ux-chips">${F.map(([k,t,n0])=>`<button type="button" class="ux-chip${k==="xu-ly"?" t-o":""}${BF===k?" on":""}" data-bf="${k}">${t} <span class="n">${n0}</span></button>`).join("")}${BF==="nhan-xl"?`<button type="button" class="ux-chip on" data-bf="nhan-xl">Chờ tiếp nhận + Cần xử lý <span class="n">${sh.length}</span></button>`:""}</div><span class="ux-hint">Đã tiếp nhận và không còn vấn đề → rời danh sách, theo dõi ở Đơn sản xuất / Giám sát.</span></div>`;
+  const L=bgItems(), fOf=k=>(BF_L.find(f=>f[0]===k)||BF_L[0])[2]; if(!BF_L.some(f=>f[0]===BF)) BF="all";
+  const sh=L.filter(fOf(BF));
+  $("#bgFilter").innerHTML=`<div class="ux-bar" style="margin-bottom:8px"><div class="ux-chips">${BF_L.filter(([k])=>k!=="nhan-xl"||BF==="nhan-xl").map(([k,t,f])=>`<button type="button" class="ux-chip${["thieu","ngoai-le","tra-lai","vuong"].includes(k)?" t-o":""}${BF===k?" on":""}" data-bf="${k}">${t} <span class="n">${L.filter(f).length}</span></button>`).join("")}</div><span class="ux-hint">1 đơn có thể khớp nhiều bộ lọc. Đã tiếp nhận và không còn vấn đề → rời danh sách, theo dõi ở Đơn sản xuất / Giám sát.</span></div>`;
   box.innerHTML=sh.length?sh.map(bgCard2).join(""):`<div class="panel empty" style="padding:24px;text-align:center;color:var(--muted)">Không có đơn nào${BF==="all"?" chờ bàn giao hoặc cần xử lý":" theo bộ lọc này"}.</div>`;
   if(BG_ID){ const el=box.querySelector(`[data-bgid="${CSS.escape(BG_ID)}"]`); if(el) el.style.outline="2px solid var(--accent)"; }
 }
@@ -3173,7 +3201,7 @@ function dashData(){
     {k:"dang", t:"Kế hoạch đang lập", v:dang, d:"chưa chốt, chưa lưu kế hoạch tương lai (gồm bảng thêu / phôi đang nhập)", go:2, tone:"b"},
     {k:"khtl-chua", t:"KHTL chưa đủ điều kiện", v:A.filter(x=>!x.ready).length, d:"thiếu số lượng / xưởng / NVL", go:5, kf:"not", tone:"g"},
     {k:"khtl-du", t:"KHTL đủ điều kiện chờ chốt", v:A.filter(x=>x.ready).length, d:"không tự chốt", go:5, kf:"ready", tone:"k"},
-    {k:"bg", t:"Đơn chờ bàn giao", v:B.filter(x=>x.cat==="chua-bg").length, d:"đã chốt, chưa bàn giao", go:6, bf:"chua-bg", tone:"o"},
+    {k:"bg", t:"Đơn chờ bàn giao", v:B.filter(x=>x.cat==="chua-bg").length, d:"đã chốt, chưa bàn giao (kể cả đơn đang thiếu NVL / ngoại lệ)", go:6, bf:"chua-bg", tone:"o"},
     {k:"xl", t:"Chờ tiếp nhận / cần xử lý", v:B.filter(x=>x.cat!=="chua-bg").length, d:"trả lại · vướng mắc · thiếu NVL · chờ nhận", go:6, bf:"nhan-xl", tone:"r"}];
 }
 function renderDash(){

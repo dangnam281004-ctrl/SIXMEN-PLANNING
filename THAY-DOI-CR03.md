@@ -35,10 +35,21 @@ Không thêm trạng thái lưu mới. Các trạng thái được tính từ d�
 ## Ghi chú vận hành
 - Thêu và phôi nay qua danh sách điều kiện như các loại khác. Nếu mã có "Dữ liệu nhu cầu" Chưa đạt (chưa cập nhật / lỗi) thì chưa chốt được; trước đây đơn thêu / phôi chốt thẳng.
 - Đơn và KHTL lập trước CR03 không có `needV` nên không bị yêu cầu xác nhận phiên bản; dòng điều kiện ghi "lập trước khi có phiên bản".
-- Thứ tự ưu tiên trong một tab: Cần xử lý trước, rồi Chưa bàn giao. Đơn vừa chưa bàn giao vừa thiếu NVL được xếp vào Cần xử lý, thẻ vẫn có nút Bàn giao.
+- (Đã thay bằng FIX-04 bên dưới) Nhóm chính để đếm chỉ số: Chưa bàn giao > Cần xử lý > Chờ tiếp nhận.
 - Triển khai cần khởi động lại server vì có sửa `server.ps1`.
 
-## Kiểm thử (24/11/2026, dữ liệu mẫu đủ trạng thái, cổng tạm 8097, không đụng bản chính)
+## Đợt hoàn thiện CR03 (FIX-01 → FIX-07, quản lý duyệt 24/11/2026)
+| Nhóm | Đã có | Sửa / bổ sung trong đợt này | File |
+|---|---|---|---|
+| FIX-01 Kiểm soát chốt | Giữ NVL qua server, không vượt khả dụng (409); chốt ngoại lệ chỉ Admin | **Server kiểm NVL khi chốt gia công thường.** Trang gửi `nvlChk` gồm nhu cầu từng NVL, người kiểm và giờ kiểm (≤ 30 phút). Server đối chiếu nhu cầu với 4 nguồn: sổ phân bổ, phiếu xuất, tồn khả dụng và hàng đặt mua đang về của chính đơn. Server cũng bắt buộc đủ nhóm Vải / Bo / Nhãn sườn và tổng vải ≥ số cây. Thiếu thì trả 422. **Chốt ngoại lệ bắt buộc có lý do (server).** Phạm vi áp dụng: đơn vừa chốt có `closedTs` trong 1 ngày, kể cả đơn mới tạo đã chốt. | `server.ps1` (`NvlChotErr`, `GuardPlan`), `ke-hoach.html` |
+| FIX-02 Bàn giao đặt NVL | Chốt nhu cầu mua → bàn giao → tiếp nhận / trả lại → PO ERP → QLVH → gửi NCC → nhận hàng → hồ sơ (`/api/nvl/ds-op`); trạng thái bàn giao tách riêng (`buyBg`) | **Hộp chọn người thực hiện** khi bàn giao yêu cầu đặt NVL và khi bàn giao đơn sản xuất. Mặc định là người thực thi trong Danh mục; server đã hỗ trợ `toUser`. | `khung.js` (`pickUser`), `nvl-trang.js`, `ke-hoach.html` |
+| FIX-03 NVL ↔ KHTL | Lập yêu cầu đặt từ phần thiếu (tự điền), đặt trước rồi gắn sau (`du-kien`), một đơn mua cho nhiều kế hoạch, phân bổ không trùng, hàng chưa kiểm nhận không tính khả dụng, về một phần, cảnh báo đủ điều kiện (không tự chốt) | Thẻ KHTL hiện trạng thái bàn giao và người thực hiện của từng đơn mua NVL liên quan. Nút đổi tên thành "Lập yêu cầu đặt NVL thiếu". | `ke-hoach.html` |
+| FIX-04 Bàn giao sản xuất & cần xử lý | Danh sách gộp mọi mã | Mỗi đơn hiện 4 trạng thái tách riêng (Kế hoạch · Bàn giao · NVL · Thực thi) và người phụ trách. Các vấn đề là cờ độc lập. **Nhóm chính để đếm: Chưa bàn giao > Cần xử lý > Chờ tiếp nhận**, nên đơn chốt ngoại lệ thiếu NVL chưa bàn giao vẫn ở "Đơn chờ bàn giao" và có nút bàn giao. Bộ lọc nhiều chiều: Chưa bàn giao, Chờ tiếp nhận, Bị trả lại, Vướng mắc, Thiếu NVL, Chốt ngoại lệ còn thiếu NVL. Cảnh báo thiếu NVL ngay từ lúc chốt ngoại lệ. | `ke-hoach.html` |
+| FIX-05 Dữ liệu nhu cầu | Bảng so sánh / xác nhận phiên bản (CR03) | Chưa từng có số nhu cầu: Chưa đạt, cập nhật trước khi chốt. Đã có số nhưng cũ (quá kỳ / đến kỳ / chưa ghi giờ cập nhật): Cần kiểm tra, khi chốt bắt buộc xác nhận, lưu `dataAck {at, by, state}`. Áp dụng cả 4 loại hình. | `ke-hoach.html` |
+| FIX-06 Giao diện | 4 tab, 6 chỉ số | Dòng **Bước · Còn thiếu · Phụ trách · Tiếp theo** trên thẻ kế hoạch đang lập, thẻ KHTL và thẻ đơn chờ bàn giao. Thao tác đặt mua / theo dõi NVL vẫn ở trang Đặt mua NVL. | `ke-hoach.html` |
+| FIX-07 Kiểm thử | — | Bổ sung kịch bản NV-01 → NV-11, FIX-01 qua API, và nâng cấp / rollback trên bản sao dữ liệu thật. | (bộ kiểm thử) |
+
+## Kiểm thử Giai đoạn B (24/11/2026, dữ liệu mẫu đủ trạng thái, cổng tạm 8097, không đụng bản chính)
 | Bộ | Kết quả |
 |---|---|
 | 20 kịch bản CR03 (tcr03, 28 kiểm tra trang + API + server) | 28/28 · 42 lượt mở trang 0 lỗi JS |

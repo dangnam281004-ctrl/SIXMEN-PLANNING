@@ -946,7 +946,7 @@ document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-dso]"); if(!b||b.disabled) return; const a=b.dataset.dso, id=b.dataset.id; fresh(); const B=(N.buyLists||[]).find(x=>x.id===id); if(!B){ render(); return; }
   const body={op:a, ds:id}, ask=m=>(prompt(m)||"").trim();
   if(a==="chot"){ if(!confirm(`Chốt nhu cầu mua ${B.no} · ${B.title}?\n\n${zaloText(B)}\n\nSau khi chốt, số đặt / NCC / mã NVL chỉ Admin sửa được, có lý do (hoặc trả về nháp trước khi có PO). Chốt CHƯA bàn giao: bấm Bàn giao ở bước sau.`)) return; }
-  else if(a==="giao"){ if(!confirm(`Bàn giao ${B.no} · ${B.title} cho ${exName()}?\n\nTạo đúng 1 việc trong Công việc của ${exName()} (tiếp nhận hoặc trả lại), rồi mới tạo 1 PO ERP (VIKING → NCC). Không tạo thêm đơn mua.`)) return; }
+  else if(a==="giao"){ const u=await Khung.pickUser(`Bàn giao yêu cầu đặt NVL ${B.no}`, `${B.title}. Tạo đúng 1 việc trong Công việc của người được chọn (tiếp nhận hoặc trả lại), rồi mới tạo 1 PO ERP (VIKING → NCC). Không tạo thêm đơn mua.`); if(!u) return; body.toUser=u; }   // CR03 FIX-02: chọn người thực hiện
   else if(a==="tra-lai"){ body.reason=ask(`Trả lại ${B.no} cho người quản lý kế hoạch: ghi lý do (bắt buộc)`); if(!body.reason) return; }
   else if(a==="thu-hoi"){ body.reason=ask(`Trả ${B.no} về nháp: ghi lý do`); if(!body.reason) return; }
   else if(a==="qlvh-bo"){ body.reason=ask(`Bỏ xác nhận QLVH ${B.no}: ghi lý do`); if(!body.reason) return; }

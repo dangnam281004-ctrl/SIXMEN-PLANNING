@@ -320,7 +320,22 @@
         + (s !== "xong" && canHandle ? '<div style="display:flex;gap:6px;margin-top:4px">' + (s === "mo" ? '<button type="button" class="btn" data-vnhan="' + esc(v.id) + '"' + attrs + '>Đang xử lý</button>' : '') + '<button type="button" class="btn primary" data-vxong="' + esc(v.id) + '"' + attrs + '>Đã giải quyết</button></div>' : '')
         + '</div>'; }).join("") + '</div>';
   }
+  /* CR03 FIX-02 (24/11/2026): chọn người thực hiện khi bàn giao (đơn sản xuất / yêu cầu đặt NVL). Mặc định = người thực thi trong Danh mục.
+     Trả Promise: id tài khoản đã chọn, hoặc null khi huỷ. Server kiểm lại tài khoản còn hoạt động */
+  function pickUser(title, note){
+    var def = (catalog().exec || {}).user || null, list = users.filter(function(u){ return u.active && u.role !== "kho"; });
+    return new Promise(function(res){
+      var w = document.createElement("div"); w.className = "kh-dlg"; w.setAttribute("data-pickuser", "");
+      w.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.3);display:grid;place-items:center;z-index:300";
+      w.innerHTML = '<div role="dialog" aria-modal="true" aria-label="' + esc(title) + '" style="background:var(--surface,#fff);color:var(--ink,#222);border-radius:10px;padding:18px 20px;max-width:440px;display:grid;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.2)"><b>' + esc(title) + '</b>' + (note ? '<span class="small">' + esc(note) + '</span>' : '')
+        + '<label class="small" style="display:grid;gap:4px">Người thực hiện<select data-pu style="min-height:40px;padding:4px 8px;font:inherit">' + list.map(function(u){ return '<option value="' + esc(u.id) + '"' + (u.id === def ? " selected" : "") + '>' + esc(u.name || u.username) + (u.id === def ? " (mặc định)" : "") + '</option>'; }).join("") + '</select></label>'
+        + '<div class="acts" style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" data-pa="x">Huỷ</button><button type="button" class="btn primary" data-pa="ok">Bàn giao</button></div></div>';
+      document.body.appendChild(w);
+      w.addEventListener("click", function(e){ var b = e.target.closest("[data-pa]"); if (e.target !== w && !b) return; var v = b && b.getAttribute("data-pa") === "ok" ? w.querySelector("[data-pu]").value : null; w.remove(); res(v || null); });
+    });
+  }
   window.Khung = {
+    pickUser:pickUser,
     isQuan:isQuan, isSomi:isSomi, ownColors:ownColors, sizesOf:sizesOf, colorsOfModel:colorsOfModel, unitOf:unitOf, live:live, POLO_SZ:POLO_SZ, POLO_CL:POLO_CL, COLORS_ALL:COLORS_ALL, COLOR_EXTRA:COLOR_EXTRA,
     NGANH:NGANH, NHOM:NHOM, nganhOf:nganhOf, nhomOf:nhomOf, ready:ready, orderMode:orderMode, aliasOf:aliasOf, colorNames:colorNames, colorName:colorName, nameMap:nameMap,
     VUONG_LOAI:VUONG_LOAI, VUONG_UU:VUONG_UU, VUONG_ST:VUONG_ST, vuongOpen:vOpen, vuongForm:vuongForm, vuongList:vuongList, sections:sections, staffOnly:staffOnly,

@@ -1390,6 +1390,37 @@ function PlanOrders($plan) {
     foreach ($sec in @("orders", "gapOrders")) { foreach ($o in (Arr $p[$sec])) { if ($o -is [System.Collections.IDictionary]) { $null = $L.Add(@{ m = [string]$mk; o = $o; gap = ($sec -eq "gapOrders") }) } } } }
   return ,$L
 }
+# CR03 FIX-01 (24/11/2026): server kiểm lại NVL khi chốt đơn gia công KHÔNG ngoại lệ. Không tính lại định mức (định mức ở trang, nvl-core.js):
+# trang gửi kèm o.nvlChk (nhu cầu từng NVL lúc chốt); server đối chiếu với sổ phân bổ / phiếu xuất / tồn khả dụng / hàng đặt mua đang về của chính đơn,
+# bắt buộc đủ nhóm NVL theo cấu hình và tổng vải ≥ tổng số cây của đơn (không khai thấp). Trả chuỗi lỗi hoặc $null
+function NvlChotErr($o, [string]$model, $me, $plan) {
+  $lb = OrdLbl $o $model; $ck = Dict $o["nvlChk"]
+  if (-not $o["nvlChk"]) { return "CR03: $lb chưa có kết quả kiểm tra NVL lúc chốt (chốt trên trang Kế hoạch, hoặc Admin chốt ngoại lệ có lý do)" }
+  if ([string]$ck["by"] -ne [string]$me["id"] -or [math]::Abs((NowMs) - (Num $ck["at"])) -gt 1800000) { return "CR03: $lb · kết quả kiểm tra NVL đã cũ hoặc không phải của người chốt: kiểm tra lại rồi chốt" }
+  if ((Arr $ck["missing"]).Count -or (Arr $ck["noRate"]).Count) { return "CR03: $lb chưa đủ dữ liệu NVL (" + ((@(Arr $ck["missing"]) + @(Arr $ck["noRate"])) -join ", ") + "): Admin chốt ngoại lệ nếu cần" }
+  $nf = Join-Path $DataDir "nvl-v3.json"; if (-not (Test-Path $nf)) { return "CR03: chưa có dữ liệu Tồn kho NVL" }
+  $nv = Val ([System.IO.File]::ReadAllText($nf, $utf8)); $items = ById $nv["items"]; $alloc = Arr $nv["alloc"]
+  $byOrder = HeldMap $alloc; $legacy = LegacyHeld $plan $byOrder; $oid = [string]$o["id"]
+  $req = Arr (Dict $nv["cfg"])["required"]; if ($req.Count -eq 0) { $req = @("vai", "bo", "nhan") }
+  $grpOf = { param($it) $t = [string]$it["type"]; if ($t -match '^(?i)vải') { "vai" } elseif ($t -match '^(?i)bo') { "bo" } elseif ($t -match '(?i)nhãn sườn') { "nhan" } else { "khac" } }
+  $rows = Arr $ck["rows"]; $have = @{}; $vai = 0.0; $err = @()
+  foreach ($r in $rows) {
+    $id = [string]$r["item"]; $it = $items[$id]; if (-not $it) { $err += "không có NVL $id"; continue }
+    $g = & $grpOf $it; $have[$g] = $true; $need = Num $r["need"]; if ($g -eq "vai") { $vai += $need }
+    $held = [double](Dict $byOrder[$oid])[$id] + [double](Dict $legacy[$oid])[$id] + (IssuedQty (Arr $nv["issues"]) $o $id)
+    $all = 0.0; foreach ($k in @($byOrder.Keys)) { $all += [double]$byOrder[$k][$id] }; foreach ($k in @($legacy.Keys)) { $all += [double]$legacy[$k][$id] }
+    $free = [math]::Max(0, (Num $it[(StockField $it)]) - $all)
+    $inc = 0.0
+    foreach ($Ds in (Arr $nv["buyLists"])) { if (@("da-gui", "ncc-xac-nhan", "nhan-mot-phan") -notcontains [string]$Ds["status"]) { continue }
+      foreach ($Ln in (Arr $Ds["lines"])) { if ([string]$Ln["item"] -ne $id) { continue }
+        foreach ($s in (Arr $Ln["src"])) { if ([string]$s["id"] -eq $oid) { $la = LineAlloc $alloc ([string]$Ln["id"]); $inc += [math]::Max(0, [math]::Min((PlanOf $s) - [double]$la.by[$oid], (Num $Ln["qty"]) - (LineGot $Ln))) } } } }
+    if ($need -gt $held + $free + $inc + 1e-6) { $err += ([string]$it["name"] + " thiếu " + [math]::Round($need - $held - $free - $inc, 2)) }
+  }
+  foreach ($g in $req) { if ($g -ne "mavach" -and -not $have[[string]$g]) { $err += ("thiếu dòng NVL nhóm " + @{ vai = "Vải"; bo = "Bo"; nhan = "Nhãn sườn" }[[string]$g]) } }
+  $cay = 0.0; foreach ($l in (Arr $o["lines"])) { $cay += (Num $l["cay"]) }; if ($vai + 1e-6 -lt $cay) { $err += ("tổng vải " + [math]::Round($vai, 2) + " cây < số cây của đơn " + $cay) }
+  if ($err.Count) { return ("CR03: $lb chưa đủ NVL để chốt (" + ($err -join "; ") + "). Lưu kế hoạch tương lai hoặc Admin chốt ngoại lệ có lý do") }
+  return $null
+}
 function LiveRecv($o) { return Has $o["receipts"] { param($r) ($r -is [System.Collections.IDictionary]) -and -not $r["void"] } }
 # Sửa bản sắp lưu cho đúng quy tắc QLVH; trả về lỗi (đơn chưa duyệt mà có tiến độ sản xuất) + có sửa gì không
 function GuardPlan($cur, $final, $me) {
@@ -1412,10 +1443,18 @@ function GuardPlan($cur, $final, $me) {
     # V5.3 (14/11/2026): chốt KHÔNG tự giao người thực thi nữa — Đăng Nam bấm "Bàn giao" riêng (op ban-giao)
     if ($justClosed -and (Num $o["flow"]) -ne 3) { $o["flow"] = 3; $chg = $true }
     # CR03 (24/11/2026): vừa chốt → bắt buộc có xưởng (đơn thêu / phôi: loại hình theo danh mục); Cần đặt có phiên bản mới hơn bản lập kế hoạch → phải có xác nhận đã xem chênh lệch
-    if ($justClosed -and -not $o["cancelled"]) {
+    # vừa chốt trong lần lưu này (kể cả đơn mới tạo đã chốt): closedTs gần đây (≤ 1 ngày). Dữ liệu cũ / nhập lại không có closedTs mới → không áp
+    $cr3 = $o["closed"] -and -not $o["cancelled"] -and (-not $c -or -not $c["closed"]) -and $o["closedTs"] -and ([math]::Abs((NowMs) - (Num $o["closedTs"])) -lt 86400000)
+    if ($cr3 -and $me) {
       $lb = OrdLbl $o $x.m
       if ($x.gap) { if (@("theu", "phoi") -notcontains [string]$o["type"]) { $null = $err.Add("CR03: " + $lb + " chưa đúng loại hình thêu / phôi") } }
       elseif (@("hoa", "mien", "hoang", "hung") -notcontains [string]$o["xuong"]) { $null = $err.Add("CR03: " + $lb + " chưa chọn xưởng nên chưa chốt được") }
+      # CR03 FIX-01: gia công chốt thường → server kiểm NVL; chốt ngoại lệ (chỉ Admin, trường đã lọc ở trên) → bắt buộc lý do
+      if (-not $x.gap -and (@("hoa", "mien") -contains [string]$o["xuong"])) {
+        $ov = $o["chotOverride"]
+        if ($ov -is [System.Collections.IDictionary]) { if (-not ([string]$ov["reason"]).Trim()) { $null = $err.Add("CR03: " + $lb + " chốt ngoại lệ phải ghi lý do") } }
+        else { $ne = NvlChotErr $o $x.m $me $final; if ($ne) { $null = $err.Add($ne) } }
+      }
       $nv0 = $o["needV"]; $cv0 = CdCurN $x.m
       if ($null -ne $nv0 -and [string]$nv0 -ne "" -and $null -ne $cv0 -and [int](Num $nv0) -ne $cv0) {
         $ak = Dict $o["needAck"]
