@@ -6,6 +6,8 @@
   var SZ_LABEL = ["M","L","XL","2XL","3XL"];
   var COLOR_NAME = {TRG:"Trắng", XDE:"Xanh Đen", DEN:"Đen", GLA:"Xám Lam", DNI:"Denim", NAU:"Nâu", VOD:"Vỏ Đậu", DOD:"Đỏ Đô", CAC:"Cacao", REU:"Rêu", BEE:"Bee", XDM:"Xanh Đậm", XNH:"Xanh Nhạt", XDA:"Xám Đá"}; try { var _cn = window.Khung && Khung.colorNames ? Khung.colorNames() : {}; Object.keys(_cn).forEach(function(k){ if (!COLOR_NAME[k]) COLOR_NAME[k] = _cn[k]; }); } catch(e){}   // màu khai thêm ở Danh mục
   var XUONG = {hoa:{name:"Anh Hòa", type:"GC"}, mien:{name:"Anh Miên", type:"GC"}, hoang:{name:"Anh Hoàng", type:"FOB"}, hung:{name:"Anh Hùng", type:"FOB"}};
+  /* CR03 (24/11/2026): kế hoạch chưa chốt được phép chưa chọn xưởng (o.xuong trống) → mọi chỗ đọc XUONG[o.xuong] nhận "Chưa chọn xưởng", không lỗi. Không thêm tên xưởng */
+  if (typeof Proxy !== "undefined") XUONG = new Proxy(XUONG, {get:function(t, p){ return p in t ? t[p] : (p === "null" || p === "undefined" || p === "") ? {name:"Chưa chọn xưởng", type:""} : undefined; }});
   var GAPX = {theu:{name:"Thêu thành phẩm", type:"GAP"}, phoi:{name:"Phôi anh Hoàng", type:"GAP"}};
   var n = function(x){ return x || 0; };
   var fmt = function(x){ return (x || 0).toLocaleString("vi-VN"); };

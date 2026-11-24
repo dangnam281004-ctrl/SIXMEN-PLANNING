@@ -502,6 +502,12 @@ function CdColors($m) { $c = @($m["colors"] | Where-Object { $_ }); if ($c.Count
 function CdNSz($m) { $s = @($m["sizes"] | Where-Object { $_ }); if ($s.Count -ge 1 -and $s.Count -le 5) { return $s.Count }; return 5 }
 function CdFiles([string]$model) { $d = Join-Path $CdDir $model; if (-not (Test-Path $d)) { return ,@() }; return ,@(Get-ChildItem $d -Filter "V*.json" | Where-Object { $_.Name -match '^V(\d+)\.json$' } | Sort-Object { [int]($_.Name -replace '\D', '') }) }
 function CdRead($f) { return $JS.DeserializeObject([System.IO.File]::ReadAllText($f.FullName, $utf8).TrimStart([char]0xFEFF)) }
+# CR03: số phiên bản Cần đặt đang dùng của 1 mã (checkhero-v3.heroes[mã].cd.n); $null = mã chưa lưu phiên bản nào
+function CdCurN([string]$model) {
+  $f = Join-Path $DataDir "checkhero-v3.json"; if (-not (Test-Path $f)) { return $null }
+  $h = Dict (Dict (Dict (Val ([System.IO.File]::ReadAllText($f, $utf8))))["heroes"])[$model]; $cd = Dict $h["cd"]
+  if ($null -eq $cd["n"] -or [string]$cd["n"] -eq "") { return $null }; return [int](Num $cd["n"])
+}
 function CdHasNum($g) { foreach ($k in @((Dict $g).Keys)) { foreach ($v in @($g[$k])) { if ($null -ne $v -and [string]$v -ne "") { return $true } } }; return $false }
 function CdWrite([string]$model, [int]$n, $rec) {
   $d = Join-Path $CdDir $model; New-Item -ItemType Directory -Force $d | Out-Null
@@ -688,7 +694,7 @@ function NvlLine($me, $q) {
         $o = FindOrder $plan $model $oid
         if (-not $o) { $err += "Không tìm thấy kế hoạch $oid trên server"; continue }
         $cd = $(if ($o["khtl"] -and -not $o["closed"]) { [string]$o["khtl"]["code"] } else { [string]$o["code"] })
-        if ($o["cancelled"] -or $o["arrived"] -or (@("hoa", "mien") -notcontains [string]$o["xuong"])) { $err += "$cd không còn nhận phân bổ"; continue }
+        if ($o["cancelled"] -or $o["arrived"] -or ((@("hoa", "mien") -notcontains [string]$o["xuong"]) -and -not ([string]$o["kind"] -eq "gc" -and -not $o["xuong"] -and -not $o["closed"]))) { $err += "$cd không còn nhận phân bổ"; continue }   # CR03: KHTL gia công chưa chọn xưởng vẫn nhận phân bổ
         if (-not (Has $Ln["src"] { param($z) [string]$z["id"] -eq $oid })) { $err += "$cd chưa liên kết dòng đặt mua này"; continue }
         $mine = [double](Dict $byOrder[$oid])[$id] + [double](Dict $legacy[$oid])[$id]
         if ($null -ne $r["exp"] -and [math]::Abs((Num $r["exp"]) - $mine) -gt 1e-6) { $err += "$cd vừa đổi số giữ (đang là " + [math]::Round($mine, 2) + " cây). Tải lại số mới rồi thao tác lại."; continue }
@@ -1405,6 +1411,17 @@ function GuardPlan($cur, $final, $me) {
     $justClosed = $o["closed"] -and (($c -and -not $c["closed"]) -or (-not $c -and $null -eq $o["flow"]))
     # V5.3 (14/11/2026): chốt KHÔNG tự giao người thực thi nữa — Đăng Nam bấm "Bàn giao" riêng (op ban-giao)
     if ($justClosed -and (Num $o["flow"]) -ne 3) { $o["flow"] = 3; $chg = $true }
+    # CR03 (24/11/2026): vừa chốt → bắt buộc có xưởng (đơn thêu / phôi: loại hình theo danh mục); Cần đặt có phiên bản mới hơn bản lập kế hoạch → phải có xác nhận đã xem chênh lệch
+    if ($justClosed -and -not $o["cancelled"]) {
+      $lb = OrdLbl $o $x.m
+      if ($x.gap) { if (@("theu", "phoi") -notcontains [string]$o["type"]) { $null = $err.Add("CR03: " + $lb + " chưa đúng loại hình thêu / phôi") } }
+      elseif (@("hoa", "mien", "hoang", "hung") -notcontains [string]$o["xuong"]) { $null = $err.Add("CR03: " + $lb + " chưa chọn xưởng nên chưa chốt được") }
+      $nv0 = $o["needV"]; $cv0 = CdCurN $x.m
+      if ($null -ne $nv0 -and [string]$nv0 -ne "" -and $null -ne $cv0 -and [int](Num $nv0) -ne $cv0) {
+        $ak = Dict $o["needAck"]
+        if ($null -eq $ak["v"] -or [int](Num $ak["v"]) -ne $cv0) { $null = $err.Add("CR03: " + $lb + " lập theo Cần đặt V" + [int](Num $nv0) + ", bản đang dùng V" + $cv0 + ": chưa xác nhận đã xem chênh lệch") }
+      }
+    }
     if ($c -and (Num $c["flow"]) -eq 3 -and (Num $o["flow"]) -ne 3) { $o["flow"] = 3; $chg = $true }     # không hạ quy trình
     if ((Num $o["flow"]) -eq 3 -and $o["closed"] -and -not $o["qlvh"] -and -not $o["cancelled"]) {
       $b = @(); if ($o["sentAt"]) { $b += "gửi xưởng" }; if ($o["ackAt"]) { $b += "xưởng xác nhận" }; if ($o["startedAt"]) { $b += "xưởng bắt đầu" }; if ((LiveRecv $o) -or $o["arrived"]) { $b += "ghi nhận giao" }
@@ -1911,8 +1928,8 @@ while ($listener.IsListening) {
               $restore = ($me["role"] -eq "admin") -and ($reason -like "Khôi phục*")   # Admin khôi phục bản lưu cũ: lấy nguyên bản cũ (kể cả xác nhận QLVH đã ghi lúc đó)
               $gd = $(if ($key -eq "kehoach-sx-v3" -and $mine -is [System.Collections.IDictionary] -and -not $restore) { GuardPlan $curVal $mine $me } else { @{ err = @(); changed = $false } })
               if ($gd.err.Count -gt 0) {
-                LogEvent "tu-choi" $me ("QLVH: " + ($gd.err -join "; ")) @{ key2 = $key }
-                Send $res 422 ($JS.Serialize(@{ error = (($gd.err -join "; ") + ". Xác nhận QLVH đã duyệt ở Chi tiết đơn trước."); parts = $gd.err }))
+                LogEvent "tu-choi" $me ("Kế hoạch: " + ($gd.err -join "; ")) @{ key2 = $key }
+                Send $res 422 ($JS.Serialize(@{ error = (($gd.err -join "; ") + $(if (@($gd.err | Where-Object { $_ -notlike "CR03:*" }).Count) { ". Xác nhận QLVH đã duyệt ở Chi tiết đơn trước." } else { "." })); parts = $gd.err }))
               } else {
               if ($gd.changed) { $body = J $mine }
               $rev = $cur + 1
@@ -1926,8 +1943,8 @@ while ($listener.IsListening) {
               $gd = $(if ($key -eq "kehoach-sx-v3" -and $null -ne $merged) { GuardPlan $curVal $merged $me } else { @{ err = @(); changed = $false } })
               if ($null -eq $merged) { Send $res 409 $curText }   # cùng sửa 1 phần → trang báo xung đột, giữ bản nháp
               elseif ($gd.err.Count -gt 0) {
-                LogEvent "tu-choi" $me ("QLVH: " + ($gd.err -join "; ")) @{ key2 = $key }
-                Send $res 422 ($JS.Serialize(@{ error = (($gd.err -join "; ") + ". Xác nhận QLVH đã duyệt ở Chi tiết đơn trước."); parts = $gd.err }))
+                LogEvent "tu-choi" $me ("Kế hoạch: " + ($gd.err -join "; ")) @{ key2 = $key }
+                Send $res 422 ($JS.Serialize(@{ error = (($gd.err -join "; ") + $(if (@($gd.err | Where-Object { $_ -notlike "CR03:*" }).Count) { ". Xác nhận QLVH đã duyệt ở Chi tiết đơn trước." } else { "." })); parts = $gd.err }))
               }
               else {
                 $rev = $cur + 1; $mtext = J $merged

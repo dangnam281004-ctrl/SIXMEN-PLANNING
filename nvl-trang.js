@@ -22,7 +22,7 @@ const SIZES = ["M","L","XL","2X","3X"];
 const SZ_LABEL = ["M","L","XL","2XL","3XL"];
 const COLORS = ["TRG","XDE","DEN","GLA","DNI","NAU","VOD","DOD","CAC","REU","BEE"];
 const MODELS = Khung.models(true);   // danh mục mã (trang Danh mục mã & phân công)
-const XUONG = {hoa:"Anh Hòa", mien:"Anh Miên", hoang:"Anh Hoàng", hung:"Anh Hùng"};
+const XUONG = new Proxy({hoa:"Anh Hòa", mien:"Anh Miên", hoang:"Anh Hoàng", hung:"Anh Hùng"}, {get:(t,p)=>p in t?t[p]:(p==="null"||p==="undefined"||p==="")?"Chưa chọn xưởng":undefined});   // CR03: kế hoạch tương lai chưa chọn xưởng
 const GC = ["hoa","mien"];
 /* Kho chia 3 nhóm cho dễ nhìn; mỗi nhóm chỉ có cột cần thiết */
 const GROUPS = [

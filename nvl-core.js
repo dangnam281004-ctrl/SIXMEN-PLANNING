@@ -62,7 +62,8 @@
     });
     return {needs:needs, missing:missing, noRate:noRate};
   }
-  var isGC = function(o){ return GC.indexOf(o.xuong) >= 0; };
+  /* CR03: kế hoạch gia công chưa chọn xưởng (o.kind "gc", o.xuong trống) vẫn tính NVL theo định mức của mã */
+  var isGC = function(o){ return GC.indexOf(o.xuong) >= 0 || (!o.xuong && !o.type && o.kind === "gc"); };
   function allGC(S){ var L = []; Object.keys(S.models || {}).forEach(function(m){ ((S.models[m] || {}).orders || []).forEach(function(o){ if (isGC(o)) L.push({m:m, o:o}); }); }); return L; }
   /* Đơn còn giữ NVL được: gia công, chưa xuất NVL, chưa huỷ */
   var active = function(o){ return isGC(o) && !o.nvlOut && !o.cancelled; };
