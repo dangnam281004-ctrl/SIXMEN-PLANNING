@@ -218,6 +218,8 @@ body.gui-mode #kDash,body.gui-mode #bgAll,body.gui-mode #openAll,body.gui-mode #
 @media(max-width:640px){.kdash{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kd{display:grid;gap:2px;align-content:start;text-align:left;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff);padding:10px 12px;cursor:pointer;font:inherit;min-height:40px;color:var(--ink)}
 .kd .v{font-size:22px;font-weight:700;line-height:1.1;color:var(--muted)}.kd .l{font-size:12.5px;font-weight:600}.kd .d{font-size:11px;color:var(--muted)}
+.kd .v .u{font-size:12px;font-weight:500;color:var(--muted);margin-left:5px}.kd .s{font-size:11.5px;font-weight:600;color:var(--warn);line-height:1.35}
+.khead{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin:0 0 6px}.khead button.ux-b,.zl button.ux-b{cursor:pointer;font:inherit;font-size:11.5px}
 .kd:hover{border-color:var(--accent)}.kd.on.t-r .v{color:var(--crit)}.kd.on.t-o .v{color:var(--warn)}.kd.on.t-k .v{color:var(--ok)}.kd.on.t-b .v,.kd.on.t-g .v{color:var(--accent)}
 .cr3-new{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.cr3-new .st{font-size:12px;color:var(--muted);font-weight:600}
 .cr3-new select,.o-head select[data-ox]{min-height:40px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:var(--surface,#fff);color:var(--ink)}
@@ -226,6 +228,13 @@ body.gui-mode #kDash,body.gui-mode #bgAll,body.gui-mode #openAll,body.gui-mode #
 .seg button:last-child{border-right:0}.seg button.on{background:var(--accent);color:#fff;font-weight:600}
 .cr3-open{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
 .dims{display:flex;flex-wrap:wrap;gap:6px 16px;padding:6px 14px;align-items:center}.dims>span{display:inline-flex;gap:6px;align-items:center}.dims .l{color:var(--muted);font-size:11px;font-weight:600}
+/* CR03 Giai đoạn B (mockup): 4 ô Đang ở bước · Còn thiếu · Ai chịu trách nhiệm · Bước tiếp theo */
+.dims[data-stepline]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:8px 14px}
+.dims[data-stepline]>span{display:flex;flex-direction:column;align-items:flex-start;gap:3px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface,#fff);font-size:12.5px;line-height:1.4}
+.dims[data-stepline] .l{text-transform:uppercase;letter-spacing:.03em;font-size:10.5px}
+@media (max-width:760px){.dims[data-stepline]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ck-stale{display:inline-flex;gap:8px;align-items:center;margin-left:auto;color:var(--warn);font-weight:600;min-height:40px}.ck-stale input{width:18px;height:18px}
+.ck-stale+.btn{margin-left:8px!important}
 #bgAll{display:grid;gap:10px}
 .hd button:disabled,.ck-acts button:disabled{opacity:.45;cursor:not-allowed}
 body[data-step="kh"] #xac-nhan{min-height:calc(100vh - 140px)}   /* link #b3 / #b4 cuộn được tới đầu khu dù trang ngắn */
@@ -250,6 +259,22 @@ body[data-step="kh"] #xac-nhan{min-height:calc(100vh - 140px)}   /* link #b3 / #
 .zl .tg::before{content:"▸ ";color:var(--muted)} .zl .tg[aria-expanded="true"]::before{content:"▾ "}
 .zl .lk{cursor:pointer;background:none;border:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:2px;padding:0}
 .zl tr.pop td{background:var(--hover);padding:8px 14px 10px 28px}
+/* CR03 Giai đoạn B · bảng Nhu cầu 8 cột (mockup màn 1) */
+.zl.zl8{min-width:0} .zl8 td{vertical-align:top} .zl8 td.zv .ux-b{display:inline-block;margin-top:4px;white-space:normal}
+.zl8 td.zrel{white-space:normal;max-width:260px} .zl8 td.zrel .ux-b{display:inline-block;margin:0 4px 4px 0;white-space:normal;text-align:left}
+.zl8 td.znext{white-space:normal;max-width:240px;font-weight:500}
+/* CR03 Giai đoạn B · tab Bàn giao: 3 bảng nhóm, 5 cột (mockup màn 4) */
+.bgsec{padding:0;overflow:hidden;margin-bottom:12px}.bgh{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}.bgh h3{margin:0;font-size:15px}
+.bgt{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}.bgt th{font-size:11.5px;font-weight:600;color:var(--muted);background:var(--head);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.bgt td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}.bgt tr:last-child td{border-bottom:0}.bgt .pill{white-space:normal}
+.bgiss{color:var(--crit);margin-top:4px;line-height:1.4}.bga{display:flex;flex-direction:column;gap:6px;align-items:flex-start}.bga .bw{white-space:normal;height:auto;min-height:36px;text-align:center}.lkx{font-size:12.5px;font-weight:600}
+/* CR03 Giai đoạn B · tab Kế hoạch tương lai: bảng 6 cột (mockup màn 3) */
+.kh-sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 10px}.kh-sum .panel{padding:10px 14px;margin:0;line-height:1.5}
+.kht tr.kr td{background:#f4fbf9}.kht tr.kdet td{background:var(--hover);padding:8px 10px}.kht tr.kdet .ck-card{margin:0}
+.khb+.khb{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}.khb .ux-b{white-space:normal;margin-top:3px}
+.khp{display:inline-block;width:calc(100% - 44px);height:6px;border-radius:3px;background:var(--line);overflow:hidden;vertical-align:middle;margin-right:6px}.khp span{display:block;height:6px}
+@media (max-width:760px){.kh-sum{grid-template-columns:1fr}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .unc{display:inline-block;border-radius:999px;padding:0 8px;font-size:11px;font-weight:600;background:var(--warn-bg);color:var(--warn);white-space:nowrap}
 .z4tabs{display:flex;gap:4px;flex-wrap:wrap}
 .z4tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 14px;font:inherit;font-weight:600;font-size:12.5px;cursor:pointer;color:var(--ink2)}
@@ -891,7 +916,11 @@ async function chotOrder(o){
   /* CR03: Cần đặt có phiên bản mới so với lúc lập → bắt buộc xem bảng so sánh, xác nhận (không tự sửa số, không chặn chốt). Server kiểm lại */
   if(!vAcked(o,S.active)){ if(!await needCmp(o,true)) return; o=orderById(id)||o; o.needAck={v:curV(S.active), from:+o.needV, at:Date.now(), by:ME_ID()}; if(o.khtl) (o.khtl.log=o.khtl.log||[]).push({at:Date.now(), by:ME_ID(), act:"xac-nhan-v", note:`${vTxt(o.needV)} → ${vTxt(curV(S.active))}: giữ / đã điều chỉnh phương án`}); saveNow(); }
   /* CR03 FIX-05: dữ liệu nhu cầu cũ → quản lý xác nhận dùng số hiện có (lưu người / giờ / tình trạng dữ liệu) */
-  { const st0=chotChecks(o).list.stale; if(st0){ if(!confirm(`Dữ liệu nhu cầu ${model().name}: ${st0}.\n\nXác nhận vẫn chốt theo số Cần đặt hiện có? (lưu người, giờ xác nhận)`)) return; o=orderById(id)||o; o.dataAck={at:Date.now(), by:ME_ID(), state:st0}; } }
+  /* Giai đoạn B (mockup màn 2): xác nhận bằng ô tick ngay cạnh nút Chốt; mở chốt từ nơi khác (Kiểm tra lại KHTL) vẫn hỏi xác nhận */
+  { const st0=chotChecks(o).list.stale; if(st0){ const cb=document.querySelector(`[data-staleok="${CSS.escape(id)}"]`);
+      if(cb){ if(!cb.checked){ alert(`Dữ liệu nhu cầu ${model().name} đã cũ (${st0}).\n\nTick "Xác nhận chốt theo dữ liệu nhu cầu cũ" cạnh nút Chốt rồi bấm lại.`); cb.focus(); return; } }
+      else if(!confirm(`Dữ liệu nhu cầu ${model().name}: ${st0}.\n\nXác nhận vẫn chốt theo số Cần đặt hiện có? (lưu người, giờ xác nhận)`)) return;
+      o=orderById(id)||o; o.dataAck={at:Date.now(), by:ME_ID(), state:st0, via:cb?"tick":"hoi"}; } }
   if(chotOv){ const C=nvlCheck(o); chotOv.short=C.rows.filter(r=>r.status==="thieu"||r.status==="dang-ve").map(r=>({item:r.it.id, name:r.it.name, unit:r.unit, short:Math.round(n(r.status==="thieu"?r.short:r.gap)*100)/100, st:r.status})); }   // CR03: lưu bảng NVL còn thiếu lúc chốt ngoại lệ
   if(IS_GC(o)){ if(!await holdDialog(o,"chot")) return; }
   else if(!confirm(`Chốt kế hoạch ${OL(o)}?\n\nKhoá số lượng, tính vào Đã đặt. Chốt KHÔNG tự bàn giao, KHÔNG gửi xưởng.\nBước tiếp: bấm Bàn giao cho ${execName()} → ${execName()} tiếp nhận → tạo 2 PO ERP → QLVH duyệt → gửi xưởng.`)) return;
@@ -1139,7 +1168,7 @@ function khtlSaveBar(o,C){
   if(C.state==="du") return "";
   const short=C.rows.some(r=>r.status==="thieu")||khtlShort(o).length>0;
   return `<div class="ck-warn"><div class="info">Chưa đủ NVL để chốt và gửi xưởng${C.state==="chua-giu"?" (tồn đủ nhưng chưa giữ)":""}. Có thể lưu thành <b>kế hoạch tương lai</b>: giữ nguyên số đã lập, có mã KHTL, quay lại chốt khi đủ NVL. Lưu <b>không</b> tự giữ NVL, <b>không</b> tính vào Đã đặt, <b>không</b> gửi xưởng.</div></div>
-    <div class="ck-acts">${short?`<button class="btn primary" data-kact="savebuy">Lưu kế hoạch &amp; Đặt mua NVL →</button>`:""}<button class="btn${short?"":" primary"}" data-kact="save">Chỉ lưu kế hoạch tương lai</button></div>`;
+    <div class="ck-acts">${short?`<button class="btn primary" data-kact="savebuy">Lưu KHTL &amp; lập đơn mua NVL thiếu →</button>`:""}<button class="btn${short?"":" primary"}" data-kact="save">Lưu kế hoạch tương lai</button></div>`;
 }
 /* Tồn đang bị nhiều nguồn cùng cần mà chưa ai giữ (chỉ cảnh báo + gợi ý thứ tự, không giữ hộ) */
 function khtlContest(o,C){
@@ -1299,19 +1328,78 @@ function releaseDialog(o){
     });
   });
 }
+/* ===== CR03 Giai đoạn B · bảng Kế hoạch tương lai (mockup màn 3). Chỉ hiển thị: trạng thái lấy từ NV.planState / khtlRd / Don.buyBg sẵn có ===== */
+const khtlRowOpen=new Set();
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-kexp]"); if(!b) return; const id=b.dataset.kexp; khtlRowOpen.has(id)?khtlRowOpen.delete(id):khtlRowOpen.add(id); renderKhtl(); });
+/* Ai đang giữ việc của KHTL: quản lý kế hoạch (chờ tôi) hay nhân viên đặt NVL (đã giao) — kèm lý do ngắn để gom ở 2 thẻ tóm tắt */
+function khtlWho(x){ const o=x.o, Ls=IS_GC(o)?khtlBuy(o):[], bb=L=>Don.buyBg?Don.buyBg(L):"", nvl=x.miss.some(z=>/^NVL/.test(z)), mine=Khung.canEdit(x.m);
+  const mg=why=>({toi:mine, giao:false, why, who:Khung.userName(x.md.owner)+" (quản lý)"});
+  if(x.ready) return mg("kế hoạch đủ điều kiện cần kiểm tra & chốt");
+  if(Ls.some(L=>bb(L)==="tra-lai")) return mg("đơn mua bị nhân viên trả lại");
+  if(Ls.some(L=>bb(L)==="nhap"||bb(L)==="chua-bg")) return mg("đơn mua NVL chưa bàn giao");
+  if(nvl&&!Ls.length) return mg("cần lập đơn mua NVL");
+  if(x.miss.some(z=>!/^NVL/.test(z))) return mg(x.miss.filter(z=>!/^NVL/.test(z)).join(", ").toLowerCase());
+  const g=Ls.find(L=>L.giao&&L.giao.user&&!L.giao.traAt);
+  if(g) return {toi:false, giao:true, why:bb(g)==="cho-nhan"?`chờ tiếp nhận (${Khung.userName(g.giao.user)})`:`đang đặt / theo dõi NVL (${Khung.userName(g.giao.user)})`, who:Khung.userName(g.giao.user)+" (đặt NVL)"};
+  return mg("theo dõi"); }
+const BUY_PILL={nhap:"g","chua-bg":"o","cho-nhan":"g","tra-lai":"r"};
+function khtlBuyCell(x){ const o=x.o;
+  if(!IS_GC(o)) return `<span class="muted">Không áp dụng</span>`;
+  const Ls=khtlBuy(o); if(!Ls.length) return `<span class="muted">Chưa có đơn mua</span>`;
+  return Ls.map(L=>{ const bb=Don.buyBg?Don.buyBg(L):"", g=L.giao||{}, done=bb==="nhan", tl=(L.lines||[]).filter(l=>(l.src||[]).some(s=>s.id===o.id)), q=tl.reduce((a,l)=>a+n(l.qty),0), got=tl.reduce((a,l)=>a+NV.lineGot(l),0);
+    const st=done?(q>0&&got+1e-9>=q?["k","Đã về đủ"]:got>1e-9?["o",`Về một phần · còn ${fmt1(q-got)} ${esc((tl[0]||{}).unit||"")}`]:["b",LIST_ST[L.status]||"Đang đặt"]):[BUY_PILL[bb]||"g",BUYBG[bb]||LIST_ST[L.status]||L.status];
+    return `<div class="khb" data-kbuy="${L.id}" data-kbuybg="${bb}"><a href="dat-mua.html#ds-${L.id}"><b>${esc(L.no||"DS")}</b></a> · ${esc(L.title||"")}<div><span class="ux-b ${st[0]}">${st[1]}</span></div>
+      <div class="small muted">NV đặt: ${g.user?esc(Khung.userName(g.user)):"chưa chọn"}</div>${bb==="tra-lai"?`<div class="small bgiss">${esc(Khung.userName(g.traBy))} trả ${Don.hm(g.traAt)}: ${esc(g.traReason||"")}</div>`:""}</div>`; }).join(""); }
+function khtlEtaCell(x){ const o=x.o; if(!IS_GC(o)) return `<span class="muted">—</span>`;
+  const tl=khtlBuy(o).flatMap(L=>(L.lines||[]).filter(l=>(l.src||[]).some(s=>s.id===o.id)).map(l=>({l,L}))); if(!tl.length) return `<span class="muted">—</span>`;
+  const q=tl.reduce((a,z)=>a+n(z.l.qty),0), got=tl.reduce((a,z)=>a+NV.lineGot(z.l),0), pct=q>0?Math.min(100,Math.round(got/q*100)):0;
+  const eta=tl.filter(z=>NV.lineGot(z.l)+1e-9<n(z.l.qty)).map(z=>z.l.eta||z.L.eta).filter(Boolean).sort();
+  return `<div class="small">${pct>=100?"Đã về đủ":eta.length?(got>1e-9?"Phần còn lại ":"")+dmy(eta[0]):"Chưa có ngày về"}</div><div class="khp"><span style="width:${pct}%;background:${pct>=100?"var(--ok)":"var(--warn)"}"></span></div><span class="small"><b>${pct}%</b></span>`; }
+function khtlRow(x){ const {o,m,md}=x, X=XOF(o), k=o.khtl, ed=Khung.canEdit(m), kd=kindOf(o), q=qtyIn(m,o), gc=IS_GC(o), Ls=gc?khtlBuy(o):[], bb=L=>Don.buyBg?Don.buyBg(L):"", ws=x.ws||khtlWho(x), open=khtlRowOpen.has(o.id);
+  const C=gc?NV.check(N,S,m,o):null, sh=C?C.rows.filter(r=>r.status==="thieu").map(r=>`Thiếu ${r.it.name} ${fmt1(r.short)} ${r.unit}`):[];
+  const miss=[...x.miss.filter(z=>!/^NVL/.test(z)), ...(sh.length?sh:x.miss.filter(z=>/^NVL/.test(z)))];
+  const plan=`dat-mua.html?m=${encodeURIComponent(m)}&plan=${encodeURIComponent(o.id)}`, A=[];
+  if(x.ready&&ed) A.push(`<button class="btn ok bw" data-kact="recheck">Kiểm tra &amp; chốt →</button><div class="small muted">Mở đúng hồ sơ ${esc(k.code)}</div>`);
+  else if(ed&&Ls.some(L=>bb(L)==="tra-lai")) A.push(`<a class="btn primary bw" href="${plan}">Sửa đơn mua &amp; bàn giao lại</a>`);
+  else if(ed&&Ls.some(L=>bb(L)==="nhap"||bb(L)==="chua-bg")) A.push(`<a class="btn primary bw" href="${plan}">Chốt &amp; bàn giao đặt NVL</a>`);
+  else if(ed&&gc&&x.miss.some(z=>/^NVL/.test(z))&&!Ls.length) A.push(`<a class="btn primary bw" href="dat-mua.html?m=${encodeURIComponent(m)}&khtl=${encodeURIComponent(o.id)}">Lập đơn mua NVL thiếu</a><a class="lkx" href="dat-mua.html?m=${encodeURIComponent(m)}&gan=${encodeURIComponent(o.id)}" data-kgan>Gắn đơn mua NVL đã có →</a>`);
+  else if(ed&&x.miss.some(z=>!/^NVL/.test(z))) A.push(`<button class="btn bw" data-kact="edit">Mở ${esc(k.code)}, ${esc(x.miss.filter(z=>!/^NVL/.test(z)).join(", ").toLowerCase().replace(/^chưa có /,"nhập ").replace(/^chưa chọn /,"chọn "))}</button>`);
+  else if(Ls.length) A.push(`<a class="btn bw" href="${plan}">${Ls.some(L=>bb(L)==="cho-nhan")?"Xem tình trạng tiếp nhận":"Xem tiến độ NVL"}</a>`);
+  A.push(`<button type="button" class="lkx" data-kexp="${o.id}" aria-expanded="${open}" style="background:none;border:0;padding:0;cursor:pointer">${open?"Ẩn chi tiết ▴":"Chi tiết ▾"}</button>`);
+  return `<tr data-kid="${o.id}" data-km="${m}"${x.ready?' class="kr"':""}>
+    <td><b>${esc(k.code)}</b> · ${esc(md.name)}<div class="small">${esc((KINDS[kd]||{t:""}).t)} · ${esc(X.name||"chưa chọn xưởng")}</div><div class="small muted">SL dự kiến: ${q?fmt(q)+" "+Khung.unitOf(m):"chưa xác định"} · PT: ${esc(Khung.userName(md.owner))}</div>${vChanged(o,m)?`<span class="ux-b o">Cần đặt có bản mới ${vTxt(curV(m))}</span>`:""}</td>
+    <td class="small" style="color:${miss.length?"var(--warn)":"var(--ok)"}">${miss.length?miss.map(esc).join("<br>"):"Không còn thiếu"}${x.ready&&vChanged(o,m)?"<br>có nhu cầu "+vTxt(curV(m))+" mới":""}</td>
+    <td class="small">${khtlBuyCell(x)}</td>
+    <td>${khtlEtaCell(x)}</td>
+    <td><span class="pill ${x.ready?"p-ok":"p-warn"}" data-kready="${x.ready?1:0}">${x.ready?"Đủ ĐK chờ chốt":"Chưa đủ ĐK"}</span></td>
+    <td><div class="small" style="font-weight:600;color:${ws.toi||(!ws.giao&&ed)?"var(--crit)":"var(--muted)"};margin-bottom:4px">${ws.giao?"Đã giao "+esc(ws.who.replace(/ \(.*$/,"")):ed?"Chờ tôi":"Chờ "+esc(ws.who)}</div><div class="bga">${A.join("")}</div></td></tr>
+    ${open?`<tr class="kdet"><td colspan="6">${khtlCard(x)}</td></tr>`:""}`; }
+/* Đơn mua NVL dùng chung nhiều KHTL (phân bổ ở Quản lý NVL, không tính trùng) + ghi chú Bản nháp đợt sau đã gộp */
+function khtlShared(live){ const by={}; live.forEach(x=>khtlBuy(x.o).forEach(L=>{ (by[L.id]=by[L.id]||{L,K:[]}).K.push(x.o.khtl.code); }));
+  const sh=Object.values(by).filter(z=>z.K.length>1), nx=live.some(x=>x.o.khtl.from==="next");
+  if(!sh.length&&!nx) return "";
+  return `<div class="kh-sum">${sh.map(z=>`<div class="panel small" data-kshared="${z.L.id}"><b>${esc(z.L.no)} dùng chung ${z.K.length} kế hoạch</b><div>${esc(z.L.title||"")} · ${esc(z.K.join(", "))}. Mỗi phần chỉ phân bổ hoặc giữ cho một kế hoạch, không tính trùng. Sửa phân bổ ở <a href="dat-mua.html#ds-${z.L.id}">Đặt mua NVL</a>.</div></div>`).join("")}
+    ${nx?`<div class="panel small"><b>Bản nháp đợt sau đã gộp vào đây</b><div>Giữ nguyên số liệu và lịch sử. Kế hoạch đủ điều kiện được chốt tiếp trên chính hồ sơ, không nhập lại. Hệ thống không tự chốt.</div></div>`:""}</div>`; }
 function renderKhtl(){
   const box=$("#khtlList"); if(!box) return;
   const A=khtlAll(), live=A.filter(x=>!x.o.closed&&!x.o.cancelled), done=A.filter(x=>x.o.closed), gone=A.filter(x=>x.o.cancelled&&!x.o.closed);
   const RANK={"du-chua-giu":0,"da-giu":0,"thieu-chua-mua":1,"chua-du-lieu":1,"ve-mot-phan":2,"dang-mua":3};
   live.sort((a,b)=>(b.ready-a.ready)||(RANK[a.st]??9)-(RANK[b.st]??9)||n(a.o.khtl.at)-n(b.o.khtl.at));
   const open=o=>khtlLists(o.id).filter(L=>L.status==="nhap"||NV.LIST_OPEN.includes(L.status));
-  /* CR03: lọc Đủ điều kiện chờ chốt / Chưa đủ điều kiện (bảng chỉ số đầu trang bấm vào đây) */
-  const nR=live.filter(x=>x.ready).length, F=[["all","Tất cả",live.length],["ready","Đủ điều kiện · chờ chốt",nR],["not","Chưa đủ điều kiện",live.length-nR]];
+  /* CR03 Giai đoạn B (mockup màn 3): bảng 6 cột vừa 1440px · lọc Đang chờ tôi / Đã giao nhân viên / Chưa đủ / Đủ · chi tiết (thẻ cũ) mở dưới dòng */
+  live.forEach(x=>{ x.ws=khtlWho(x); });
+  const nR=live.filter(x=>x.ready).length, F=[["all","Tất cả",live.length],["toi","Đang chờ tôi",live.filter(x=>x.ws.toi).length],["giao","Đã giao nhân viên",live.filter(x=>x.ws.giao).length],["not","Chưa đủ ĐK",live.length-nR],["ready","Đủ ĐK chờ chốt",nR]];
   if(KF!=="all"&&!F.find(f=>f[0]===KF)) KF="all";
-  const shown=live.filter(x=>KF==="all"||(KF==="ready")===x.ready);
+  const shown=live.filter(x=>KF==="all"||(KF==="toi"?x.ws.toi:KF==="giao"?x.ws.giao:(KF==="ready")===x.ready));
   { let fb=$("#khtlFilter"); if(!fb){ fb=document.createElement("div"); fb.id="khtlFilter"; box.before(fb); }
-    fb.innerHTML=`<div class="ux-bar" style="margin-bottom:8px"><div class="ux-chips">${F.map(([k,t,c])=>`<button type="button" class="ux-chip${k==="ready"?" t-o":""}${KF===k?" on":""}" data-kf="${k}">${t} <span class="n">${c}</span></button>`).join("")}</div><span class="ux-hint">Không tự chốt: đủ điều kiện thì kiểm tra lại rồi chốt trên chính hồ sơ.</span></div>`; }
-  box.innerHTML=(shown.length?shown.map(khtlCard).join(""):`<div class="panel empty" style="padding:20px;text-align:center;color:var(--muted)">${live.length?"Không có kế hoạch nào theo bộ lọc này.":`Chưa có kế hoạch tương lai nào${Khung.filter&&Khung.filter().mode==="mine"?" của mã anh phụ trách":""}. Ở <b>Lập kế hoạch</b>, bấm <b>+ Kế hoạch tương lai</b> hoặc <b>Lưu kế hoạch tương lai</b> trên kế hoạch đang lập.`}</div>`)
+    const toi=live.filter(x=>x.ws.toi), gv=live.filter(x=>x.ws.giao), grp=(L,k)=>{ const c={}; L.forEach(x=>{ c[x.ws[k]]=(c[x.ws[k]]||0)+1; }); return Object.entries(c).map(([t,v])=>`${v} ${esc(t)}`).join(" · ")||"không có"; };
+    fb.innerHTML=`<div class="ux-bar" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><div class="ux-chips">${F.map(([k,t,c])=>`<button type="button" class="ux-chip${k==="ready"||k==="toi"?" t-o":""}${KF===k?" on":""}" data-kf="${k}">${t} <span class="n">${c}</span></button>`).join("")}</div>
+      ${Khung.canEdit(S.active)?`<button type="button" class="btn primary" data-gostep="2" style="margin-left:auto">+ Tạo kế hoạch tương lai</button>`:""}</div>
+      <div class="kh-sum"><div class="panel" data-ksum="toi"><b>Đang chờ tôi · ${toi.length}</b><div class="small">${grp(toi,"why")}</div></div><div class="panel" data-ksum="giao"><b>Đã giao nhân viên · ${gv.length}</b><div class="small">${grp(gv,"why")}</div></div></div>`; }
+  const col=`<colgroup><col style="width:20%"><col style="width:15%"><col style="width:22%"><col style="width:12%"><col style="width:13%"><col style="width:18%"></colgroup>`;
+  box.innerHTML=(shown.length?`<section class="panel bgsec"><table class="bgt kht">${col}<thead><tr><th>Kế hoạch · Mã</th><th>Điều kiện còn thiếu</th><th>Đơn mua NVL · bàn giao</th><th>NVL dự kiến về</th><th>Sẵn sàng</th><th>Hành động tiếp theo</th></tr></thead><tbody>${shown.map(khtlRow).join("")}</tbody></table></section>`
+      :`<div class="panel empty" style="padding:20px;text-align:center;color:var(--muted)" data-kempty>${live.length?`Không có kế hoạch tương lai ở bộ lọc "${esc((F.find(f=>f[0]===KF)||F[0])[1])}". <button type="button" class="ux-clear" data-kf="all">Xem tất cả kế hoạch tương lai</button>`:`Chưa có kế hoạch tương lai nào${Khung.filter&&Khung.filter().mode==="mine"?" của mã anh phụ trách":""}. Ở <b>Lập kế hoạch</b>, bấm <b>+ Kế hoạch tương lai</b> hoặc <b>Lưu kế hoạch tương lai</b> trên kế hoạch đang lập.`}</div>`)
+    +khtlShared(live)
     +(done.length?`<details class="panel kh-done" style="padding:6px 14px"><summary>Đã chuyển thành đơn sản xuất (${done.length})</summary><div class="scroll"><table class="t2" style="width:100%"><thead><tr><th>Kế hoạch</th><th>Mẫu · xưởng</th><th>Lập</th><th>Chốt</th><th>Đơn sản xuất</th><th class="r">Số áo</th></tr></thead><tbody>
       ${done.map(({o,md})=>`<tr><td><b>${esc(o.khtl.code)}</b></td><td style="text-align:left">${esc(md.name)} · ${XOF(o).name}</td><td>${dmy(o.khtl.planDate)}</td><td>${PT.hmd(o.khtl.closedAt)} · ${esc(Khung.userName(o.khtl.closedBy))}</td><td style="text-align:left"><a href="don-hang.html?id=${encodeURIComponent(o.id)}">${esc(OL(o,md))}</a></td><td class="num">${fmt(o.type?Object.values(o.sizes||{}).reduce((a,r)=>a+r.reduce((x,v)=>x+n(v),0),0):qtyIn(md.key,o))}</td></tr>`).join("")}</tbody></table></div></details>`:"")
     +(gone.length?`<details class="panel kh-done" style="padding:6px 14px"${gone.some(x=>open(x.o).length)?" open":""}><summary>Đã hủy (${gone.length})</summary>${gone.map(({o,md})=>{ const L=open(o);
@@ -1713,8 +1801,12 @@ const zOpen={m:new Set(), c:new Set(), pop:null};
 /* UX V5 (anh duyệt 13/11/2026): mỗi mã có nhãn DỮ LIỆU (kỳ T2–T4–T6) + NGHIỆP VỤ giống Phân tích nhu cầu; lọc nhanh; bấm nhãn mở đúng bước. Chỉ đọc */
 const ZFK="_ux_zf_"+((Khung.me&&Khung.me.id)||"x");
 let ZF=(()=>{ try{ return localStorage.getItem(ZFK)||"all"; }catch(e){ return "all"; } })();
-const ZF_L=[["lap","Cần lập kế hoạch"],["need","Cần xử lý"],["can-dat","Cần đặt"],["data","Chưa cập nhật kỳ này"],["dang-don","Đang có đơn"],["all","Tất cả"]];
-const zIn=(st,k)=>k==="all"||(k==="lap"&&st.lap)||(k==="need"&&st.need)||(k==="data"&&st.data!=="ok")||st.biz===k;
+/* CR03 Giai đoạn B · D-3: tách rõ Chưa lập kế hoạch · Đã lập nhưng có phiên bản mới · Đang lập cần xác nhận chênh lệch; thêm Dữ liệu cũ (quá kỳ, chưa có bản mới) */
+const ZF_L=[["lap","Cần lập kế hoạch"],["chua-lap","Chưa lập kế hoạch"],["ver-cu","Đã lập · có phiên bản mới"],["ver-dang","Đang lập · cần xác nhận chênh lệch"],["cu","Dữ liệu cũ"],["need","Cần xử lý"],["can-dat","Cần đặt"],["data","Chưa cập nhật kỳ này"],["dang-don","Đang có đơn"],["all","Tất cả"]];
+const zIn=(st,k)=>k==="all"||(k==="lap"&&st.lap)||(k==="chua-lap"&&st.chuaLap)||(k==="ver-cu"&&st.verCu)||(k==="ver-dang"&&st.verDang)||(k==="ver"&&(st.verCu||st.verDang))||(k==="cu"&&!!st.stale)||(k==="need"&&st.need)||(k==="data"&&st.data!=="ok")||st.biz===k;
+/* Cờ D-3 của 1 mã (dùng chung cho bảng Nhu cầu và dải đầu trang) */
+function verFlags(key){ const V=verChg(key), any=hasAnyPlan(key), nd=NEEDSET.has(key);
+  return {chuaLap:nd&&!any, verDang:V.some(o=>!o.khtl), verCu:V.some(o=>o.khtl)||(nd&&any&&!V.length), V, stale:dataStale(key)}; }
 /* CR03: ưu tiên của mã = nhóm cao nhất trong các SKU (Nguy hiểm → Bán chạy → Bán bình thường; đúng thứ tự Don.skuList) */
 let PF="all"; const PF_L=[["all","Mọi ưu tiên"],["nguy","Nguy hiểm"],["chay","Bán chạy"],["thuong","Bán bình thường"]];
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-pf]"); if(!b) return; PF=b.dataset.pf; renderOverview(); });
@@ -1761,13 +1853,20 @@ document.addEventListener("click",e=>{ const t=e.target.closest("[data-skut]"); 
 function renderOverview(){
   try { renderSku(); } catch(e){ console.error(e); }
   const box=$("#zList"); if(!box) return;
-  const ST0=zStates(shownModels()); shownModels().forEach(m=>{ if(ST0[m.key]) ST0[m.key].lap=NEEDSET.has(m.key); });
+  const ST0=zStates(shownModels()); shownModels().forEach(m=>{ if(ST0[m.key]) Object.assign(ST0[m.key], {lap:NEEDSET.has(m.key)}, verFlags(m.key)); });
+  const BGI=bgItems();
   const PR0=prioOf(shownModels()), pIn=m=>PF==="all"||PR0[m.key]===PF;
   const cntZ=k=>shownModels().filter(m=>zIn(ST0[m.key],k)&&pIn(m)).length;
   if(ZF!=="all"&&!cntZ(ZF)) ZF="all";
   { let zb=$("#zFilter"); if(!zb){ zb=document.createElement("div"); zb.id="zFilter"; box.before(zb); }
     zb.innerHTML=`<div class="ux-bar" style="margin-bottom:8px"><div class="ux-chips">${ZF_L.map(([k,t])=>`<button type="button" class="ux-chip${k==="need"||k==="can-dat"||k==="lap"?" t-o":""}${ZF===k?" on":""}" data-zf="${k}"${k!=="all"&&!cntZ(k)?" disabled":""}>${t} <span class="n">${cntZ(k)}</span></button>`).join("")}</div><span class="ux-sep"></span>
-      <div class="ux-chips">${PF_L.map(([k,t])=>`<button type="button" class="ux-chip${PF===k?" on":""}" data-pf="${k}">${t}${k==="all"?"":` <span class="n">${shownModels().filter(m=>PR0[m.key]===k).length}</span>`}</button>`).join("")}</div><span class="ux-hint">Lịch cập nhật bắt buộc <b>${Don.schedText()}</b></span></div>`; }
+      <div class="ux-chips">${PF_L.map(([k,t])=>`<button type="button" class="ux-chip${PF===k?" on":""}" data-pf="${k}">${t}${k==="all"?"":` <span class="n">${shownModels().filter(m=>PR0[m.key]===k).length}</span>`}</button>`).join("")}</div><span class="ux-hint">Lịch cập nhật bắt buộc <b>${Don.schedText()}</b></span></div>`;
+    /* D-3 + dữ liệu cũ: cảnh báo gộp (không chặn, không đổi số) */
+    let zv=$("#zVer"); if(!zv){ zv=document.createElement("div"); zv.id="zVer"; box.before(zv); }
+    const all=shownModels(), VL=all.filter(m=>ST0[m.key]&&(ST0[m.key].verCu||ST0[m.key].verDang)), SL=all.filter(m=>ST0[m.key]&&ST0[m.key].stale);
+    const pcode=o=>o.khtl?o.khtl.code:(o.code||"đang lập"), nm=(L,f)=>esc(L.slice(0,5).map(f).join(", ")+(L.length>5?`… (+${L.length-5})`:""));
+    zv.innerHTML=(VL.length?`<div class="note" style="--nc:var(--warn)" data-zver><b>${VL.length} mã có phiên bản nhu cầu mới hơn phiên bản dùng để lập kế hoạch:</b> ${nm(VL,m=>{ const V=ST0[m.key].V; return m.name+(V.length?` (${V.map(pcode).join(", ")})`:""); })}. Kế hoạch không tự đổi số, <b>không bắt buộc tạo thêm đơn</b>, không đối trừ số đã lập / đã chốt khỏi Cần đặt. Các mã này vẫn tính vào thẻ "Mã cần lập kế hoạch" để rà soát.</div>`:"")
+      +(SL.length?`<div class="note" style="--nc:var(--warn)" data-zold><b>${SL.length} mã có dữ liệu nhu cầu đã cũ</b> (quá kỳ, chưa có phiên bản mới): ${nm(SL,m=>m.name)}. Không chặn lập kế hoạch; khi chốt phải xác nhận dùng số Cần đặt hiện có (lưu người, giờ). <a href="check-hero.html">Cập nhật ở Phân tích nhu cầu →</a></div>`:""); }
   const SEC=Khung.sections(shownModels().filter(m=>(zIn(ST0[m.key],ZF)&&pIn(m))||(m.key===S.active&&ZF==="all"&&PF==="all"))), ms=SEC.flatMap(s=>s.list), R={}; ms.forEach(m=>R[m.key]=ptOf(m.key));   // 09/11/2026: theo Ngành · Bán chạy / Bán bình thường, giữ thứ tự danh mục
   const secOf=m=>SEC.find(s=>s.list.includes(m));
   const all=ms.flatMap(m=>R[m.key].rows), T=agg(all), nOrd=new Set(ms.flatMap(m=>ordersIn(R[m.key].rows).map(e=>e.o))).size;
@@ -1786,34 +1885,58 @@ function renderOverview(){
   if(!ms.length){ box.innerHTML=`<div style="padding:20px;text-align:center;color:var(--muted)">${Khung.emptyText()}</div>`; return; }
   const order=c=>Khung.COLORS_ALL.indexOf(c);
   const rowsHtml=ms.map(m=>{
-    const r=R[m.key], a=agg(r.rows), open=zOpen.m.has(m.key), sel=m.key===S.active, ed=Khung.canEdit(m.key), sc=secOf(m), gh=sc.list[0]===m?`<tr class="zg"><td colspan="12">${esc(sc.label)} <span class="muted">${sc.list.length}</span></td></tr>`:"", om=Khung.orderMode(m);
-    const iss=r.issues.filter(x=>x.k!=="owner"&&x.k!=="days"), G=Don.SKU_GRP||{}, pg=PR0[m.key], lp=lapOf(m.key), cv=curV(m.key), cd=(H.heroes[m.key]||{}).cd;
-    const head=gh+`<tr class="m${sel?" sel":""}" data-zrow="${m.key}"><td><button class="tg" data-zm="${m.key}" aria-expanded="${open}">${esc(m.name)}</button>${m.theu?`<span class="mtag">Thêu TP</span>`:""}${m.phoi?`<span class="mtag">Áo phôi</span>`:""}${zBadges(m,ST0[m.key])}</td><td>${esc(Khung.userName(m.owner))}</td>
-      <td>${G[pg]?`<span class="ux-b ${G[pg][1]}">${G[pg][0]}</span>`:""}</td>
-      <td>${r.hasData?pillOf(a.grp):`<span class="pill p-mute">Chưa có dữ liệu</span>`}</td><td class="r">${a.hasA?fmt(a.A):"—"}</td><td class="r">${a.hasB?fmt(a.B):"—"}</td>
+    const r=R[m.key], a=agg(r.rows), open=zOpen.m.has(m.key), sel=m.key===S.active, ed=Khung.canEdit(m.key), sc=secOf(m), gh=sc.list[0]===m?`<tr class="zg"><td colspan="8">${esc(sc.label)} <span class="muted">${sc.list.length}</span></td></tr>`:"", om=Khung.orderMode(m);
+    const iss=r.issues.filter(x=>x.k!=="owner"&&x.k!=="days"), G=Don.SKU_GRP||{}, pg=PR0[m.key], lp=lapOf(m.key), cv=curV(m.key), cd=(H.heroes[m.key]||{}).cd, st=ST0[m.key]||{};
+    /* CR03 Giai đoạn B (mockup màn 1): cột Phiên bản nhu cầu kèm nhãn D-3 / dữ liệu cũ · cột Kế hoạch / đơn liên quan · Việc tiếp theo */
+    const D=mineOf(m.key), BG=BGI.filter(x=>x.m===m.key), V=st.V||[], vd=V.find(o=>!o.khtl), vk=V.find(o=>o.khtl);
+    const verCell=(cv!=null?`<div><b>V${cv}</b>${cd&&cd.at?` · <span class="muted">${PT.hmd(cd.at)}</span>`:""}</div>`:`<div class="muted">${r.hasData?"chưa lưu phiên bản":"Chưa có dữ liệu"}</div>`)
+      +(vd?`<span class="ux-b o" data-zv="dang">Đang lập · cần xác nhận chênh lệch ${vTxt(vd.needV)} → ${vTxt(cv)}</span>`:"")
+      +(st.verCu?`<span class="ux-b o" data-zv="cu">${cv!=null?`Đã lập theo ${vk?vTxt(vk.needV):"bản cũ"} · có phiên bản mới ${vTxt(cv)}`:"Đã lập trước lần cập nhật nhu cầu mới nhất"}</span>`:"")
+      +(st.chuaLap?`<span class="ux-b o" data-zv="chua">Chưa lập kế hoạch</span>`:"")
+      +(st.stale?`<span class="ux-b o" data-zv="old">Dữ liệu cũ · ${esc(st.stale)}</span>`:"");
+    const chips=[...D.dang.map(o=>`<button type="button" class="ux-b b" data-zgo="${m.key}" data-gof="${o.id}">${esc(o.khtl?o.khtl.code:(KINDS[kindOf(o)]||{t:""}).t)} · đang lập</button>`),
+      ...D.grid.map(k=>`<button type="button" class="ux-b b" data-zgo="${m.key}">${esc(KINDS[k].t)} · bảng đang nhập</button>`),
+      ...D.khtl.map(o=>{ const x=khtlRd({m:m.key, md:m, o, st:IS_GC(o)?NV.planState(N,S,m.key,o):"khong-nvl"}); return `<button type="button" class="ux-b ${x.ready?"k":"g"}" data-gostep="5" data-focus="${o.id}">${esc(o.khtl.code)} · ${x.ready?"đủ ĐK":"KHTL"}</button>`; }),
+      ...BG.map(x=>`<button type="button" class="ux-b ${x.cat==="xu-ly"?"r":x.cat==="chua-bg"?"o":"g"}" data-gostep="6">${esc(Don.label(x.o,m))} · ${esc(BG_CAT[x.cat][0])}</button>`)];
+    const nextT=!r.hasData?`<a href="check-hero.html?m=${encodeURIComponent(m.key)}">Cập nhật nhu cầu trước khi lập →</a>`
+      :om==="none"?`<span class="muted">${Khung.ready(m)?"Chưa có xưởng":"Chưa khai size / màu"}</span>`
+      :vd?`Hoàn thiện ${esc(vd.khtl?vd.khtl.code:"kế hoạch đang lập")}, xác nhận chênh lệch ${vTxt(vd.needV)} → ${vTxt(cv)} trước khi chốt`
+      :st.verCu?`Rà soát chênh lệch ${vTxt(cv)} rồi kiểm tra &amp; chốt (không bắt buộc tạo thêm đơn)`
+      :BG.find(x=>x.cat==="xu-ly")?`<span style="color:var(--crit)">Xử lý ${esc(Don.label(BG.find(x=>x.cat==="xu-ly").o,m))}: ${esc(BG.find(x=>x.cat==="xu-ly").why.split(" · ")[0])}</span>`
+      :BG.find(x=>x.cat==="chua-bg")?`Bàn giao ${esc(Don.label(BG.find(x=>x.cat==="chua-bg").o,m))} cho sản xuất`
+      :D.khtl.length?`Theo dõi kế hoạch tương lai ${esc(D.khtl.map(o=>o.khtl.code).join(", "))}`
+      :D.dang.length||D.grid.length?"Hoàn thiện kế hoạch đang lập"
+      :st.chuaLap?`Lập kế hoạch theo ${vTxt(cv)}`:`<span class="muted">—</span>`;
+    const head=gh+`<tr class="m${sel?" sel":""}" data-zrow="${m.key}"><td><button class="tg" data-zm="${m.key}" aria-expanded="${open}">${esc(m.name)}</button>${m.theu?`<span class="mtag">Thêu TP</span>`:""}${m.phoi?`<span class="mtag">Áo phôi</span>`:""}
+        <div class="small muted" style="font-weight:500">PT ${esc(Khung.userName(m.owner)||"chưa phân công")}${G[pg]?` · <span class="ux-b ${G[pg][1]}">${G[pg][0]}</span>`:""}</div>${zBadges(m,st)}</td>
+      <td class="zv">${verCell}</td>
+      <td class="r due">${r.hasData?dueCell(a):"—"}</td>
       <td class="r" title="Kế hoạch đang lập + kế hoạch tương lai: chỉ tham chiếu, không trừ Cần đặt">${lp.n?`${fmt(lp.q)}<div class="small muted">${lp.n} kế hoạch</div>`:"0"}</td>
-      <td class="r">${a.C?`<button class="lk" data-zpop="${m.key}|">${fmt(a.C)}</button>`:"0"}</td><td class="r due">${r.hasData?dueCell(a):"—"}</td><td>${soonTxt(a,true)}</td>
-      <td class="small">${cv!=null?`<b>V${cv}</b>${cd&&cd.at?`<div class="muted">${PT.hmd(cd.at)}</div>`:""}`:`<span class="muted">chưa có</span>`}</td>
-      <td>${sel&&STEP!==1?`<span class="muted small">đang lập ↓</span>`:`<button class="btn ${ed&&om!=="none"?"primary":"ghost"}" data-zgo="${m.key}">${ed&&om!=="none"?"Lập kế hoạch":"Xem"}</button>`}${NEEDSET.has(m.key)?`<div class="small" style="color:var(--warn)">Chưa có kế hoạch theo ${vTxt(cv)}</div>`:""}${om==="none"?`<div class="small muted">${Khung.ready(m)?"chưa có xưởng":"chưa khai size / màu"}</div>`:""}${iss.length?`<div class="small" style="color:var(--warn)" title="${esc(iss.map(x=>x.t).join(" · "))}">⚠ ${esc(iss[0].t)}</div>`:""}</td></tr>`;
-    const pop=zOpen.pop===m.key+"|"?`<tr class="pop"><td colspan="12"><b>Đã đặt · ${esc(m.name)}</b>${popHtml(r.rows)}</td></tr>`:"";
+      <td class="r" title="Đơn đã chốt chưa về kho (tham chiếu, không trừ Cần đặt)">${a.C?`<button class="lk" data-zpop="${m.key}|">${fmt(a.C)}</button>`:"0"}</td>
+      <td class="zrel">${chips.length?chips.slice(0,4).join("")+(chips.length>4?`<span class="small muted">+${chips.length-4}</span>`:""):`<span class="muted">—</span>`}</td>
+      <td class="znext small">${nextT}${iss.length?`<div style="color:var(--warn)" title="${esc(iss.map(x=>x.t).join(" · "))}">⚠ ${esc(iss[0].t)}</div>`:""}</td>
+      <td class="r">${sel&&STEP!==1?`<span class="muted small">đang lập ↓</span>`:`<button class="btn ${ed&&om!=="none"?(st.chuaLap||vd?"primary":""):"ghost"}" data-zgo="${m.key}">${ed&&om!=="none"?(D.dang.length||D.khtl.length?"Mở kế hoạch":"Lập kế hoạch"):"Xem"}</button>`}</td></tr>`;
+    const pop=zOpen.pop===m.key+"|"?`<tr class="pop"><td colspan="8"><b>Đã đặt · ${esc(m.name)}</b>${popHtml(r.rows)}</td></tr>`:"";
     if(!open) return head+pop;
     const cols=Khung.colorsOfModel(m.key).filter(c=>r.rows.some(x=>x.c===c)).sort((x,y)=>{ const ax=agg(r.rows.filter(z=>z.c===x)), ay=agg(r.rows.filter(z=>z.c===y)); return GRP_RANK[ax.grp]-GRP_RANK[ay.grp]||(ay.cert+ay.uMax)-(ax.cert+ax.uMax)||order(x)-order(y); });
     return head+pop+cols.map(c=>{
       const cr=r.rows.filter(x=>x.c===c), ca=agg(cr), k=m.key+"|"+c, co=zOpen.c.has(k), nm=((S.catalog[m.key]||{})[c]||{}).name;
-      const line=`<tr class="c"><td><button class="tg" data-zc="${k}" aria-expanded="${co}"><b>${c}</b> ${esc(nm||COLOR_NAME[c]||"")}</button></td><td></td><td></td><td>${pillOf(ca.grp)}</td>
-        <td class="r">${ca.hasA?fmt(ca.A):"—"}</td><td class="r">${ca.hasB?fmt(ca.B):"—"}</td><td></td><td class="r">${ca.C?`<button class="lk" data-zpop="${k}">${fmt(ca.C)}</button>`:"0"}</td>
-        <td class="r due">${dueCell(ca)}</td><td>${soonTxt(ca)}</td><td></td><td></td></tr>`;
-      const cpop=zOpen.pop===k?`<tr class="pop"><td colspan="12"><b>Đã đặt · ${esc(m.name)} ${c}</b>${popHtml(cr)}</td></tr>`:"";
-      const sz=co?cr.slice().sort((x,y)=>x.i-y.i).map(x=>`<tr class="s"><td>${Khung.sizesOf(m.key)[x.i]}</td><td></td><td></td><td>${pillOf(grpOf(x))}</td><td class="r">${x.A??"—"}</td><td class="r">${x.B??"—"}</td><td></td><td class="r">${x.C||0}</td>
-        <td class="r due">${sure(x)?`<b>${fmt(Math.max(0,x.D))}</b>`:`<span class="unc">Chưa có Cần đặt</span>`}${x.after?`<div>${afterTxt(x)}</div>`:""}</td>
-        <td>${x.A===0&&(n(x.B)>0||n(x.D)>0)?`<span style="color:var(--crit);font-weight:600">đã hết</span>`:x.days!=null?`còn ~${Math.round(x.days)} ngày`:"—"}</td><td></td><td class="small muted" style="white-space:normal;max-width:320px">${esc((x.why||[])[0]||"")}</td></tr>`).join(""):"";
+      const line=`<tr class="c"><td><button class="tg" data-zc="${k}" aria-expanded="${co}"><b>${c}</b> ${esc(nm||COLOR_NAME[c]||"")}</button></td><td>${pillOf(ca.grp)}</td>
+        <td class="r due">${dueCell(ca)}</td><td></td><td class="r">${ca.C?`<button class="lk" data-zpop="${k}">${fmt(ca.C)}</button>`:"0"}</td>
+        <td class="small">Tồn ${ca.hasA?fmt(ca.A):"—"} · Cần đặt ${ca.hasB?fmt(ca.B):"—"}</td><td class="small">${soonTxt(ca)}</td><td></td></tr>`;
+      const cpop=zOpen.pop===k?`<tr class="pop"><td colspan="8"><b>Đã đặt · ${esc(m.name)} ${c}</b>${popHtml(cr)}</td></tr>`:"";
+      const sz=co?cr.slice().sort((x,y)=>x.i-y.i).map(x=>`<tr class="s"><td>${Khung.sizesOf(m.key)[x.i]}</td><td>${pillOf(grpOf(x))}</td>
+        <td class="r due">${sure(x)?`<b>${fmt(Math.max(0,x.D))}</b>`:`<span class="unc">Chưa có Cần đặt</span>`}${x.after?`<div>${afterTxt(x)}</div>`:""}</td><td></td><td class="r">${x.C||0}</td>
+        <td class="small">Tồn ${x.A??"—"} · Cần đặt ${x.B??"—"}</td>
+        <td class="small">${x.A===0&&(n(x.B)>0||n(x.D)>0)?`<span style="color:var(--crit);font-weight:600">đã hết</span>`:x.days!=null?`còn ~${Math.round(x.days)} ngày`:"—"}${(x.why||[])[0]?`<div class="muted" style="white-space:normal">${esc(x.why[0])}</div>`:""}</td><td></td></tr>`).join(""):"";
       return line+cpop+sz;
     }).join("");
   }).join("");
-  box.innerHTML=`<table class="zl"><thead><tr><th>Mã · màu · size</th><th>Phụ trách</th><th>Ưu tiên</th><th>Tình trạng</th><th class="r">Tồn kho</th><th class="r">Cần đặt</th><th class="r" title="Đang lập + kế hoạch tương lai (tham chiếu)">Đã lập KH</th><th class="r" title="Đơn đã chốt chưa về kho (tham chiếu)">Đã chốt</th><th class="r due">Còn phải đặt</th><th>Ngày cần</th><th>Phiên bản</th><th>Việc tiếp theo</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  box.innerHTML=`<table class="zl zl8"><thead><tr><th>Mã · Phụ trách · Ưu tiên</th><th>Phiên bản nhu cầu</th><th class="r due" title="= Còn phải đặt: đúng số Cần đặt quản lý cung cấp, không đối trừ PO">Cần đặt</th><th class="r" title="Đang lập + kế hoạch tương lai (tham chiếu)">Đã lập KH</th><th class="r" title="Đơn đã chốt chưa về kho (tham chiếu)">Đã chốt</th><th>Kế hoạch / đơn liên quan</th><th>Việc tiếp theo</th><th><span class="sr">Thao tác</span></th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
   /* Khu vực 3: tiêu đề mã đang chọn */
   const a=agg(ptOf().rows);
-  $("#z3Title").innerHTML=`Lập kế hoạch · ${esc(model().name)} <span class="muted small" style="font-weight:500">${esc(Khung.userName(model().owner))} · còn phải đặt ${fmt(a.cert)}${a.unc?` + ${a.unc} size chưa có Cần đặt`:""}</span>`;
+  { const k0=S.active, lp=lapOf(k0), cv=curV(k0), cd=(H.heroes[k0]||{}).cd, vf=verFlags(k0);   // CR03 Giai đoạn B: tóm tắt mã (khung trái của mockup màn 2) — chỉ tham chiếu, không trừ Cần đặt
+    $("#z3Title").innerHTML=`Lập kế hoạch · ${esc(model().name)} <span class="muted small" style="font-weight:500" data-z3sum>${esc(Khung.userName(model().owner))} · Cần đặt ${fmt(a.cert)}${a.unc?` + ${a.unc} size chưa có Cần đặt`:""} · Đang lập ${fmt(lp.q)} · Đã chốt ${fmt(a.C)} · Nhu cầu đang dùng ${cv!=null?`<b>V${cv}</b>${cd&&cd.at?" "+PT.hmd(cd.at):""}`:"chưa có phiên bản"}${vf.V.length?` · <span style="color:var(--warn)">${vf.V.length} kế hoạch lập theo bản cũ</span>`:""}${vf.stale?` · <span style="color:var(--warn)">dữ liệu cũ (${esc(vf.stale)})</span>`:""}. Số đang lập / đã chốt chỉ để đối chiếu, không trừ Cần đặt.</span>`; }
 }
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-zm],[data-zc],[data-zpop],[data-zgo]"); if(!t) return;
@@ -2410,6 +2533,12 @@ document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-bgact]"); if(!b) return;
   const cd=b.closest("[data-bgid]"), id=cd.dataset.bgid, mk=cd.dataset.bgm||S.active, P=S.models[mk]||{}, md=MODELS.find(x=>x.key===mk)||model();   // CR03: thẻ Chờ bàn giao gộp mọi mã
   const o=[...(P.orders||[]), ...(P.gapOrders||[])].find(x=>x.id===id); if(!o||!Khung.canEdit(mk)) return;
+  /* CR03 D-5: đổi người nhận giữ quyền hiện hành — chỉ Admin (server doi-thuc-thi kiểm lại), bắt buộc lý do */
+  if(b.dataset.bgact==="doi"){ if(!Khung.isAdmin()) return;
+    const tu=await Khung.pickUser(`Đổi người nhận đơn ${OL(o,md)}`, "Chỉ Admin. Người mới nhận việc tiếp nhận (hoặc trả lại) trong Công việc của mình. Không tạo thêm đơn."); if(!tu) return;
+    const why=(prompt(`Lý do đổi người nhận đơn ${OL(o,md)} (bắt buộc):`)||"").trim(); if(!why) return;
+    b.disabled=true; saveNow(); const r=await Don.op({op:"doi-thuc-thi", model:mk, oid:id, toUser:tu, reason:why});
+    if(r.status!==200) alert((r.j&&r.j.error)||"Không đổi được người nhận"); reloadS(); renderAll(); return; }
   const tu=await Khung.pickUser(`Bàn giao đơn sản xuất ${OL(o,md)}`, `Tạo đúng 1 việc trong Công việc của người được chọn (tiếp nhận hoặc trả lại). Không tạo thêm đơn. ${Khung.userName(md.owner)} vẫn quản lý SKU và kế hoạch.`); if(!tu) return;   // CR03 FIX-02: chọn người thực hiện
   b.disabled=true; saveNow();
   const r=await Don.op({op:"ban-giao", model:mk, oid:id, toUser:tu});
@@ -2431,10 +2560,12 @@ function renderCheck(){
         <div class="scroll"><table class="ck-sz"><thead><tr><th>Màu</th>${qMode(o)?"":"<th>Cây</th>"}${SZ_LABEL.map(s=>`<th>${s}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>
           ${o.lines.map(l=>`<tr><td>${l.color} · ${esc(catOf(l.color).name)}</td>${qMode(o)?"":`<td>${n(l.cay)}</td>`}${lineSizes(l).map(v=>`<td>${v}</td>`).join("")}<td><b>${lineQty(l)}</b></td></tr>`).join("")}</tbody></table></div>
         ${ckRowsHTML(K)}${r1Warn()}
-        ${!K.ok&&K.nvlOnly&&!o.khtl&&Khung.canEdit(S.active)?`<div class="ck-warn" style="margin:0 14px"><div class="info">Thiếu NVL gia công: chọn <b>A · Lưu kế hoạch tương lai</b> (theo dõi tới khi đủ NVL, chốt sau trên chính hồ sơ này)${K.adminOv?" hoặc <b>B · Chốt ngoại lệ</b> (Admin, bắt buộc lý do, ghi NVL còn thiếu; không tạo tồn ảo)":""}. <button class="btn" data-kact="save">A · Lưu kế hoạch tương lai</button></div></div>`:""}
+        ${!K.ok&&K.nvlOnly&&!o.khtl&&Khung.canEdit(S.active)?`<div class="ck-warn" style="margin:0 14px"><div class="info">Thiếu NVL gia công: chọn <b>A · Lưu kế hoạch tương lai</b> (theo dõi tới khi đủ NVL, chốt sau trên chính hồ sơ này; lập đơn mua thì mở trang Đặt mua NVL, phần thiếu điền sẵn, mỗi nhóm NVL một đơn mua, PO ERP riêng)${K.adminOv?" hoặc <b>B · Chốt ngoại lệ</b> (chỉ Admin, bắt buộc lý do, ghi NVL còn thiếu; không tạo tồn ảo)":""}.
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"><button class="btn" data-kact="save">A · Lưu kế hoạch tương lai</button>${IS_GC(o)?`<button class="btn primary" data-kact="savebuy">A · Lưu KHTL &amp; lập đơn mua NVL thiếu →</button>`:""}</div></div></div>`:""}
         <div class="ck-acts">${K.ok?`<span class="small muted">${K.worst==="kt"?"Có mục Cần kiểm tra: xem lại rồi vẫn chốt được.":"Mọi điều kiện đạt."} Chốt khoá số lượng, tính vào Đã đặt; chưa bàn giao, chưa gửi xưởng.</span>`
             :K.adminOv?`<span class="small" style="color:var(--warn)">Chỉ còn NVL gia công Chưa đạt: Admin chốt ngoại lệ được, bắt buộc ghi lý do (lưu người, giờ). Gửi xưởng khi thiếu NVL vẫn cần Admin xác nhận ngoại lệ.</span>`
             :`<span class="small" style="color:var(--crit)">Chưa chốt được: xử lý các mục Chưa đạt ở trên.${K.nvlOnly?" (Thiếu NVL: Admin có thể chốt ngoại lệ.)":""}</span>`}
+          ${K.list.stale&&(K.ok||K.adminOv)?`<label class="ck-stale small"><input type="checkbox" data-staleok="${o.id}"> Xác nhận chốt theo dữ liệu nhu cầu cũ (${esc(K.list.stale)})</label>`:""}
           ${K.adminOv?`<button class="btn" data-oact="close" style="margin-left:auto;border-color:var(--warn);color:var(--warn)"title="Admin chốt ngoại lệ khi NVL gia công chưa đạt: bắt buộc lý do">⚠ Chốt ngoại lệ (Admin)…</button>`
             :`<button class="btn ok" data-oact="close" style="margin-left:auto"${K.ok?"":" disabled"} title="${K.ok?"Chốt kế hoạch: khoá số lượng, tính vào Đã đặt":"Còn điều kiện Chưa đạt"}">✓ Chốt kế hoạch</button>`}</div>
       </div>`; }).join(""):"")
@@ -3133,12 +3264,13 @@ function bgItems(){
       const ph=Don.phase(o), iss=(o.vuong||[]).filter(v=>v.state!=="xong");
       let nv=null; if(!o.type&&IS_GC(o)&&!o.sentAt&&!o.nvlOut){ try { nv=NV.check(N,S,md.key,o); } catch(err){ nv=null; } }
       const short=!!nv&&NV_SHORT.includes(nv.state), due=o.dueDate||Don.addDays(o.date||td,LEAD), late=short&&due<td;
-      /* CR03 FIX-04: bàn giao · vấn đề (trả lại / vướng mắc / thiếu NVL / ngoại lệ) là các cờ độc lập. Nhóm chính (để đếm chỉ số, không trùng):
-         Chưa bàn giao (kể cả đang thiếu NVL / ngoại lệ: vẫn là việc bàn giao của quản lý) > Cần xử lý > Chờ tiếp nhận */
+      /* CR03 FIX-04: bàn giao · vấn đề (trả lại / vướng mắc / thiếu NVL / ngoại lệ) là các cờ độc lập. Nhóm chính (để đếm chỉ số, không trùng).
+         CR03 D-4 (quản lý chốt 25/11/2026): Cần quản lý xử lý > Đã chốt · chưa bàn giao > Đã bàn giao · chờ tiếp nhận.
+         Đơn chốt ngoại lệ thiếu NVL chưa bàn giao nằm ở Cần xử lý nhưng vẫn có nút Bàn giao (theo quyền); bộ lọc "Chưa bàn giao" vẫn tìm thấy */
       const bg=Don.bgState(o), F={traLai:ph==="tra-lai", vuong:iss.length>0, thieu:short, ngoaiLe:!!o.chotOverride&&short, chuaBg:bg==="chua-bg", choNhan:bg==="cho-nhan"};
       const W=[]; if(F.traLai) W.push("Bị trả lại · "+((o.exec||{}).traReason||"")); if(F.vuong) W.push("Vướng mắc chưa xong · "+iss.map(v=>v.text).join("; "));
       if(short) W.push((o.chotOverride?"Chốt ngoại lệ, còn thiếu NVL":"Thiếu NVL")+(late?" · đã quá ngày giao dự kiến":" · nguy cơ trễ hạn"));
-      const cat=F.chuaBg?"chua-bg":(F.traLai||F.vuong||short)?"xu-ly":F.choNhan?"cho-nhan":null;
+      const cat=(F.traLai||F.vuong||short)?"xu-ly":F.chuaBg?"chua-bg":F.choNhan?"cho-nhan":null;
       if(cat) L.push({m:md.key, md, o, ph, bg, cat, F, why:W.join(" · "), nv, short, late, due, iss});
     }); });
   const R={"xu-ly":0,"chua-bg":1,"cho-nhan":2}; L.sort((a,b)=>(b.why?1:0)-(a.why?1:0)||R[a.cat]-R[b.cat]||(a.due||"").localeCompare(b.due||""));
@@ -3147,42 +3279,52 @@ function bgItems(){
 /* Bộ lọc tab ④: 1 đơn có thể khớp nhiều bộ lọc (khác chỉ số đầu trang: mỗi đơn đếm 1 lần) */
 const BF_L=[["all","Tất cả",x=>true],["chua-bg","Chưa bàn giao",x=>x.F.chuaBg],["cho-nhan","Chờ tiếp nhận",x=>x.F.choNhan],["tra-lai","Bị trả lại",x=>x.F.traLai],["vuong","Vướng mắc",x=>x.F.vuong],["thieu","Thiếu NVL",x=>x.F.thieu],["ngoai-le","Chốt ngoại lệ còn thiếu NVL",x=>x.F.ngoaiLe],["nhan-xl","Chờ tiếp nhận / cần xử lý",x=>x.cat!=="chua-bg"]];
 const BG_CAT={"xu-ly":["Cần xử lý","p-bad"],"chua-bg":["Chưa bàn giao","p-warn"],"cho-nhan":["Chờ tiếp nhận","p-info"]};
-/* CR03 FIX-04 / FIX-06: 4 trạng thái tách riêng trên mỗi đơn — Kế hoạch · Bàn giao · NVL · Thực thi — kèm người chịu trách nhiệm */
 /* CR03 FIX-06: dòng tóm tắt chung cho mọi hồ sơ: Đang ở bước nào · Còn thiếu gì · Ai xử lý · Bước tiếp theo */
-const stepHTML = (buoc, thieu, ai, tiep) => `<div class="dims small" data-stepline><span><span class="l">Bước</span><b>${esc(buoc)}</b></span><span><span class="l">Còn thiếu</span>${thieu&&thieu.length?`<span style="color:var(--crit)">${esc([].concat(thieu).join(" · "))}</span>`:`<span style="color:var(--ok)">không</span>`}</span><span><span class="l">Phụ trách</span><b>${esc(ai)}</b></span><span><span class="l">Tiếp theo</span>${esc(tiep)}</span></div>`;
+const stepHTML = (buoc, thieu, ai, tiep) => `<div class="dims small" data-stepline><span><span class="l">Đang ở bước</span><b>${esc(buoc)}</b></span><span><span class="l">Còn thiếu</span>${thieu&&thieu.length?`<span style="color:var(--crit)">${esc([].concat(thieu).join(" · "))}</span>`:`<span style="color:var(--ok)">không</span>`}</span><span><span class="l">Ai chịu trách nhiệm</span><b>${esc(ai)}</b></span><span><span class="l">Bước tiếp theo</span><b>${esc(tiep)}</b></span></div>`;
 const BUYBG={nhap:"Nháp (chưa chốt)","chua-bg":"Đã chốt · chưa bàn giao","cho-nhan":"Chờ tiếp nhận","tra-lai":"Bị trả lại",nhan:"Đã tiếp nhận"};
 const BGS={"chua-bg":["Chưa bàn giao","p-warn"],"cho-nhan":["Chờ tiếp nhận","p-info"],"tra-lai":["Bị trả lại","p-bad"],nhan:["Đã tiếp nhận","p-ok"]};
-function dimsHTML(x){
-  const o=x.o, e=o.exec||{}, bg=BGS[x.bg]||["Không áp dụng","p-mute"], nvS=x.nv?(NV.STATE[x.nv.state]||x.nv.state):kindOf(o)==="gc"&&(o.nvlOut||o.sentAt)?"Đã xuất NVL":"Không dùng NVL gia công";
-  const nvP=x.nv?(x.short?"p-bad":x.nv.state==="du"?"p-ok":"p-warn"):"p-mute", ex=Don.progress?Don.progress(o).t:"";
-  const who=x.bg==="chua-bg"||x.bg==="tra-lai"?Khung.userName(x.md.owner)+" (quản lý kế hoạch)":e.user?Khung.userName(e.user)+" (thực thi)":Khung.userName(x.md.owner);
-  return `<div class="dims small" data-dims><span><span class="l">Kế hoạch</span><span class="pill p-ok">Đã chốt ${dmy(o.closed)}</span>${o.chotOverride?`<span class="pill p-warn">ngoại lệ</span>`:""}</span>
-    <span><span class="l">Bàn giao</span><span class="pill ${bg[1]}">${bg[0]}</span></span><span><span class="l">NVL</span><span class="pill ${nvP}">${esc(nvS)}</span></span>
-    <span><span class="l">Thực thi</span><span class="pill p-mute">${esc(Don.PHASE[x.ph]||ex||"—")}</span></span><span><span class="l">Phụ trách</span><b>${esc(who)}</b></span></div>`;
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-bf]"); if(!b) return; BF=b.dataset.bf; if(b.classList.contains("ux-clear")){ BQ=""; const q=$("[data-bq]"); if(q) q.value=""; } renderBgAll(); });
+/* CR03 Giai đoạn B (mockup màn 4): 3 bảng nhóm theo D-4, 5 cột vừa màn 1440px — Đơn · Mã · Vấn đề | Kế hoạch · Bàn giao | Điều kiện NVL | Phụ trách | Hành động.
+   Trạng thái kế hoạch, bàn giao, NVL, thực thi vẫn độc lập; vấn đề (lý do ngoại lệ / trả lại / vướng mắc / thiếu NVL) là dòng phụ dưới Đơn · Mã */
+let BQ="";
+document.addEventListener("input",e=>{ if(!e.target.matches||!e.target.matches("[data-bq]")) return; BQ=e.target.value; renderBgAll(); const q=$("[data-bq]"); if(q){ q.focus(); q.setSelectionRange(q.value.length,q.value.length); } });
+function bgRow(x){
+  const {o,md,ph}=x, e=o.exec||{}, can=Khung.canEdit(x.m), X=Don.xOf(o), lb=Don.label(o,md), bg=BGS[x.bg]||["Không áp dụng","p-mute"], U=Khung.userName;
+  const nvS=x.nv?(NV.STATE[x.nv.state]||x.nv.state):kindOf(o)==="gc"&&(o.nvlOut||o.sentAt)?"Đã xuất NVL":"Không áp dụng";
+  const nvP=x.nv?(x.short?"p-bad":x.nv.state==="du"?"p-ok":"p-warn"):"p-mute";
+  const nvT=x.nv&&x.short?((x.nv.rows||[]).filter(r=>r.status==="thieu").map(r=>`Thiếu ${r.it.name} ${fmt1(r.short)} ${r.unit}`).join(" · ")||nvS):nvS;
+  const who=x.bg==="chua-bg"||x.bg==="tra-lai"?U(md.owner)+" (quản lý)":e.user?U(e.user)+(x.iss.length?" → quản lý":" (thực thi)"):U(md.owner);
+  const ov=o.chotOverride, iss=[ov?`Chốt ngoại lệ · ${U(ov.by)} · lý do: ${ov.reason}${(ov.short||[]).length?` · thiếu lúc chốt: ${ov.short.map(z=>`${z.name} ${fmt1(z.short)} ${z.unit}`).join(", ")}`:""}`:"",
+    ph==="tra-lai"?`Bị trả lại · lý do: ${e.traReason||""}`:"", ...x.iss.map(v=>"Vướng mắc: "+v.text),
+    x.short?(ov?"Chốt ngoại lệ, còn thiếu NVL":"Thiếu NVL")+(x.late?` · đã quá ngày giao dự kiến ${dmy(x.due)}`:` · nguy cơ trễ hạn (giao dự kiến ${dmy(x.due)})`):""].filter(Boolean);
+  const sub=ph==="chua-bg"?`chốt ${dmy(o.closed)} · ${U(o.closedBy)}`:ph==="tra-lai"?`${U(e.traBy)} trả · ${Don.hm(e.traAt)}`:x.bg==="cho-nhan"?`${U(e.by)} → ${U(e.user)} · ${Don.hm(e.at)}`:e.ackAt?`${U(e.ackBy||e.user)} · ${Don.hm(e.ackAt)}`:"";
+  const acts=[(ph==="chua-bg"||ph==="tra-lai")&&can?`<button class="btn primary bw" data-bgact="giao">${ph==="tra-lai"?"Bàn giao lại sản xuất…":"Bàn giao sản xuất…"}</button>`:"",
+    x.bg==="cho-nhan"?`<div class="small">Chờ ${esc(U(e.user))} tiếp nhận hoặc trả lại</div>${Khung.isAdmin()?`<button class="btn bw" data-bgact="doi" title="Admin: bắt buộc ghi lý do">Đổi người nhận…</button>`:""}`:"",
+    x.iss.length?`<a class="btn bw" href="don-hang.html?id=${encodeURIComponent(o.id)}#vuong">Xử lý vướng mắc</a>`:"",
+    x.short&&can?`<a class="lkx" href="dat-mua.html?m=${encodeURIComponent(x.m)}">Xem NVL còn thiếu / đặt mua →</a>`:"",
+    `<a class="lkx" href="don-hang.html?id=${encodeURIComponent(o.id)}">Chi tiết đơn →</a>`].filter(Boolean).join("");
+  return `<tr data-bgid="${o.id}" data-bgm="${x.m}" data-bgcat="${x.cat}">
+    <td><b>${esc(lb)}</b> · ${esc(md.name)}<div class="small muted">${esc(Don.typeLabel(o))} · ${esc(X.name)} · ${fmt(recQ(x.m,o))} ${Khung.unitOf(x.m)}</div>${iss.map(t=>`<div class="small bgiss">${esc(t)}</div>`).join("")}</td>
+    <td data-dims><span class="pill ${ov?"p-warn":"p-ok"}">${ov?"Đã chốt · ngoại lệ":"Đã chốt"}</span><div style="margin-top:4px"><span class="pill ${bg[1]}">${bg[0]}</span></div><div class="small muted" style="margin-top:3px">${esc(sub)}${sub?" · ":""}Thực thi: ${esc(Don.PHASE[ph]||(Don.progress?Don.progress(o).t:"")||"—")}</div></td>
+    <td><span class="pill ${nvP}" style="white-space:normal">${esc(nvT)}</span></td>
+    <td class="small">${esc(who)}</td>
+    <td><div class="bga">${acts}</div></td></tr>`;
 }
-function bgCard2(x){
-  const {o,md,ph}=x, e=o.exec||{}, can=Khung.canEdit(x.m), X=Don.xOf(o), lb=Don.label(o,md);
-  const nx=ph==="tra-lai"?"Xử lý lý do trả lại rồi bàn giao lại":x.iss.length?"Mở đơn, xử lý vướng mắc":x.short?"Bổ sung NVL (đặt mua / giữ NVL) trước khi gửi xưởng"+(ph==="chua-bg"?"; bàn giao khi sẵn sàng":""):ph==="chua-bg"?`Bàn giao cho ${execName()}`:ph==="cho-nhan"?`Chờ ${Khung.userName(e.user)} tiếp nhận hoặc trả lại`:"";
-  const ov=o.chotOverride?`<div class="warn">⚠ Chốt ngoại lệ thiếu NVL · ${esc(Khung.userName(o.chotOverride.by))} ${PT.hmd(o.chotOverride.at)} · lý do: ${esc(o.chotOverride.reason)}${(o.chotOverride.short||[]).length?` · thiếu lúc chốt: ${esc(o.chotOverride.short.map(z=>`${z.name} ${fmt1(z.short)} ${z.unit}`).join(", "))}`:""}</div>`:"";
-  const nvT=x.nv&&x.short?`<div class="${x.late?"bad":"warn"}">NVL: ${esc(NV.STATE[x.nv.state]||x.nv.state)}${(x.nv.rows||[]).filter(r=>r.status==="thieu").map(r=>` · thiếu ${esc(r.it.name)} ${fmt1(r.short)} ${esc(r.unit)}`).join("")} · ngày giao dự kiến ${dmy(x.due)}${x.late?" (đã quá)":""}</div>`:"";
-  return `<div class="panel ck-card bg-card" data-bgid="${o.id}" data-bgm="${x.m}" data-bgcat="${x.cat}">
-    <div class="ck-head"><h3>${esc(lb)}</h3><span class="muted">${esc(md.name)} · ${esc(X.name)} · ${esc(Don.typeLabel(o))} · ${fmt(recQ(x.m,o))} ${Khung.unitOf(x.m)} · ${esc(Khung.userName(md.owner))}</span>
-      <span class="pill ${BG_CAT[x.cat][1]}">${BG_CAT[x.cat][0]}</span>
-      <a class="btn ghost" href="don-hang.html?id=${encodeURIComponent(o.id)}${x.iss.length?"#vuong":""}" style="margin-left:auto">Chi tiết đơn →</a></div>
-    ${dimsHTML(x)}
-    <div class="ck-warn">${x.why?`<div class="bad">${esc(x.why)}</div>`:""}${ov}${nvT}
-      ${ph==="cho-nhan"?`<div class="info">Bàn giao ${Don.hm(e.at)} · ${esc(Khung.userName(e.by))} → <b>${esc(Khung.userName(e.user))}</b></div>`:""}</div>
-    <div class="kh-next"><b>Tiếp theo:</b> ${esc(nx)}</div>
-    <div class="ck-acts">${x.short&&can?`<a class="btn" href="dat-mua.html?m=${encodeURIComponent(x.m)}">Đặt mua NVL →</a>`:""}
-      ${(ph==="chua-bg"||ph==="tra-lai")&&can?`<button class="btn primary" data-bgact="giao" style="margin-left:auto">${ph==="tra-lai"?"Bàn giao lại sản xuất…":"Bàn giao sản xuất…"}</button>`:""}</div></div>`;
-}
-document.addEventListener("click",e=>{ const b=e.target.closest("[data-bf]"); if(!b) return; BF=b.dataset.bf; renderBgAll(); });
+const BG_GRP=[["xu-ly","Cần quản lý xử lý","p-bad","Chốt ngoại lệ thiếu NVL, bị trả lại, có vướng mắc · hiện theo quyền"],["chua-bg","Đã chốt · chưa bàn giao","p-warn","Bàn giao ngay hoặc để sau, đơn vẫn nằm ở đây"],["cho-nhan","Đã bàn giao · chờ tiếp nhận","p-info","Ghi nhận người giao, người nhận, thời điểm"]];
 function renderBgAll(){
   const box=$("#bgList"); if(!box||GUI_ID) return;
   const L=bgItems(), fOf=k=>(BF_L.find(f=>f[0]===k)||BF_L[0])[2]; if(!BF_L.some(f=>f[0]===BF)) BF="all";
-  const sh=L.filter(fOf(BF));
-  $("#bgFilter").innerHTML=`<div class="ux-bar" style="margin-bottom:8px"><div class="ux-chips">${BF_L.filter(([k])=>k!=="nhan-xl"||BF==="nhan-xl").map(([k,t,f])=>`<button type="button" class="ux-chip${["thieu","ngoai-le","tra-lai","vuong"].includes(k)?" t-o":""}${BF===k?" on":""}" data-bf="${k}">${t} <span class="n">${L.filter(f).length}</span></button>`).join("")}</div><span class="ux-hint">1 đơn có thể khớp nhiều bộ lọc. Đã tiếp nhận và không còn vấn đề → rời danh sách, theo dõi ở Đơn sản xuất / Giám sát.</span></div>`;
-  box.innerHTML=sh.length?sh.map(bgCard2).join(""):`<div class="panel empty" style="padding:24px;text-align:center;color:var(--muted)">Không có đơn nào${BF==="all"?" chờ bàn giao hoặc cần xử lý":" theo bộ lọc này"}.</div>`;
+  const qn=Khung.norm(BQ||""), qOk=x=>!qn||qn.split(/\s+/).filter(Boolean).every(w=>Khung.norm([Don.label(x.o,x.md),x.md.name,x.md.code||"",x.why].join(" ")).includes(w));
+  const sh=L.filter(fOf(BF)).filter(qOk);
+  if(!$("[data-bq]")) $("#bgFilter").innerHTML=`<div class="ux-bar" style="margin-bottom:8px;display:grid;gap:6px"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><div class="ux-chips" data-bfchips></div>
+    <input class="ux-q" type="search" data-bq value="${esc(BQ)}" placeholder="Tìm đơn, mã…" aria-label="Tìm đơn, mã" autocomplete="off" style="margin-left:auto;min-width:200px"></div>
+    <span class="ux-hint">Mỗi đơn đếm ở một nhóm (Cần xử lý → Chưa bàn giao → Chờ tiếp nhận). Bộ lọc tìm theo mọi trạng thái: một đơn có thể khớp nhiều bộ lọc. Đã tiếp nhận và không còn vấn đề → rời danh sách, theo dõi ở Đơn sản xuất / Giám sát.</span></div>`;
+  $("[data-bfchips]").innerHTML=BF_L.filter(([k])=>k!=="nhan-xl"||BF==="nhan-xl").map(([k,t,f])=>`<button type="button" class="ux-chip${["thieu","ngoai-le","tra-lai","vuong"].includes(k)?" t-o":""}${BF===k?" on":""}" data-bf="${k}">${t} <span class="n">${L.filter(f).length}</span></button>`).join("");
+  const col=`<colgroup><col style="width:32%"><col style="width:20%"><col style="width:15%"><col style="width:13%"><col style="width:20%"></colgroup>`;
+  box.innerHTML=sh.length?BG_GRP.map(([k,t,p,d])=>{ const G=sh.filter(x=>x.cat===k); if(!G.length) return "";
+      return `<section class="panel bgsec" data-bggrp="${k}"><div class="bgh"><h3>${t}</h3><span class="pill ${p}">${G.length}</span><span class="small muted">${d}</span></div>
+        <table class="bgt">${col}<thead><tr><th>Đơn · Mã · Vấn đề</th><th>Kế hoạch · Bàn giao</th><th>Điều kiện NVL</th><th>Phụ trách</th><th>Hành động tiếp theo</th></tr></thead><tbody>${G.map(bgRow).join("")}</tbody></table></section>`; }).join("")
+    :`<div class="panel empty" style="padding:24px;text-align:center;color:var(--muted)" data-bgempty>${L.length?`Không có đơn ở bộ lọc "${esc((BF_L.find(f=>f[0]===BF)||BF_L[0])[1])}"${BQ?` khớp "${esc(BQ)}"`:""}. <button type="button" class="ux-clear" data-bf="all">Bỏ lọc</button>`:`<b>Không có đơn chờ bàn giao hay cần xử lý.</b><br>Đơn đã tiếp nhận và không còn vấn đề được theo dõi ở <a href="theo-doi.html">Đơn sản xuất</a> và Giám sát.`}</div>`;
   if(BG_ID){ const el=box.querySelector(`[data-bgid="${CSS.escape(BG_ID)}"]`); if(el) el.style.outline="2px solid var(--accent)"; }
 }
 
@@ -3192,22 +3334,46 @@ const tsOf = o => n(o.closedTs)||n(o.khtl&&o.khtl.at)||(+String(o.id||"").replac
 /* Mã đã có kế hoạch / đơn lập theo phiên bản Cần đặt đang dùng (bản cũ chưa có số phiên bản: lập sau lần cập nhật Cần đặt) */
 function handled(key){ const c=curV(key), at=PT.times(H.heroes[key]).need.at||0, P=S.models[key]||{};
   return [...(P.orders||[]), ...(P.gapOrders||[])].some(o=>!o.cancelled&&(c!=null&&o.needV!=null?+o.needV===c:tsOf(o)>=at)); }
+/* CR03 Giai đoạn B (mockup đã duyệt): kế hoạch / KHTL đang mở lập theo phiên bản Cần đặt cũ, chưa xác nhận chênh lệch */
+const verChg = key => { const D=mineOf(key); return [...D.dang, ...D.khtl].filter(o=>vChanged(o,key)&&!vAcked(o,key)); };
+const hasAnyPlan = key => { const D=mineOf(key); return D.dang.length+D.khtl.length+D.chot.length+D.grid.length>0; };
+/* Dữ liệu nhu cầu đã cũ (quá kỳ / chưa ghi giờ) nhưng đã có số: cùng quy tắc với dòng "Dữ liệu nhu cầu" của chotChecks (FIX-05) */
+function dataStale(key){ const st=(zStates(shownModels())[key])||{}, hd=H.heroes[key]||{};
+  const hasNum=Object.values(hd.need||{}).some(r=>(r||[]).some(v=>v!==null&&v!==undefined&&v!==""));
+  return st.data&&st.data!=="ok"&&st.data!=="loi"&&hasNum?(st.data==="chua"?"chưa ghi giờ cập nhật":st.dataT+(st.ageT?` (${st.ageT})`:"")):null; }
+/* Đơn mua NVL của KHTL ở trạng thái quản lý còn phải làm: Nháp · Đã chốt chưa bàn giao · Bị nhân viên trả lại */
+const BUY_MGR=["nhap","chua-bg","tra-lai"];
+const khtlBuy = o => khtlLists(o.id).filter(L=>L.status!=="huy");
 function dashData(){
   const ms=shownModels(), A=khtlAll().filter(x=>!x.o.closed&&!x.o.cancelled), B=bgItems(); let dang=0; NEEDSET=new Set();
   ms.forEach(m=>{ const D=mineOf(m.key); dang+=D.dang.length+D.grid.length; if(Khung.orderMode(m)==="none") return;
     let a=null; try { a=agg(ptOf(m.key).rows); } catch(e){} if(a&&(a.cert>0||a.unc>0)&&!handled(m.key)) NEEDSET.add(m.key); });
+  /* D-3: giữ logic hiện hành; tách riêng số mã đã có kế hoạch / đơn nhưng theo phiên bản cũ */
+  const nVer=[...NEEDSET].filter(hasAnyPlan).length;
+  /* Dòng phụ thẻ KHTL chưa đủ (quy tắc đếm, mỗi KHTL tối đa 1 nhóm): (a) gia công thiếu NVL chưa có đơn mua nào; (b) có ≥ 1 đơn mua NVL Nháp / Đã chốt chưa bàn giao / Bị trả lại */
+  const notR=A.filter(x=>!x.ready), nvlMiss=x=>x.miss.some(z=>/^NVL/.test(z));
+  const kA=notR.filter(x=>IS_GC(x.o)&&nvlMiss(x)&&!khtlBuy(x.o).length).length, kB=notR.filter(x=>khtlBuy(x.o).some(L=>BUY_MGR.includes(Don.buyBg(L)))).length;
   return [
-    {k:"lap", t:"Mã cần lập kế hoạch", v:NEEDSET.size, d:"Còn phải đặt > 0, chưa có kế hoạch theo bản Cần đặt đang dùng", go:1, tone:"o"},
-    {k:"dang", t:"Kế hoạch đang lập", v:dang, d:"chưa chốt, chưa lưu kế hoạch tương lai (gồm bảng thêu / phôi đang nhập)", go:2, tone:"b"},
-    {k:"khtl-chua", t:"KHTL chưa đủ điều kiện", v:A.filter(x=>!x.ready).length, d:"thiếu số lượng / xưởng / NVL", go:5, kf:"not", tone:"g"},
-    {k:"khtl-du", t:"KHTL đủ điều kiện chờ chốt", v:A.filter(x=>x.ready).length, d:"không tự chốt", go:5, kf:"ready", tone:"k"},
-    {k:"bg", t:"Đơn chờ bàn giao", v:B.filter(x=>x.cat==="chua-bg").length, d:"đã chốt, chưa bàn giao (kể cả đơn đang thiếu NVL / ngoại lệ)", go:6, bf:"chua-bg", tone:"o"},
-    {k:"xl", t:"Chờ tiếp nhận / cần xử lý", v:B.filter(x=>x.cat!=="chua-bg").length, d:"trả lại · vướng mắc · thiếu NVL · chờ nhận", go:6, bf:"nhan-xl", tone:"r"}];
+    {k:"lap", t:"Mã cần lập kế hoạch", u:"mã", v:NEEDSET.size, s:nVer?`gồm ${nVer} mã có phiên bản nhu cầu mới`:"", dd:"Cần đặt > 0, chưa có kế hoạch theo bản đang dùng", d:"Còn phải đặt > 0, chưa có kế hoạch theo bản Cần đặt đang dùng (kể cả mã đã lập theo bản cũ, cần rà soát; không bắt buộc tạo thêm đơn)", go:1, tone:"o"},
+    {k:"dang", t:"Kế hoạch đang lập", u:"hồ sơ", v:dang, d:"chưa chốt, chưa lưu kế hoạch tương lai (gồm bảng thêu / phôi đang nhập)", go:2, tone:"b"},
+    {k:"khtl-chua", t:"KHTL chưa đủ điều kiện", u:"hồ sơ", v:notR.length, s:[kA?`${kA} chưa có đơn mua NVL`:"", kB?`${kB} có đơn mua chưa bàn giao / bị trả lại`:""].filter(Boolean).join(" · "),
+      dd:"thiếu số lượng / xưởng / NVL", d:"thiếu số lượng / xưởng / NVL. Dòng phụ đếm trong số KHTL chưa đủ: (a) gia công thiếu NVL chưa có đơn mua nào; (b) có ít nhất 1 đơn mua NVL đang Nháp, Đã chốt chưa bàn giao hoặc Bị nhân viên trả lại. Một KHTL thuộc tối đa 1 nhóm.", go:5, kf:"not", tone:"g"},
+    {k:"khtl-du", t:"KHTL đủ điều kiện chờ chốt", u:"hồ sơ", v:A.filter(x=>x.ready).length, d:"không tự chốt", go:5, kf:"ready", tone:"k"},
+    {k:"bg", t:"Đơn chờ bàn giao", u:"đơn", v:B.filter(x=>x.cat==="chua-bg").length, d:"đã chốt, chưa bàn giao, không có vấn đề cần xử lý", go:6, bf:"chua-bg", tone:"o"},
+    {k:"xl", t:"Chờ tiếp nhận / cần xử lý", u:"đơn", v:B.filter(x=>x.cat!=="chua-bg").length, dd:"trả lại · vướng mắc · thiếu NVL · chờ nhận", d:"trả lại · vướng mắc · thiếu NVL (kể cả chốt ngoại lệ chưa bàn giao) · chờ nhận", go:6, bf:"nhan-xl", tone:"r"}];
 }
 function renderDash(){
   const el=$("#kDash"); if(!el||GUI_ID) return;
-  el.innerHTML=dashData().map(t=>`<button type="button" class="kd${t.v?" on t-"+t.tone:""}" data-kd="${t.k}" data-go="${t.go}"${t.kf?` data-kf2="${t.kf}"`:""}${t.bf?` data-bf2="${t.bf}"`:""} title="${esc(t.d)}"><span class="v num">${t.v}</span><span class="l">${esc(t.t)}</span><span class="d">${esc(t.d)}</span></button>`).join("");
+  el.innerHTML=dashData().map(t=>`<button type="button" class="kd${t.v?" on t-"+t.tone:""}" data-kd="${t.k}" data-go="${t.go}"${t.kf?` data-kf2="${t.kf}"`:""}${t.bf?` data-bf2="${t.bf}"`:""} title="${esc(t.d)}"><span class="v num">${t.v}<span class="u">${esc(t.u||"")}</span></span><span class="l">${esc(t.t)}</span>${t.s?`<span class="s" data-kds>${esc(t.s)}</span>`:""}<span class="d">${esc(t.dd||t.d)}</span></button>`).join("");
+  /* Dải tình trạng nhu cầu đầu trang: kỳ cập nhật · mã có phiên bản mới hơn kế hoạch · mã dữ liệu cũ */
+  let hd=$("#kHead"); if(!hd){ hd=document.createElement("div"); hd.id="kHead"; hd.className="khead"; el.before(hd); }
+  const ms=shownModels(); let PG=null; try { PG=Don.periodProgress(S,H.heroes); } catch(e){}
+  const F=ms.map(m=>verFlags(m.key)), nV=F.filter(f=>f.verCu||f.verDang).length, nS=F.filter(f=>f.stale).length;
+  hd.innerHTML=[PG?`<span class="ux-b ${PG.du===PG.total?"k":"o"}" data-khky>Nhu cầu kỳ ${esc(Don.thu(PG.due))} ${esc(Don.dm(PG.due))}: ${PG.du}/${PG.total} mã đã cập nhật</span>`:"",
+    nV?`<button type="button" class="ux-b o" data-zfgo="ver" data-khver>${nV} mã có phiên bản nhu cầu mới hơn kế hoạch</button>`:"",
+    nS?`<button type="button" class="ux-b o" data-zfgo="cu" data-khold>${nS} mã dữ liệu nhu cầu đã cũ</button>`:""].filter(Boolean).join(" ");
 }
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-zfgo]"); if(!b) return; ZF=b.dataset.zfgo; try{ localStorage.setItem(ZFK,ZF); }catch(err){} setStep(1); renderOverview(); });
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-kd]"); if(!b) return;
   if(b.dataset.kf2) KF=b.dataset.kf2; if(b.dataset.bf2) BF=b.dataset.bf2;
   if(b.dataset.kd==="lap"){ ZF="lap"; try{ localStorage.setItem(ZFK,ZF); }catch(err){} }
