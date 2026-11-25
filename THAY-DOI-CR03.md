@@ -74,3 +74,15 @@ Bộ Đợt 2 cập nhật 2 kiểm tra theo thay đổi CR03 đã duyệt: tên
 | Hồi quy V5.4 bản hoàn thiện | 25/25 |
 | Hồi quy V5.4 Đợt 3 | 29/29 · JS 81 lượt 0 lỗi |
 | Hồi quy V5.4 Đợt 2 | 37/38 · JS 75 lượt 0 lỗi · NVL-03 sai từ trước CR-01 (chỉ là chữ nhãn cột, chức năng đã làm ở Đợt 3) |
+## Giai đoạn B · giao diện theo mockup đã duyệt (D-1 → D-5), commit 2fd9ac4 (25/11/2026)
+| Nhóm | Thay đổi | File |
+|---|---|---|
+| Đầu trang & thẻ | Dải kỳ cập nhật / phiên bản mới / dữ liệu cũ; đơn vị đếm; dòng phụ thẻ 1 (D-3) và thẻ KHTL chưa đủ: (a) gia công thiếu NVL chưa có đơn mua · (b) có đơn mua Nháp / chưa bàn giao / bị trả lại; thẻ 5 / 6 theo D-4 | `ke-hoach.html` |
+| Tab Nhu cầu | 8 cột theo mockup; nhãn Chưa lập / Đã lập theo Vx có Vy / Đang lập cần xác nhận / Dữ liệu cũ; bộ lọc; dải cảnh báo | `ke-hoach.html` |
+| Tab Lập kế hoạch | 4 ô bước; tóm tắt mã; ô tick xác nhận dữ liệu cũ cạnh nút Chốt (`dataAck.via=tick`); nút Lưu KHTL & lập đơn mua NVL thiếu | `ke-hoach.html` |
+| Tab KHTL | Bảng 6 cột; lọc Đang chờ tôi / Đã giao nhân viên; đơn mua bị trả lại kèm lý do; gắn đơn mua có sẵn; chi tiết dưới dòng | `ke-hoach.html` |
+| Tab Bàn giao | 3 bảng D-4 (Cần xử lý → Chưa bàn giao → Chờ tiếp nhận), 5 cột, tìm kiếm; Đổi người nhận chỉ Admin (D-5, `doi-thuc-thi` sẵn có) | `ke-hoach.html` |
+| Quản lý NVL | `?plan=` lọc theo kế hoạch + chốt & bàn giao hàng loạt từng đơn (D-1), kết quả từng đơn + thử lại; `?gan=` gắn đơn mua đặt trước (`du-kien` sẵn có) | `nvl-trang.js` |
+| Server | Không sửa | — |
+
+Kiểm thử trên 2fd9ac4: Giai đoạn B 21/21 · CR03 37/37 · CR02 21/21 + 25/25 · CR01 12/12 · V5.4 27/27 · 29/29 · 37/38 (NVL-03 từ trước) · nâng cấp / rollback như ghi chú ở trên (NC-03 cần dọn KHTL chưa có xưởng trước khi rollback).
